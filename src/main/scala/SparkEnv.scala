@@ -1,12 +1,22 @@
 package io.univalence.sparkzio
 
 import org.apache.spark.sql.{ DataFrame, Dataset, SparkSession }
-import scalaz.zio.{ Task, TaskR, ZIO }
+import scalaz.zio.{ DefaultRuntime, IO, Task, TaskR, ZIO }
 
 case class OptionSpark(
   key: String   = "",
   value: String = ""
 )
+
+trait Write {
+  def option(key: String, value: String): Write
+
+  def textFile(path: String): Task[Unit]
+
+  def parquet(path: String): Task[Unit]
+
+  def cache: Task[Unit]
+}
 
 trait SparkEnv {
 
@@ -20,26 +30,7 @@ trait SparkEnv {
 
   def read: Read
 
-  trait Write {
-    def option(key: String, value: String): Write
-
-    def textFile(path: String): Task[Unit]
-
-    def parquet(path: String): Task[Unit]
-
-    def cache: Task[Unit]
-  }
-
   def write[T](ds: Dataset[T]): Write
-
-  object implicits {
-
-    implicit class DsOps[T](ds: Dataset[T]) {
-      def zcache: Task[Dataset[T]] = Task.effect(ds.cache)
-
-      def zwrite: Write = write(ds)
-    }
-  }
 
   trait Query {
     def sql(query: String): Task[DataFrame]
@@ -84,8 +75,39 @@ class SparkZIO(ss: SparkSession) extends SparkEnv {
 }
 
 object SparkEnv {
+
+  object implicits {
+
+    implicit class DsOps[T](ds: Dataset[T]) {
+      def zcache: Task[Dataset[T]] = Task.effect(ds.cache)
+
+      def zwrite: Write = ???
+    }
+  }
+
   type TaskS[X] = TaskR[SparkEnv, X]
 
   def sql(query: String): TaskS[DataFrame] =
     ZIO.accessM(_.query.sql(query))
+}
+
+object SparkTest {
+
+  def main(args: Array[String]): Unit = {
+
+    val runtime: DefaultRuntime = new DefaultRuntime {}
+    val sparkEnv                = new SparkZIO(SparkSession.builder.getOrCreate())
+
+    import SparkEnv.implicits._
+
+    val programWrite: ZIO[SparkEnv, Throwable, DataFrame] = for {
+      df <- sparkEnv.read.textFile("tata")
+      _  <- df.zwrite.textFile("tata3")
+    } yield df
+
+    val liveProgramWrite: IO[Throwable, DataFrame] = programWrite.provide(sparkEnv)
+
+    val ya: DataFrame = runtime.unsafeRun(liveProgramWrite)
+    ya.show()
+  }
 }
