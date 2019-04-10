@@ -94,7 +94,7 @@ object SparkTest {
   def main(args: Array[String]): Unit = {
 
     val runtime: DefaultRuntime = new DefaultRuntime {}
-    val sparkEnv                = new SparkZIO(SparkSession.builder.getOrCreate())
+    val sparkEnv                = new SparkZIO(SparkSession.builder.master("local[*]").getOrCreate())
 
     import SparkEnv.implicits._
 
