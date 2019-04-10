@@ -89,6 +89,8 @@ object SparkEnv {
     ZIO.accessM(_.query.sql(query))
 }
 
+
+//TODO Move to Test
 object SparkTest {
 
   def main(args: Array[String]): Unit = {
