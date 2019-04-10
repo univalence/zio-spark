@@ -36,6 +36,9 @@ trait SparkEnv {
 
   trait Query {
     def sql(query: String): Task[DataFrame]
+
+    //Maybe one day ?
+    //def select(query: String): Task[DataFrame]
   }
 
   def query: Query
@@ -74,6 +77,8 @@ object SparkEnv {
       def zcache: Task[Dataset[T]] = Task.effect(ds.cache)
 
       def zwrite: Write[T] = new Write(ds, Seq.empty)
+
+      def zselect(query: String): Task[DataFrame] = Task.effect(ds.select(query))
     }
 
   }
