@@ -13,7 +13,7 @@ class SparkEnvImplicitClassTest extends FunSuite {
     import io.univalence.sparkzio.SparkEnv.implicits._
     import ss.implicits._
     val df: DataFrame        = Seq("to", "to").toDF()
-    val df2: Task[DataFrame] = df.zselect("*")
+    val df2: Task[DataFrame] = df.zselect('value)
 
     runtime.unsafeRun(df2).show()
   }
