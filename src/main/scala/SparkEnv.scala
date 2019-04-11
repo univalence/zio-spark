@@ -1,7 +1,7 @@
 package io.univalence.sparkzio
 
-import org.apache.spark.sql.{ DataFrame, Dataset, SparkSession }
-import scalaz.zio.{ DefaultRuntime, IO, Task, TaskR, ZIO }
+import org.apache.spark.sql.{Column, DataFrame, Dataset, SparkSession}
+import scalaz.zio.{DefaultRuntime, IO, Task, TaskR, ZIO}
 
 /*
 case class OptionSpark(
@@ -79,6 +79,8 @@ object SparkEnv {
       def zwrite: Write[T] = new Write(ds, Seq.empty)
 
       def zselect(query: String): Task[DataFrame] = Task.effect(ds.select(query))
+
+      def zwithColumn(colName: String, col: Column): Task[DataFrame] = Task.effect(ds.withColumn(colName, col))
     }
 
   }
