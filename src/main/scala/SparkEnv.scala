@@ -78,7 +78,7 @@ object SparkEnv {
 
       def zwrite: Write[T] = new Write(ds, Seq.empty)
 
-      def zselect(query: Column): Task[DataFrame] = Task.effect(ds.select(query))
+      def zselect(cols: Column*): Task[DataFrame] = Task.effect(ds.select(cols: _*))
 
       def zwithColumn(colName: String, col: Column): Task[DataFrame] = Task.effect(ds.withColumn(colName, col))
     }
