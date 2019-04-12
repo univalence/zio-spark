@@ -80,6 +80,8 @@ object SparkEnv {
 
       def zselect(cols: Column*): Task[DataFrame] = Task.effect(ds.select(cols: _*))
 
+      def zselect(query: String): Task[DataFrame] = Task.effect(ds.select(query))
+
       def zwithColumn(colName: String, col: Column): Task[DataFrame] = Task.effect(ds.withColumn(colName, col))
     }
 
