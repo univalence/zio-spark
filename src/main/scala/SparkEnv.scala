@@ -1,14 +1,7 @@
 package io.univalence.sparkzio
 
-import org.apache.spark.sql.{Column, DataFrame, Dataset, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import scalaz.zio.{DefaultRuntime, IO, Task, TaskR, ZIO}
-
-/*
-case class OptionSpark(
-                        key: String = "",
-                        value: String = ""
-                      )
- */
 
 class Write[T](ds: Dataset[T], options: Seq[(String, String)]) {
   def option(key: String, value: String): Write[T] = new Write(ds, options :+ (key -> value))
@@ -36,9 +29,6 @@ trait SparkEnv {
 
   trait Query {
     def sql(query: String): Task[DataFrame]
-
-    //Maybe one day ?
-    //def select(query: String): Task[DataFrame]
   }
 
   def query: Query
@@ -78,11 +68,6 @@ object SparkEnv {
 
       def zwrite: Write[T] = new Write(ds, Seq.empty)
 
-      def zselect(cols: Column*): Task[DataFrame] = Task.effect(ds.select(cols: _*))
-
-      def zselect(query: String): Task[DataFrame] = Task.effect(ds.select(query))
-
-      def zwithColumn(colName: String, col: Column): Task[DataFrame] = Task.effect(ds.withColumn(colName, col))
     }
 
   }
