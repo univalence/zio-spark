@@ -32,19 +32,21 @@ trait SparkEnv {
   }
 
   def query: Query
+
+  def ss: Task[SparkSession]
 }
 
-class SparkZIO(ss: SparkSession) extends SparkEnv {
+class SparkZIO(spark: SparkSession) extends SparkEnv {
 
   val readTrait: Read = new Read {
     override def option(key: String, value: String): Read =
       ???
 
     override def parquet(path: String): Task[DataFrame] =
-      Task.effect(ss.read.parquet(path))
+      Task.effect(spark.read.parquet(path))
 
     override def textFile(path: String): Task[DataFrame] =
-      Task.effect(ss.read.textFile(path).toDF())
+      Task.effect(spark.read.textFile(path).toDF())
   }
 
   override def read: Read = readTrait
@@ -53,10 +55,12 @@ class SparkZIO(ss: SparkSession) extends SparkEnv {
 
   val queryTrait: Query = new Query {
     override def sql(query: String): Task[DataFrame] =
-      Task.effect(ss.sql(query))
+      Task.effect(spark.sql(query))
   }
 
   override def query: Query = queryTrait
+
+  override def ss: Task[SparkSession] = Task.effect(spark)
 }
 
 object SparkEnv {
@@ -76,6 +80,10 @@ object SparkEnv {
 
   def sql(query: String): TaskS[DataFrame] =
     ZIO.accessM(_.query.sql(query))
+
+  def sparkSession(): TaskS[SparkSession] = {
+    ZIO.accessM(_.ss)
+  }
 }
 
 
