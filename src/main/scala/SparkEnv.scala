@@ -38,6 +38,7 @@ trait SparkEnv {
 
 class SparkZIO(spark: SparkSession) extends SparkEnv {
 
+
   val readTrait: Read = new Read {
     override def option(key: String, value: String): Read =
       ???
@@ -83,27 +84,5 @@ object SparkEnv {
 
   def sparkSession: TaskS[SparkSession] = {
     ZIO.accessM(_.ss)
-  }
-}
-
-//TODO Move to Test
-object SparkTest {
-
-  def main(args: Array[String]): Unit = {
-
-    val runtime: DefaultRuntime = new DefaultRuntime {}
-    val sparkEnv                = new SparkZIO(SparkSession.builder.master("local[*]").getOrCreate())
-
-    import SparkEnv.implicits._
-
-    val programWrite: ZIO[SparkEnv, Throwable, DataFrame] = for {
-      df <- sparkEnv.read.textFile("tata")
-      _  <- df.zwrite.text("tata3")
-    } yield df
-
-    val liveProgramWrite: IO[Throwable, DataFrame] = programWrite.provide(sparkEnv)
-
-    val ya: DataFrame = runtime.unsafeRun(liveProgramWrite)
-    ya.show()
   }
 }
