@@ -44,7 +44,8 @@ class SparkEnvImplicitClassTest extends FunSuite {
       }.flatten.catchAll {
         case e: Exception => for {
           _ <- Task {
-            print("Error: "); println(e.getMessage)
+            print("Error: ");
+            println(e.getMessage)
           }
           errorCode <- Task(-1)
         } yield errorCode
@@ -61,7 +62,8 @@ class SparkEnvImplicitClassTest extends FunSuite {
       }.flatten.catchAll {
         case e: Exception => for {
           _ <- Task {
-            print("Exception: "); println(e.getMessage)
+            print("Exception: ");
+            println(e.getMessage)
           }
           errorCode <- Task(-1)
         } yield errorCode
