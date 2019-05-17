@@ -85,8 +85,8 @@ object SparkEnv {
 
   type TaskS[X] = TaskR[SparkEnv, X]
 
-  def sql(query: String): TaskS[DataFrame] =
-    ZIO.accessM(_.query.sql(query))
+  def sql(queryString: String): TaskS[DataFrame] =
+    ZIO.accessM(_.query.sql(queryString))
 
   def sparkSession: TaskS[SparkSession] = {
     ZIO.accessM(_.ss)
