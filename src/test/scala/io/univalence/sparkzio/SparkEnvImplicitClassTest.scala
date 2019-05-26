@@ -1,23 +1,23 @@
 package io.univalence.sparkzio
 
 import io.univalence.sparkzio.SparkEnv.TaskS
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{ DataFrame, SparkSession }
 import org.scalatest.FunSuite
-import scalaz.zio.{DefaultRuntime, IO, Task, ZIO}
+import scalaz.zio.{ DefaultRuntime, IO, Task, ZIO }
 import SparkEnv.implicits._
 
 class SparkEnvImplicitClassTest extends FunSuite {
   val runtime: DefaultRuntime = new DefaultRuntime {}
-  val ss: SparkSession = SparkSession.builder.master("local[*]").getOrCreate()
-  val sparkEnv: SparkZIO = new SparkZIO(ss)
-  val pathToto: String = "spark-zio/src/test/resources/toto"
+  val ss: SparkSession        = SparkSession.builder.master("local[*]").getOrCreate()
+  val sparkEnv: SparkZIO      = new SparkZIO(ss)
+  val pathToto: String        = "spark-zio/src/test/resources/toto"
 
   test("sparkEnv read and SparkEnv sql example") {
 
     val prg: TaskS[(DataFrame, DataFrame)] = for {
-      ss <- SparkEnv.sparkSession
-      df <- sparkEnv.read.textFile(pathToto)
-      _ <- Task(df.createTempView("totoview"))
+      ss  <- SparkEnv.sparkSession
+      df  <- sparkEnv.read.textFile(pathToto)
+      _   <- Task(df.createTempView("totoview"))
       df2 <- SparkEnv.sql(s"""SELECT * FROM totoview""")
       //_  <- df.zwrite.text("totoWriteZIO")
     } yield (df, df2)
@@ -39,16 +39,17 @@ class SparkEnvImplicitClassTest extends FunSuite {
       code <- Task {
         for {
           successCode <- Task(1)
-          _ <- Task(println(tigrou))
+          _           <- Task(println(tigrou))
         } yield successCode
       }.flatten.catchAll {
-        case e: Exception => for {
-          _ <- Task {
-            print("Error: ");
-            println(e.getMessage)
-          }
-          errorCode <- Task(-1)
-        } yield errorCode
+        case e: Exception =>
+          for {
+            _ <- Task {
+              print("Error: ");
+              println(e.getMessage)
+            }
+            errorCode <- Task(-1)
+          } yield errorCode
       }
     } yield code
 
@@ -57,16 +58,17 @@ class SparkEnvImplicitClassTest extends FunSuite {
       code <- Task {
         for {
           successCode <- Task(1 / 0)
-          _ <- Task(println(tigrou))
+          _           <- Task(println(tigrou))
         } yield successCode
       }.flatten.catchAll {
-        case e: Exception => for {
-          _ <- Task {
-            print("Exception: ");
-            println(e.getMessage)
-          }
-          errorCode <- Task(-1)
-        } yield errorCode
+        case e: Exception =>
+          for {
+            _ <- Task {
+              print("Exception: ");
+              println(e.getMessage)
+            }
+            errorCode <- Task(-1)
+          } yield errorCode
       }
     } yield code
 
@@ -82,11 +84,10 @@ class SparkEnvImplicitClassTest extends FunSuite {
       seqDF <- {
         import ss.implicits._
         Task(
-          primeSeq.map {
-            primeNumber =>
-              for {
-                df <- sparkEnv.read.textFile(pathToto)
-              } yield df.withColumn("prime", 'primeNumber)
+          primeSeq.map { primeNumber =>
+            for {
+              df <- sparkEnv.read.textFile(pathToto)
+            } yield df.withColumn("prime", 'primeNumber)
           }
         )
       }

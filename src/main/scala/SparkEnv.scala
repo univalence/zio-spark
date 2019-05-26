@@ -1,7 +1,7 @@
 package io.univalence.sparkzio
 
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset, SparkSession}
-import scalaz.zio.{Task, TaskR, ZIO}
+import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession }
+import scalaz.zio.{ Task, TaskR, ZIO }
 
 case class Write[T](ds: Dataset[T], options: Seq[(String, String)], format: Option[String]) {
   def option(key: String, value: String): Write[T] = this.copy(options = options :+ (key -> value))
@@ -88,7 +88,6 @@ object SparkEnv {
   def sql(queryString: String): TaskS[DataFrame] =
     ZIO.accessM(_.query.sql(queryString))
 
-  def sparkSession: TaskS[SparkSession] = {
+  def sparkSession: TaskS[SparkSession] =
     ZIO.accessM(_.ss)
-  }
 }
