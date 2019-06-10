@@ -18,10 +18,7 @@ class SparkEnvImplicitClassTest extends FunSuite {
       df  <- SparkEnv.read.textFile(pathToto)
       _   <- Task(df.createTempView("totoview"))
       df2 <- SparkEnv.sql(s"""SELECT * FROM totoview""")
-      _  <- df.zwrite.text("totoWriteZIO")
-      a = {
-        df2.write.option("","").parquet("tototo")
-      }
+      //_  <- df.zwrite.text("totoWriteZIO")
     } yield (df, df2)
 
     //Providing SparkEnv to ZIO
