@@ -7,26 +7,29 @@ import scalaz.zio.{ DefaultRuntime, IO, Task, ZIO }
 import SparkEnv.implicits._
 
 class SparkEnvImplicitClassTest extends FunSuite {
-  val runtime: DefaultRuntime = new DefaultRuntime {}
-  val ss: SparkSession        = SparkSession.builder.master("local[*]").getOrCreate()
-  val sparkEnv: SparkZIO      = new SparkZIO(ss)
-  val pathToto: String        = "spark-zio/src/test/resources/toto"
+  val runtime: DefaultRuntime  = new DefaultRuntime {}
+  val sparkZIO: Task[SparkZIO] = Task(SparkSession.builder.master("local[*]").getOrCreate()).map(x => new SparkZIO(x))
+  val pathToto: String         = "spark-zio/src/test/resources/toto"
 
   test("sparkEnv read and SparkEnv sql example") {
 
     val prg: TaskS[(DataFrame, DataFrame)] = for {
-      ss  <- SparkEnv.sparkSession
-      df  <- sparkEnv.read.textFile(pathToto)
+      //ss  <- SparkEnv.sparkSession
+      df  <- SparkEnv.read.textFile(pathToto)
       _   <- Task(df.createTempView("totoview"))
       df2 <- SparkEnv.sql(s"""SELECT * FROM totoview""")
-      //_  <- df.zwrite.text("totoWriteZIO")
+      _  <- df.zwrite.text("totoWriteZIO")
+      a = {
+        df2.write.option("","").parquet("tototo")
+      }
     } yield (df, df2)
 
     //Providing SparkEnv to ZIO
-    val liveProgram: IO[Throwable, (DataFrame, DataFrame)] = prg.provide(sparkEnv)
+    val liveProgram: IO[Throwable, (DataFrame, DataFrame)] = sparkZIO.flatMap(prg.provide)
 
     //Unsafe run
     val resRun: (DataFrame, DataFrame) = runtime.unsafeRun(liveProgram)
+    println("toto")
 
     assert(resRun._1.collect() sameElements resRun._2.collect())
   }
@@ -34,7 +37,7 @@ class SparkEnvImplicitClassTest extends FunSuite {
   test("ZIO catchAll example") {
     val tigrou: String = "tigrou will only appear in success"
 
-    val prgSuccess: ZIO[Any, Throwable, Int] = for {
+    val prgSuccess: Task[Int] = for {
       _ <- Task(println("Program with no Exception: "))
       code <- Task {
         for {
@@ -45,7 +48,7 @@ class SparkEnvImplicitClassTest extends FunSuite {
         case e: Exception =>
           for {
             _ <- Task {
-              print("Error: ");
+              print("Error: ")
               println(e.getMessage)
             }
             errorCode <- Task(-1)
@@ -53,7 +56,7 @@ class SparkEnvImplicitClassTest extends FunSuite {
       }
     } yield code
 
-    val prgFail: ZIO[Any, Throwable, Int] = for {
+    val prgFail: Task[Int] = for {
       _ <- Task(println("Program with Exception: "))
       code <- Task {
         for {
@@ -64,7 +67,7 @@ class SparkEnvImplicitClassTest extends FunSuite {
         case e: Exception =>
           for {
             _ <- Task {
-              print("Exception: ");
+              print("Exception: ")
               println(e.getMessage)
             }
             errorCode <- Task(-1)
@@ -72,14 +75,14 @@ class SparkEnvImplicitClassTest extends FunSuite {
       }
     } yield code
 
-    assert(runtime.unsafeRun(prgSuccess) == 1)
-    assert(runtime.unsafeRun(prgFail) == -1)
+    assert(runtime.unsafeRun(prgSuccess) === 1)
+    assert(runtime.unsafeRun(prgFail) === -1)
   }
 
-  test("sometimes you will use collectAll") {
+  /*test("sometimes you will use collectAll") {
     val primeSeq: Seq[Int] = Seq(2, 3, 5, 7, 11)
 
-    val prg: ZIO[SparkEnv, Throwable, Seq[ZIO[Any, Throwable, DataFrame]]] = for {
+    for {
       ss <- SparkEnv.sparkSession
       seqDF <- {
         import ss.implicits._
@@ -93,6 +96,6 @@ class SparkEnvImplicitClassTest extends FunSuite {
       }
     } yield seqDF
 
-  }
+  }*/
 
 }

@@ -3,7 +3,7 @@ package io.univalence.sparkzio
 import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession }
 import scalaz.zio.{ Task, TaskR, ZIO }
 
-case class Write[T](ds: Dataset[T], options: Seq[(String, String)], format: Option[String]) {
+final case class Write[T](ds: Dataset[T], options: Seq[(String, String)], format: Option[String]) {
   def option(key: String, value: String): Write[T] = this.copy(options = options :+ (key -> value))
 
   def text(path: String): Task[Unit] = Task(ds.write.options(options.toMap).text(path))
@@ -21,15 +21,7 @@ object Write {
 
 trait SparkEnv {
 
-  trait Read {
-    def option(key: String, value: String): Read
-
-    def parquet(path: String): Task[DataFrame]
-
-    def textFile(path: String): Task[DataFrame]
-  }
-
-  def read: Read
+  def read: SparkEnv.Read
 
   def write[T](ds: Dataset[T]): Write[T] = Write(ds)
 
@@ -44,10 +36,10 @@ trait SparkEnv {
 
 class SparkZIO(spark: SparkSession) extends SparkEnv {
 
-  private case class ReadImpl(ops: Seq[(String, String)]) extends Read {
+  private case class ReadImpl(ops: Seq[(String, String)]) extends SparkEnv.Read {
     private def dataFrameReader: DataFrameReader = ops.foldLeft(spark.read)({ case (dfr, (k, v)) => dfr.option(k, v) })
 
-    override def option(key: String, value: String): Read = copy(ops :+ ((key, value)))
+    override def option(key: String, value: String): SparkEnv.Read = copy(ops :+ ((key, value)))
 
     override def parquet(path: String): Task[DataFrame] =
       Task(dataFrameReader.parquet(path))
@@ -56,7 +48,7 @@ class SparkZIO(spark: SparkSession) extends SparkEnv {
       Task(dataFrameReader.textFile(path).toDF())
   }
 
-  override def read: Read = ReadImpl(Nil)
+  override def read: SparkEnv.Read = ReadImpl(Nil)
 
   override def write[T](ds: Dataset[T]): Write[T] = Write(ds)
 
@@ -71,6 +63,14 @@ class SparkZIO(spark: SparkSession) extends SparkEnv {
 }
 
 object SparkEnv {
+
+  trait Read {
+    def option(key: String, value: String): Read
+
+    def parquet(path: String): ZIO[SparkEnv, Throwable, DataFrame]
+
+    def textFile(path: String): ZIO[SparkEnv, Throwable, DataFrame]
+  }
 
   object implicits {
 
@@ -90,4 +90,21 @@ object SparkEnv {
 
   def sparkSession: TaskS[SparkSession] =
     ZIO.accessM(_.ss)
+
+  def read: Read = {
+    case class ReadImpl(config: Seq[(String, String)]) extends Read {
+      private def dataFrameReader: TaskS[DataFrameReader] =
+        sparkSession.map(ss => config.foldLeft(ss.read)({ case (dfr, (k, v)) => dfr.option(k, v) }))
+
+      override def option(key: String, value: String): SparkEnv.Read = copy(config :+ ((key, value)))
+
+      override def parquet(path: String): TaskS[DataFrame] =
+        dataFrameReader.map(dr => dr.parquet(path))
+
+      override def textFile(path: String): TaskS[DataFrame] =
+        dataFrameReader.map(dr => dr.textFile(path).toDF())
+    }
+
+    ReadImpl(Nil)
+  }
 }
