@@ -14,7 +14,6 @@ class SparkEnvImplicitClassTest extends FunSuite {
   test("sparkEnv read and SparkEnv sql example") {
 
     val prg: TaskS[(DataFrame, DataFrame)] = for {
-      //ss  <- SparkEnv.sparkSession
       df  <- SparkEnv.read.textFile(pathToto)
       _   <- Task(df.createTempView("totoview"))
       df2 <- SparkEnv.sql(s"""SELECT * FROM totoview""")
