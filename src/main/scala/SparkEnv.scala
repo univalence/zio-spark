@@ -5,20 +5,36 @@ import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset, SparkSession}
 import scalaz.zio.{Task, TaskR, ZIO}
 import org.apache.spark.sql._
 
-final case class Write[T](ds: Dataset[T], options: Seq[(String, String)], format: Option[String]) {
+final case class Write[T](ds: Dataset[T], options: Seq[(String, String)], format: Option[String], mode: Option[String]) {
   def option(key: String, value: String): Write[T] = this.copy(options = options :+ (key -> value))
 
-  def text(path: String): Task[Unit] = Task(ds.write.options(options.toMap).text(path))
+  def text(path: String): Task[Unit] = {
+    (format, mode) match {
+      case (None, None) => Task(ds.write.options(options.toMap).text(path))
+      case (None, Some(m)) => Task(ds.write.mode(m).options(options.toMap).text(path))
+      case (Some(f), None) => Task(ds.write.format(f).options(options.toMap).text(path))
+      case (Some(f), Some(m)) => Task(ds.write.mode(m).format(f).options(options.toMap).text(path))
+    }
+  }
 
-  def parquet(path: String): Task[Unit] = Task(ds.write.options(options.toMap).parquet(path))
+  def parquet(path: String): Task[Unit] = {
+    (format, mode) match {
+      case (None, None) => Task(ds.write.options(options.toMap).parquet(path))
+      case (None, Some(m)) => Task(ds.write.mode(m).options(options.toMap).parquet(path))
+      case (Some(f), None) => Task(ds.write.format(f).options(options.toMap).parquet(path))
+      case (Some(f), Some(m)) => Task(ds.write.mode(m).format(f).options(options.toMap).parquet(path))
+    }
+  }
 
   def cache: Task[Unit] = Task(ds.cache)
 
   def format(name: String): Write[T] = this.copy(format = Some(name))
+
+  def mode(writeMode: String): Write[T] = this.copy(mode = Some(writeMode))
 }
 
 object Write {
-  def apply[T](ds: Dataset[T]): Write[T] = Write(ds, Nil, None)
+  def apply[T](ds: Dataset[T]): Write[T] = Write(ds, Nil, None, None)
 }
 
 trait SparkEnv {
