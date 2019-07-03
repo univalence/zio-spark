@@ -1,36 +1,38 @@
 package io.univalence.sparkzio
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset, SparkSession}
-import scalaz.zio.{Task, TaskR, ZIO}
+import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession }
+import scalaz.zio.{ Task, TaskR, ZIO }
 import org.apache.spark.sql._
 
-final case class Write[T](ds: Dataset[T], options: Seq[(String, String)], format: Option[String], mode: Option[String]) {
+final case class Write[T](ds: Dataset[T],
+                          options: Seq[(String, String)],
+                          format: Option[String],
+                          mode: Option[String]) {
   def option(key: String, value: String): Write[T] = this.copy(options = options :+ (key -> value))
 
-  def text(path: String): Task[Unit] = {
-    (format, mode) match {
-      case (None, None) => Task(ds.write.options(options.toMap).text(path))
-      case (None, Some(m)) => Task(ds.write.mode(m).options(options.toMap).text(path))
-      case (Some(f), None) => Task(ds.write.format(f).options(options.toMap).text(path))
-      case (Some(f), Some(m)) => Task(ds.write.mode(m).format(f).options(options.toMap).text(path))
-    }
-  }
+  def save(path: String): Task[Unit] =
+    Task({
+      type Write = DataFrameWriter[T]
 
-  def parquet(path: String): Task[Unit] = {
-    (format, mode) match {
-      case (None, None) => Task(ds.write.options(options.toMap).parquet(path))
-      case (None, Some(m)) => Task(ds.write.mode(m).options(options.toMap).parquet(path))
-      case (Some(f), None) => Task(ds.write.format(f).options(options.toMap).parquet(path))
-      case (Some(f), Some(m)) => Task(ds.write.mode(m).format(f).options(options.toMap).parquet(path))
-    }
-  }
+      val w0: Write = ds.write
+      val w1: Write = format.map(w0.format).getOrElse(w0)
+      val w2: Write = mode.map(w1.mode).getOrElse(w1)
+
+      w2.options(options.toMap).save(path)
+    })
+
+  def text(path: String): Task[Unit] =
+    copy(format = Some("text")).save(path)
+
+  def parquet(path: String): Task[Unit] =
+    copy(format = Some("parquet")).save(path)
 
   def cache: Task[Unit] = Task(ds.cache)
 
-  def format(name: String): Write[T] = this.copy(format = Some(name))
+  def format(name: String): Write[T] = copy(format = Some(name))
 
-  def mode(writeMode: String): Write[T] = this.copy(mode = Some(writeMode))
+  def mode(writeMode: String): Write[T] = copy(mode = Some(writeMode))
 }
 
 object Write {
