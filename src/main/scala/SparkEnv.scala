@@ -1,6 +1,5 @@
 package io.univalence.sparkzio
 
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession }
 import scalaz.zio.{ Task, TaskR, ZIO }
 import org.apache.spark.sql._
@@ -111,7 +110,7 @@ object SparkEnv {
       protected def _sqlContext: SQLContext
 
       /**
-        * Converts $"col name" into a [[Column]].
+        * Converts $"col name" into a [[org.apache.spark.sql.Column]].
         *
         * @since 2.0.0
         */
@@ -231,7 +230,7 @@ object SparkEnv {
         ExpressionEncoder()
 
       /**
-        * Creates a [[Dataset]] from an RDD.
+        * Creates a [[org.apache.spark.sql.Dataset]] from an RDD.
         *
         * @since 1.6.0
         */
@@ -246,7 +245,7 @@ object SparkEnv {
         DatasetHolder(_sqlContext.createDataset(s))
 
       /**
-        * An implicit conversion that turns a Scala `Symbol` into a [[Column]].
+        * An implicit conversion that turns a Scala `Symbol` into a [[org.apache.spark.sql.Column]].
         * @since 1.3.0
         */
       implicit def symbolToColumn(s: Symbol): ColumnName = new ColumnName(s.name)
