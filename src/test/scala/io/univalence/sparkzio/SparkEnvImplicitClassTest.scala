@@ -3,7 +3,7 @@ package io.univalence.sparkzio
 import io.univalence.sparkzio.SparkEnv.TaskS
 import org.apache.spark.sql.{ DataFrame, SparkSession }
 import org.scalatest.FunSuite
-import scalaz.zio.{ DefaultRuntime, IO, Task, ZIO }
+import zio.{ DefaultRuntime, IO, Task, ZIO }
 import SparkEnv.implicits._
 
 class SparkEnvImplicitClassTest extends FunSuite {

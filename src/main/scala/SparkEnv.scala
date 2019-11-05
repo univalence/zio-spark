@@ -1,7 +1,7 @@
 package io.univalence.sparkzio
 
 import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession }
-import scalaz.zio.{ Task, TaskR, ZIO }
+import zio.{ RIO, Task, TaskR, ZIO }
 import org.apache.spark.sql._
 
 final case class Write[T](ds: Dataset[T],
@@ -254,7 +254,7 @@ object SparkEnv {
 
   }
 
-  type TaskS[X] = TaskR[SparkEnv, X]
+  type TaskS[X] = RIO[SparkEnv, X]
 
   def sql(queryString: String): TaskS[DataFrame] =
     ZIO.accessM(_.query.sql(queryString))
