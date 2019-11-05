@@ -87,7 +87,7 @@ class ToIterator private (runtime: Runtime[Any]) {
 
       import ToIterator._
 
-      type V = Either[E,A]
+      type V = Either[E, A]
 
       var state: State[V] = Running
 
@@ -95,7 +95,7 @@ class ToIterator private (runtime: Runtime[Any]) {
         either match {
           case Left(Some(x)) => Value(Left(x))
           case Left(None)    => Closed
-          case _ => Value(either.asInstanceOf[V])
+          case _             => Value(either.asInstanceOf[V])
         }
 
       val reservation: Reservation[Any, E, Pull[Any, E, A]] = runtime.unsafeRun(q.toManaged_.flatMap(_.process).reserve)
@@ -147,12 +147,11 @@ class ToIterator private (runtime: Runtime[Any]) {
 }
 
 object ToIterator {
-  private sealed trait State[+V]
+  sealed private trait State[+V]
   private case object Running extends State[Nothing]
-  private sealed trait ValueOrClosed[+V] extends State[V]
+  sealed private trait ValueOrClosed[+V] extends State[V]
   private case object Closed extends ValueOrClosed[Nothing]
   private case class Value[+V](value: V) extends ValueOrClosed[V]
-
 
   def withNewRuntime: ToIterator = new ToIterator(new DefaultRuntime {})
 
