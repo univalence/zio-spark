@@ -1,13 +1,15 @@
 package io.univalence.sparkzio
 
+import io.univalence.sparktest.SparkTest
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.scalatest.FunSuite
 import zio._
+import zio.stream._
 import zio.stream.ZStream.Pull
 import zio.syntax._
 
-import scala.collection.immutable
+import scala.util.{ Failure, Success, Try }
 
 /**
   * A `Tap` adjusts the flow of tasks through
@@ -25,46 +27,83 @@ trait Tap[-E1, +E2] {
     * being guarded by the tap.
     */
   def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A]
+
+  def getState: UIO[Tap.State]
 }
 
-class SmartTap[-E1, +E2](errBound: Percentage, qualified: E1 => Boolean, rejected: => E2, state: Ref[Tap.State])
+class SmartTap[-E1, +E2](errBound: Ratio, qualified: E1 => Boolean, rejected: => E2, state: Ref[Tap.State])
     extends Tap[E1, E2] {
 
   override def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
     for {
-      _ <- state.update(f => f.copy(total = f.total + 1))
       s <- state.get
-      r <- if (s.failed / s.total * 100 > errBound.value) {
-        ZIO.fail(rejected)
+      r <- if (s.decayingErrorRatio.value > errBound.value) {
+        state.update(_.incRejected) *> rejected.fail
       } else {
         run(effect)
       }
     } yield r
 
   private def run[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
-    for {
-      f <- effect.fork
-      r <- f.join.catchSome {
-        case e if qualified(e) =>
-          state.update(s => s.copy(failed = s.failed + 1)) *> IO.fail(e)
-      }
-    } yield r
+    effect
+      .foldM({
+        case e if qualified(e) => state.update(_.incFailure) *> e.fail
+        case e                 => state.update(_.incSuccess) *> e.fail
+      }, v => state.update(_.incSuccess) *> v.succeed) -
 
+  override def getState: UIO[Tap.State] = state.get
 }
 
-final class Percentage private (val value: Double) extends Ordered[Percentage] {
-  override def compare(that: Percentage): Int = this.value.compareTo(that.value)
-  override def toString: String               = value.toString
+final class Ratio private (val value: Double) extends AnyVal with Ordered[Ratio] {
+  override def compare(that: Ratio): Int = this.value.compareTo(that.value)
+  override def toString: String          = value.toString
 }
-object Percentage {
-  def apply(n: Double): UIO[Percentage] =
-    if (n < 0 || n > 100) IO.die(new IllegalArgumentException("A percentage must be between 0 and 100 included"))
-    else new Percentage(n).succeed
+object Ratio {
+
+  private def create(value: Double): Ratio = {
+    assert(value >= 0.0 && value <= 1)
+    new Ratio(value)
+  }
+
+  def apply(n: Double): Try[Ratio] =
+    if (n < 0.0 || n > 1)
+      Failure(new IllegalArgumentException("A ratio must be between 0.0 and 1.0"))
+    else
+      Success(new Ratio(n))
+
+  val zero: Ratio = Ratio.create(0.0)
+  val full: Ratio = Ratio.create(1.0)
+
+  def decay(base: Ratio, value: Ratio, scale: Int): Ratio = {
+    assert(scale >= 0)
+    new Ratio((base.value * scale + value.value) / (scale + 1))
+  }
+
 }
 
 object Tap {
 
-  case class State(total: Double = 0, failed: Double = 0)
+  private val scale = 1000
+
+  case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: Ratio) {
+
+    private def nextErrorRatio(ratio: Ratio): Ratio =
+      if (total == 0) ratio
+      else Ratio.decay(decayingErrorRatio, ratio, if (total < scale) total.toInt else scale)
+
+    def total: Long = failed + success + rejected
+
+    def incFailure: State = copy(failed = failed + 1, decayingErrorRatio = nextErrorRatio(Ratio.full))
+
+    def incSuccess: State = copy(success = success + 1, decayingErrorRatio = nextErrorRatio(Ratio.zero))
+
+    def incRejected: State = copy(rejected = rejected + 1, decayingErrorRatio = nextErrorRatio(Ratio.zero))
+
+    def totalErrorRatio: Ratio = Ratio.apply(failed.toDouble / total).getOrElse(Ratio.zero)
+
+  }
+
+  val zeroState = State(0, 0, 0, Ratio.zero)
 
   /**
     * Creates a tap that aims for the specified
@@ -75,10 +114,10 @@ object Tap {
     * default error used for rejecting tasks
     * submitted to the tap.
     */
-  def make[E1, E2](errBound: Percentage, qualified: E1 => Boolean, rejected: => E2): UIO[Tap[E1, E2]] =
+  def make[E1, E2](maxError: Ratio, qualified: E1 => Boolean, rejected: => E2): UIO[Tap[E1, E2]] =
     for {
-      state <- Ref.make[State](State())
-    } yield new SmartTap[E1, E2](errBound, qualified, rejected, state)
+      state <- Ref.make[State](zeroState)
+    } yield new SmartTap[E1, E2](maxError, qualified, rejected, state)
 }
 
 class ToIterator private (runtime: Runtime[Any]) {
@@ -102,13 +141,15 @@ class ToIterator private (runtime: Runtime[Any]) {
 
       val pull: IO[Option[E], A] = runtime.unsafeRun(reservation.acquire)
 
-      private def pool() =
+      private def pool(): ValueOrClosed[V] =
         if (state != Closed) {
-          val element: Either[Option[E], A] = runtime.unsafeRun(
-            pull
-              .catchSome({ case None => reservation.release(Exit.Success({})) *> None.fail })
-              .either
-          )
+          val element: Either[Option[E], A] = runtime.unsafeRun(pull.either)
+
+          element match {
+            // if stream is closed, release the stream
+            case Left(None) => runtime.unsafeRun(reservation.release(Exit.Success({})))
+            case _          =>
+          }
 
           pullToEither(element)
         } else {
@@ -158,50 +199,77 @@ object ToIterator {
   def withRuntime(runtime: Runtime[Any]): ToIterator = new ToIterator(runtime)
 }
 
-class ProtoMapWithEffetTest extends FunSuite {
+object syntax {
+
+  implicit class ToTask[A](t: Try[A]) {
+    def toTask: Task[A] = Task.fromTry(t)
+  }
+}
+
+class ProtoMapWithEffetTest extends FunSuite with SparkTest {
 
   def tap[E1, E2 >: E1, A](rddIO: RDD[IO[E1, A]])(onRejected: E2): RDD[Either[E2, A]] =
     rddIO.mapPartitions(it => {
 
-      val compose = for {
-        p         <- Percentage(99.9)
-        tap       <- Tap.make[E2, E2](p, _ => true, onRejected)
-        allOfThem <- IO.collectAll(it.map(x => tap.apply[Any, E2, A](x).either).toIterable)
-
-      } yield allOfThem
-
-      val runtime = new DefaultRuntime {}
-
-      val list: immutable.Seq[Either[E2, A]] = runtime.unsafeRun(compose)
-
-      list.toIterator
-    })
-
-  def tap2[E1, E2 >: E1, A](rddIO: RDD[IO[E1, A]])(onRejected: E2): RDD[Either[E2, A]] =
-    rddIO.mapPartitions(it => {
-
       val in: stream.Stream[Nothing, IO[E1, A]] = zio.stream.Stream.fromIterator(it.succeed)
 
-      val circuitBreaked: UIO[stream.Stream[E2, A]] = for {
-        percent <- Percentage(99.9)
+      import syntax._
+
+      val circuitBreaked: Task[stream.Stream[E2, A]] = for {
+        percent <- Ratio(0.05).toTask
         tap     <- Tap.make[E2, E2](percent, _ => true, onRejected)
-        stream = in.mapMPar(3)(x => tap.apply(x))
       } yield {
-        stream
+        in.mapM(x => tap(x))
       }
 
-      ToIterator.withNewRuntime.unsafeCreate(circuitBreaked)
+      ToIterator.withNewRuntime.unsafeCreate(circuitBreaked.orDie)
     })
-
-  val ss: SparkSession = SparkSession.builder().master("local").appName("test").getOrCreate()
 
   test("1") {
 
     val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
 
-    val executed: RDD[Either[Throwable, Int]] = tap2(someThing)(new Exception("rejected"))
+    val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
 
     assert(executed.count() == 100)
+
+  }
+
+  test("2") {
+
+    def putStrLn(line: String): UIO[Unit] = IO.effectTotal(println(line))
+
+    val ds: Dataset[Int] = ss.createDataset(0 to 50).coalesce(1)
+
+    val unit: RDD[Either[String, Int]] =
+      tap(ds.rdd.map(i => putStrLn("val " + i).flatMap(_ => IO.fail("e").asInstanceOf[IO[String, Int]])))("rejected")
+
+    unit
+      .map(x => {
+        println(x)
+        x.left.get
+      })
+      .collect()
+  }
+
+  test("tap") {
+
+    import syntax._
+
+    val prg = for {
+      percent <- Ratio(0.05).toTask
+      tap     <- Tap.make[String, String](percent, _ => true, "rejected")
+      _       <- tap("first".fail).ignore
+      _       <- tap("second".fail).ignore
+
+      a <- tap("thrid".fail.as("value")).either
+
+      s <- tap.getState
+    } yield {
+      (a, s)
+    }
+
+    println(new DefaultRuntime {}.unsafeRunSync(prg.either))
 
   }
 
