@@ -1,10 +1,14 @@
 package io.univalence.sparkzio
 
+import java.util.concurrent.{ BlockingQueue, SynchronousQueue, TimeUnit }
+
 import io.univalence.sparktest.SparkTest
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.scalatest.FunSuite
 import zio._
+import zio.clock.Clock
+import zio.duration.Duration
 import zio.stream._
 import zio.stream.ZStream.Pull
 import zio.syntax._
@@ -45,11 +49,10 @@ class SmartTap[-E1, +E2](errBound: Ratio, qualified: E1 => Boolean, rejected: =>
     } yield r
 
   private def run[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
-    effect
-      .foldM({
-        case e if qualified(e) => state.update(_.incFailure) *> e.fail
-        case e                 => state.update(_.incSuccess) *> e.fail
-      }, v => state.update(_.incSuccess) *> v.succeed) -
+    effect.tapBoth({
+      case e if qualified(e) => state.update(_.incFailure)
+      case _                 => state.update(_.incSuccess)
+    }, _ => state.update(_.incSuccess))
 
   override def getState: UIO[Tap.State] = state.get
 }
@@ -83,9 +86,7 @@ object Ratio {
 
 object Tap {
 
-  private val scale = 1000
-
-  case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: Ratio) {
+  case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: Ratio, scale: Int) {
 
     private def nextErrorRatio(ratio: Ratio): Ratio =
       if (total == 0) ratio
@@ -103,7 +104,7 @@ object Tap {
 
   }
 
-  val zeroState = State(0, 0, 0, Ratio.zero)
+  def zeroState(scale: Int) = State(0, 0, 0, Ratio.zero, scale)
 
   /**
     * Creates a tap that aims for the specified
@@ -114,44 +115,40 @@ object Tap {
     * default error used for rejecting tasks
     * submitted to the tap.
     */
-  def make[E1, E2](maxError: Ratio, qualified: E1 => Boolean, rejected: => E2): UIO[Tap[E1, E2]] =
+  def make[E1, E2](maxError: Ratio, qualified: E1 => Boolean, rejected: => E2, decayScale: Int): UIO[Tap[E1, E2]] =
     for {
-      state <- Ref.make[State](zeroState)
-    } yield new SmartTap[E1, E2](maxError, qualified, rejected, state)
+      state <- Ref.make[State](zeroState(decayScale))
+    } yield {
+      new SmartTap[E1, E2](maxError, qualified, rejected, state)
+    }
 }
 
 class ToIterator private (runtime: Runtime[Any]) {
-  def unsafeCreate[E, A](q: UIO[stream.Stream[E, A]]): Iterator[Either[E, A]] =
-    new Iterator[Either[E, A]] {
+  def unsafeCreate[E, V](q: UIO[stream.Stream[E, V]]): Iterator[V] =
+    new Iterator[V] {
 
       import ToIterator._
 
-      type V = Either[E, A]
-
       var state: State[V] = Running
 
-      def pullToEither(either: Either[Option[E], A]): ValueOrClosed[V] =
-        either match {
-          case Left(Some(x)) => Value(Left(x))
-          case Left(None)    => Closed
-          case _             => Value(either.asInstanceOf[V])
-        }
+      private val stream = q.map(_.map(Value.apply))
 
-      val reservation: Reservation[Any, E, Pull[Any, E, A]] = runtime.unsafeRun(q.toManaged_.flatMap(_.process).reserve)
+      private val reservation = runtime.unsafeRun(stream.toManaged_.flatMap(_.process).reserve)
 
-      val pull: IO[Option[E], A] = runtime.unsafeRun(reservation.acquire)
+      private val pull = runtime.unsafeRun(reservation.acquire)
 
       private def pool(): ValueOrClosed[V] =
         if (state != Closed) {
-          val element: Either[Option[E], A] = runtime.unsafeRun(pull.either)
+          val element: Either[Option[E], Value[V]] = runtime.unsafeRun(pull.either)
 
           element match {
             // if stream is closed, release the stream
-            case Left(None) => runtime.unsafeRun(reservation.release(Exit.Success({})))
-            case _          =>
+            //todo use foldMCause to get the error and release with it
+            case Left(_) => runtime.unsafeRun(reservation.release(Exit.Success({})))
+            case _       =>
           }
 
-          pullToEither(element)
+          element.fold(_ => Closed, x => x)
         } else {
           Closed
         }
@@ -206,24 +203,39 @@ object syntax {
   }
 }
 
-class ProtoMapWithEffetTest extends FunSuite with SparkTest {
+object ProtoMapWithEffetTest {
 
-  def tap[E1, E2 >: E1, A](rddIO: RDD[IO[E1, A]])(onRejected: E2): RDD[Either[E2, A]] =
+  def putStrLn(line: String): UIO[Unit] = zio.console.putStrLn(line).provide(console.Console.Live)
+
+  def tap[E1, E2 >: E1, A](
+    rddIO: RDD[IO[E1, A]]
+  )(onRejected: E2,
+    maxErrorRatio: Ratio      = Ratio(0.05).get,
+    keepOrdering: Boolean     = false,
+    decayScale: Int           = 1000,
+    localConcurrentTasks: Int = 4): RDD[Either[E2, A]] =
     rddIO.mapPartitions(it => {
 
       val in: stream.Stream[Nothing, IO[E1, A]] = zio.stream.Stream.fromIterator(it.succeed)
 
-      import syntax._
-
-      val circuitBreaked: Task[stream.Stream[E2, A]] = for {
-        percent <- Ratio(0.05).toTask
-        tap     <- Tap.make[E2, E2](percent, _ => true, onRejected)
+      val circuitBreaked: ZIO[Any, Nothing, ZStream[Any, Nothing, Either[E2, A]]] = for {
+        tap <- Tap.make[E2, E2](maxErrorRatio, _ => true, onRejected, decayScale)
       } yield {
-        in.mapM(x => tap(x))
+        if (keepOrdering)
+          in.mapMPar(localConcurrentTasks)(x => tap(x).either)
+        else
+          in.mapMParUnordered(localConcurrentTasks)(x => tap(x).either)
+
       }
 
       ToIterator.withNewRuntime.unsafeCreate(circuitBreaked.orDie)
     })
+
+}
+
+class ProtoMapWithEffetTest extends FunSuite with SparkTest {
+
+  import ProtoMapWithEffetTest._
 
   test("1") {
 
@@ -235,41 +247,82 @@ class ProtoMapWithEffetTest extends FunSuite with SparkTest {
 
   }
 
+  def time[R](block: => R): (Duration, R) = {
+    val t0     = System.nanoTime()
+    val result = block // call-by-name
+    val t1     = System.nanoTime()
+    (Duration(t1 - t0, TimeUnit.NANOSECONDS), result)
+  }
+
   test("2") {
 
-    def putStrLn(line: String): UIO[Unit] = IO.effectTotal(println(line))
+    val n                = 500
+    val ds: Dataset[Int] = ss.createDataset(1 to n)
 
-    val ds: Dataset[Int] = ss.createDataset(0 to 50).coalesce(1)
+    def duration(i: Int) = Duration(if (i % 20 == 0 && i < 200) 800 else 10, TimeUnit.MILLISECONDS)
+
+    def io(i: Int): IO[String, Int] = IO.fail(s"e$i").delay(duration(i)).provide(Clock.Live)
+
+    val value: RDD[IO[String, Int]] = ds.rdd.map(io)
 
     val unit: RDD[Either[String, Int]] =
-      tap(ds.rdd.map(i => putStrLn("val " + i).flatMap(_ => IO.fail("e").asInstanceOf[IO[String, Int]])))("rejected")
+      tap(value)(
+        onRejected           = "rejected",
+        maxErrorRatio        = Ratio(0.10).get,
+        keepOrdering         = false,
+        localConcurrentTasks = 8
+      )
 
-    unit
-      .map(x => {
-        println(x)
-        x.left.get
-      })
-      .collect()
+    val (d, _) = time(assert(unit.count() == n))
+
+    val computeTime: Long = (1 to n).map(duration).reduce(_ + _).toMillis
+
+    val speedUp = computeTime.toDouble / d.toMillis
+
+    println(s"speedUp of $speedUp")
+  }
+
+  test("asyncZIO") {
+
+    val n                       = 50
+    val s: Stream[Nothing, Int] = stream.Stream.fromIterator(UIO((1 to n).toIterator))
+
+    def effect(i: Int): ZIO[Any, String, String] = if (i % 4 == 0) s"f$i".fail else s"s$i".succeed
+
+    val g = s.map(effect)
+
+    val h = for {
+      tap <- Tap.make[String, String](Ratio.full, _ => true, "rejected", 1000)
+    } yield {
+      g.mapMParUnordered(4)(i => tap(i).either)
+    }
+
+    val xs: Seq[Either[String, String]] = ToIterator.withNewRuntime.unsafeCreate(h).toSeq
+
+    assert(xs.length == n)
+
   }
 
   test("tap") {
 
     import syntax._
 
-    val prg = for {
+    val e3: IO[String, String] = "third".fail
+
+    val prg: Task[(Either[String, String], Tap.State)] = for {
       percent <- Ratio(0.05).toTask
-      tap     <- Tap.make[String, String](percent, _ => true, "rejected")
+      tap     <- Tap.make[String, String](percent, _ => true, "rejected", 1000)
       _       <- tap("first".fail).ignore
+      _       <- tap.getState.flatMap(s => ZIO.effect(println(s)))
       _       <- tap("second".fail).ignore
-
-      a <- tap("thrid".fail.as("value")).either
-
-      s <- tap.getState
+      a       <- tap(e3).either
+      s       <- tap.getState
     } yield {
       (a, s)
     }
 
-    println(new DefaultRuntime {}.unsafeRunSync(prg.either))
+    val runtime = new DefaultRuntime {}
+    println(runtime.unsafeRunSync(prg))
 
   }
 
