@@ -10,7 +10,6 @@ import zio._
 import zio.clock.Clock
 import zio.duration.Duration
 import zio.stream._
-import zio.stream.ZStream.Pull
 import zio.syntax._
 
 import scala.util.{ Failure, Success, Try }
@@ -41,7 +40,7 @@ class SmartTap[-E1, +E2](errBound: Ratio, qualified: E1 => Boolean, rejected: =>
   override def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
     for {
       s <- state.get
-      r <- if (s.decayingErrorRatio.value > errBound.value) {
+      r <- if (s.decayingErrorRatio.ratio.value > errBound.value) {
         state.update(_.incRejected) *> rejected.fail
       } else {
         run(effect)
@@ -77,20 +76,23 @@ object Ratio {
   val zero: Ratio = Ratio.create(0.0)
   val full: Ratio = Ratio.create(1.0)
 
-  def decay(base: Ratio, value: Ratio, scale: Int): Ratio = {
-    assert(scale >= 0)
-    new Ratio((base.value * scale + value.value) / (scale + 1))
-  }
+  def times(r1: Ratio, w1: Int, r2: Ratio, w2: Int): Ratio =
+    create((r1.value * w1 + r2.value * w2) / (w1 + w2))
 
+}
+
+case class DecayingRatio(ratio: Ratio, scale: Int) {
+  def decay(value: Ratio, maxScale: Long): DecayingRatio =
+    DecayingRatio(Ratio.times(ratio, scale, value, 1), if (scale < maxScale) scale else maxScale.toInt)
 }
 
 object Tap {
 
-  case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: Ratio, scale: Int) {
+  case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: DecayingRatio) {
 
-    private def nextErrorRatio(ratio: Ratio): Ratio =
-      if (total == 0) ratio
-      else Ratio.decay(decayingErrorRatio, ratio, if (total < scale) total.toInt else scale)
+    private def nextErrorRatio(ratio: Ratio): DecayingRatio =
+      if (total == 0) DecayingRatio(ratio, decayingErrorRatio.scale)
+      else decayingErrorRatio.decay(ratio, total)
 
     def total: Long = failed + success + rejected
 
@@ -104,7 +106,7 @@ object Tap {
 
   }
 
-  def zeroState(scale: Int) = State(0, 0, 0, Ratio.zero, scale)
+  def zeroState(scale: Int) = State(0, 0, 0, DecayingRatio(Ratio.zero, scale))
 
   /**
     * Creates a tap that aims for the specified
@@ -121,79 +123,6 @@ object Tap {
     } yield {
       new SmartTap[E1, E2](maxError, qualified, rejected, state)
     }
-}
-
-class ToIterator private (runtime: Runtime[Any]) {
-  def unsafeCreate[E, V](q: UIO[stream.Stream[E, V]]): Iterator[V] =
-    new Iterator[V] {
-
-      import ToIterator._
-
-      var state: State[V] = Running
-
-      private val stream = q.map(_.map(Value.apply))
-
-      private val reservation = runtime.unsafeRun(stream.toManaged_.flatMap(_.process).reserve)
-
-      private val pull = runtime.unsafeRun(reservation.acquire)
-
-      private def pool(): ValueOrClosed[V] =
-        if (state != Closed) {
-          val element: Either[Option[E], Value[V]] = runtime.unsafeRun(pull.either)
-
-          element match {
-            // if stream is closed, release the stream
-            //todo use foldMCause to get the error and release with it
-            case Left(_) => runtime.unsafeRun(reservation.release(Exit.Success({})))
-            case _       =>
-          }
-
-          element.fold(_ => Closed, x => x)
-        } else {
-          Closed
-        }
-
-      override def hasNext: Boolean =
-        state match {
-          case Closed   => false
-          case Value(_) => true
-          case Running =>
-            state = pool()
-            state != Closed
-        }
-
-      private val undefinedBehavior = new NoSuchElementException("next on empty iterator")
-
-      override def next(): V =
-        state match {
-          case Value(value) =>
-            state = Running
-            value
-          case Closed => throw undefinedBehavior
-          case Running =>
-            pool() match {
-              case Closed =>
-                state = Closed
-                throw undefinedBehavior
-              case Value(v) =>
-                //stage = Running
-                v
-            }
-        }
-    }
-
-}
-
-object ToIterator {
-  sealed private trait State[+V]
-  private case object Running extends State[Nothing]
-  sealed private trait ValueOrClosed[+V] extends State[V]
-  private case object Closed extends ValueOrClosed[Nothing]
-  private case class Value[+V](value: V) extends ValueOrClosed[V]
-
-  def withNewRuntime: ToIterator = new ToIterator(new DefaultRuntime {})
-
-  def withRuntime(runtime: Runtime[Any]): ToIterator = new ToIterator(runtime)
 }
 
 object syntax {
