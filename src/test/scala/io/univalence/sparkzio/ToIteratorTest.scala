@@ -1,7 +1,7 @@
 package io.univalence.sparkzio
 
 import org.scalatest.FunSuite
-import zio.{ DefaultRuntime, Ref, UIO, ZIO }
+import zio.{ DefaultRuntime, Ref, Task, UIO, ZIO }
 import zio.clock.Clock
 import zio.stream.{ Stream, ZStream }
 
@@ -20,11 +20,13 @@ class ToIteratorTest extends FunSuite {
       Stream.repeatEffect(v.get.zipWith(clock.clock.nanoTime)(Element))
     }
 
-    val iterator: Iterator[Element] = ToIterator.withNewRuntime.unsafeCreate(io.provide(Clock.Live))
+    val iterator: ZIO[Clock, Nothing, ToIterator.Iterator[Nothing, Element]] = io >>= ToIterator.apply
+
+    val runningIterator: Iterator[Element] = new DefaultRuntime {}.unsafeRun(iterator)
 
     def testIterator(prevElement: Element): Element = {
       val currentTime = System.nanoTime()
-      val element     = iterator.next()
+      val element     = runningIterator.next()
       assert(prevElement.n < element.n)
       assert(currentTime < element.time)
       element
@@ -35,19 +37,20 @@ class ToIteratorTest extends FunSuite {
 
   test("<=>") {
 
-    val runtime = new DefaultRuntime {}
+    val in: List[Int] = (1 to 100).toList
 
-    val in: Range.Inclusive = 1 to 100
+    val test = for {
+      _ <- UIO.unit
+      stream1 = ZStream.fromIterator(UIO(in.toIterator))
+      iterator <- ToIterator.apply(stream1)
+      //stream2 = ZStream.fromIterator(UIO(iterator))
+      //out <- stream2.runCollect
+      out = iterator.toList
+      _ <- ZIO.effect(assert(in == out))
+    } yield {}
 
-    val toStream_1: Stream[Nothing, Int] = ZStream(in: _*)
+    new DefaultRuntime {}.unsafeRun(test)
 
-    val toIterator: Iterator[Int] = ToIterator.withRuntime(runtime).unsafeCreate(UIO(toStream_1))
-
-    val toStream_2: Stream[Nothing, Int] = ZStream.fromIterator(UIO(toIterator))
-
-    val out: Seq[Int] = runtime.unsafeRun(toStream_2.runCollect)
-
-    assert(in == out)
   }
 
 }

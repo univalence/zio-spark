@@ -157,7 +157,10 @@ object ProtoMapWithEffetTest {
 
       }
 
-      ToIterator.withNewRuntime.unsafeCreate(circuitBreaked.orDie)
+      val iterator: UIO[Iterator[Either[E2, A]]] = circuitBreaked.flatMap(ToIterator.apply)
+
+      new DefaultRuntime {}.unsafeRun(iterator)
+
     })
 
 }
@@ -220,13 +223,13 @@ class ProtoMapWithEffetTest extends FunSuite with SparkTest {
 
     val g = s.map(effect)
 
-    val h = for {
+    val h: UIO[Stream[Nothing, Either[String, String]]] = for {
       tap <- Tap.make[String, String](Ratio.full, _ => true, "rejected", 1000)
     } yield {
       g.mapMParUnordered(4)(i => tap(i).either)
     }
 
-    val xs: Seq[Either[String, String]] = ToIterator.withNewRuntime.unsafeCreate(h).toSeq
+    val xs: Seq[Either[String, String]] = (new DefaultRuntime{}).unsafeRun(h.flatMap(ToIterator.apply)).toSeq
 
     assert(xs.length == n)
 
