@@ -1,14 +1,13 @@
 package io.univalence.sparkzio
 
-import zio.{ stream, Cause, DefaultRuntime, Exit, Runtime, UIO }
+import zio.{ stream, Cause, DefaultRuntime, Exit, Runtime, UIO, ZIO, ZManaged }
 
-class ToIterator private (runtime: Runtime[_]) {
-  def unsafeCreate[E, V](q: UIO[stream.Stream[E, V]]): Iterator[V] =
-    new Iterator[V] {
-
-      import ToIterator._
-
-      var state: State[V] = Running
+class ToIterator[R] private (runtime: Runtime[R]) {
+  import ToIterator._
+  import State._
+  def unsafeCreate[E, V](q: UIO[stream.Stream[E, V]]): Iterator[E, V] =
+    new Iterator[E, V] {
+      var state: State[E, V] = Running
 
       private val stream = q.map(_.map(Value.apply))
 
@@ -16,10 +15,10 @@ class ToIterator private (runtime: Runtime[_]) {
 
       private val pull = runtime.unsafeRun(reservation.acquire)
 
-      private def pool(): ValueOrClosed[V] =
+      private def pool(): ValueOrClosed[E, V] =
         state match {
           //stay closed
-          case Closed => Closed
+          case closed: Closed[E] => closed
           case _ =>
             val element: Either[Option[Cause[E]], Value[V]] =
               runtime.unsafeRun(pull.mapErrorCause(x => Cause.fail(Cause.sequenceCauseOption(x))).either)
@@ -33,48 +32,79 @@ class ToIterator private (runtime: Runtime[_]) {
               case _ =>
             }
 
-            element.fold(_ => Closed, x => x)
+            element.fold(e => Closed(e.flatMap(_.failureOption)), x => x)
         }
 
       override def hasNext: Boolean =
         state match {
-          case Closed   => false
-          case Value(_) => true
+          case Closed(_) => false
+          case Value(_)  => true
           case Running =>
             state = pool()
-            state != Closed
+            state.notClosed
         }
-
-      private val undefinedBehavior = new NoSuchElementException("next on empty iterator")
 
       override def next(): V =
         state match {
           case Value(value) =>
             state = Running
             value
-          case Closed => throw undefinedBehavior
+          case Closed(_) => throw undefinedBehavior
           case Running =>
             pool() match {
-              case Closed =>
-                state = Closed
+              case c: Closed[E] =>
+                state = c
                 throw undefinedBehavior
               case Value(v) =>
                 //state = Running
                 v
             }
         }
+
+      override def lastError: Option[E] = state match {
+        case Closed(e) => e
+        case _         => None
+      }
     }
 
 }
 
 object ToIterator {
-  sealed private trait State[+V]
-  private case object Running extends State[Nothing]
-  sealed private trait ValueOrClosed[+V] extends State[V]
-  private case object Closed extends ValueOrClosed[Nothing]
-  private case class Value[+V](value: V) extends ValueOrClosed[V]
+  private val undefinedBehavior = new NoSuchElementException("next on empty iterator")
 
-  def withNewRuntime: ToIterator = new ToIterator(new DefaultRuntime {})
+  sealed private trait State[+E, +V] {
+    def notClosed: Boolean = true
+  }
+  private object State {
+    case object Running extends State[Nothing, Nothing]
+    sealed trait ValueOrClosed[+E, +V] extends State[E, V]
+    case class Closed[+E](lastError: Option[E]) extends ValueOrClosed[E, Nothing] {
+      override def notClosed: Boolean = false
+    }
+    case class Value[+V](value: V) extends ValueOrClosed[Nothing, V]
 
-  def withRuntime(runtime: Runtime[_]): ToIterator = new ToIterator(runtime)
+  }
+  @deprecated
+  def withNewRuntime: ToIterator[Any] = new ToIterator(new DefaultRuntime {})
+
+  @deprecated
+  def withRuntime[R](runtime: Runtime[R]): ToIterator[R] = new ToIterator(runtime)
+
+  trait Iterator[+E, +A] extends scala.Iterator[A] {
+    def lastError: Option[E]
+  }
+
+  case class EmptyIterator[+E](lastError: Option[E]) extends Iterator[E, Nothing] {
+    override def hasNext: Boolean = false
+    override def next(): Nothing  = throw undefinedBehavior
+  }
+
+  def mergeError[E, A](either: Either[E, Iterator[E, A]]): Iterator[E, A] = either match {
+    case Left(e)  => EmptyIterator(Some(e))
+    case Right(i) => i
+  }
+
+  //def unManaged[R, E1, E2, A](ZManaged: ZManaged[R, E1, Iterator[E2, A]]): ZIO[R, E1, Iterator[E2, A]] = ???
+
+  //def apply[R, E, A](zStream: ZStream[R, E, A]): ZIO[R, Nothing, Iterator[E,A]] = ???
 }

@@ -1,14 +1,15 @@
 package io.univalence.sparkzio
 
 import org.scalatest.FunSuite
-import zio.{ Ref, ZIO }
+import zio.{ DefaultRuntime, Ref, UIO, ZIO }
 import zio.clock.Clock
-import zio.stream.Stream
+import zio.stream.{ Stream, ZStream }
 
-class ToInteratorTest extends FunSuite {
+import scala.collection.immutable
 
-  test("iterator T") {
+class ToIteratorTest extends FunSuite {
 
+  test("To Iterator should be lazy") {
     case class Element(n: Int, time: Long)
 
     val io: ZIO[Clock, Nothing, Stream[Nothing, Element]] = for {
@@ -30,6 +31,23 @@ class ToInteratorTest extends FunSuite {
     }
 
     Iterator.iterate(Element(n = 0, time = 0))(testIterator).take(200).foreach(_ => { Thread.sleep(1) })
-
   }
+
+  test("<=>") {
+
+    val runtime = new DefaultRuntime {}
+
+    val in: Range.Inclusive = 1 to 100
+
+    val toStream_1: Stream[Nothing, Int] = ZStream(in: _*)
+
+    val toIterator: Iterator[Int] = ToIterator.withRuntime(runtime).unsafeCreate(UIO(toStream_1))
+
+    val toStream_2: Stream[Nothing, Int] = ZStream.fromIterator(UIO(toIterator))
+
+    val out: Seq[Int] = runtime.unsafeRun(toStream_2.runCollect)
+
+    assert(in == out)
+  }
+
 }
