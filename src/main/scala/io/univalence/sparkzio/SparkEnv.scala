@@ -1,8 +1,7 @@
 package io.univalence.sparkzio
 
-import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession }
-import zio.{ RIO, Task, TaskR, ZIO }
-import org.apache.spark.sql._
+import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset, SparkSession, _}
+import zio.{RIO, Task, ZIO}
 
 final case class Write[T](ds: Dataset[T],
                           options: Seq[(String, String)],
@@ -104,6 +103,7 @@ object SparkEnv {
 
       import org.apache.spark.rdd.RDD
       import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
+
       import scala.language.implicitConversions
       import scala.reflect.runtime.universe.TypeTag
 

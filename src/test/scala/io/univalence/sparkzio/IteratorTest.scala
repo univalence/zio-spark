@@ -1,13 +1,11 @@
 package io.univalence.sparkzio
 
 import org.scalatest.FunSuite
-import zio.{ DefaultRuntime, Ref, Task, UIO, ZIO }
+import zio.{ DefaultRuntime, Ref, UIO, ZIO, ZManaged }
 import zio.clock.Clock
 import zio.stream.{ Stream, ZStream }
 
-import scala.collection.immutable
-
-class ToIteratorTest extends FunSuite {
+class IteratorTest extends FunSuite {
 
   test("To Iterator should be lazy") {
     case class Element(n: Int, time: Long)
@@ -20,9 +18,9 @@ class ToIteratorTest extends FunSuite {
       Stream.repeatEffect(v.get.zipWith(clock.clock.nanoTime)(Element))
     }
 
-    val iterator: ZIO[Clock, Nothing, ToIterator.Iterator[Nothing, Element]] = io >>= ToIterator.apply
+    val iterator: ZIO[Clock, Nothing, Iterator[Nothing, Element]] = io >>= Iterator.fromStream
 
-    val runningIterator: Iterator[Element] = new DefaultRuntime {}.unsafeRun(iterator)
+    val runningIterator: Iterator[Nothing, Element] = new DefaultRuntime {}.unsafeRun(iterator)
 
     def testIterator(prevElement: Element): Element = {
       val currentTime = System.nanoTime()
@@ -32,7 +30,7 @@ class ToIteratorTest extends FunSuite {
       element
     }
 
-    Iterator.iterate(Element(n = 0, time = 0))(testIterator).take(200).foreach(_ => { Thread.sleep(1) })
+    scala.Iterator.iterate(Element(n = 0, time = 0))(testIterator).take(200).foreach(_ => { Thread.sleep(1) })
   }
 
   test("<=>") {
@@ -42,15 +40,25 @@ class ToIteratorTest extends FunSuite {
     val test = for {
       _ <- UIO.unit
       stream1 = ZStream.fromIterator(UIO(in.toIterator))
-      iterator <- ToIterator.apply(stream1)
-      //stream2 = ZStream.fromIterator(UIO(iterator))
-      //out <- stream2.runCollect
-      out = iterator.toList
-      _ <- ZIO.effect(assert(in == out))
+      iterator <- Iterator.fromStream(stream1)
+      stream2 = ZStream.fromIterator(UIO(iterator))
+      out <- stream2.runCollect
+      _   <- ZIO.effect(assert(in == out))
     } yield {}
 
     new DefaultRuntime {}.unsafeRun(test)
+  }
 
+  test("on Exit") {
+    val test = for {
+      isOpen <- Ref.make(false)
+      stream = ZStream.managed(ZManaged.make(isOpen.update(_ => true))(_ => isOpen.set(false)))
+      iterator <- Iterator.fromStream(stream)
+    } yield {
+      assert(iterator.toList == List(true))
+    }
+
+    new DefaultRuntime {}.unsafeRun(test)
   }
 
 }
