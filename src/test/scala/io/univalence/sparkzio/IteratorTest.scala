@@ -18,7 +18,8 @@ class IteratorTest extends FunSuite {
       Stream.repeatEffect(v.get.zipWith(clock.clock.nanoTime)(Element))
     }
 
-    val iterator: ZIO[Clock, Nothing, Iterator[Nothing, Element]] = io >>= Iterator.fromStream
+    val iterator: ZIO[Clock, Nothing, Iterator[Nothing, Element]] =
+      Iterator.unwrapManaged(io.toManaged_ >>= Iterator.fromStream)
 
     val runningIterator: Iterator[Nothing, Element] = new DefaultRuntime {}.unsafeRun(iterator)
 
@@ -37,28 +38,29 @@ class IteratorTest extends FunSuite {
 
     val in: List[Int] = (1 to 100).toList
 
-    val test = for {
-      _ <- UIO.unit
+    val test: ZManaged[Any, Nothing, Unit] = for {
+      _ <- UIO.unit.toManaged_
       stream1 = ZStream.fromIterator(UIO(in.toIterator))
       iterator <- Iterator.fromStream(stream1)
       stream2 = ZStream.fromIterator(UIO(iterator))
-      out <- stream2.runCollect
-      _   <- ZIO.effect(assert(in == out))
-    } yield {}
+      out <- stream2.runCollect.toManaged_
+    } yield {
+      assert(in == out)
+    }
 
-    new DefaultRuntime {}.unsafeRun(test)
+    new DefaultRuntime {}.unsafeRun(test.use_(ZIO.unit))
   }
 
   test("on Exit") {
-    val test = for {
-      isOpen <- Ref.make(false)
+    val test: ZManaged[Any, Nothing, Unit] = for {
+      isOpen <- Ref.make(false).toManaged_
       stream = ZStream.managed(ZManaged.make(isOpen.update(_ => true))(_ => isOpen.set(false)))
       iterator <- Iterator.fromStream(stream)
     } yield {
       assert(iterator.toList == List(true))
     }
 
-    new DefaultRuntime {}.unsafeRun(test)
+    new DefaultRuntime {}.unsafeRun(test.use_(ZIO.unit))
   }
 
 }

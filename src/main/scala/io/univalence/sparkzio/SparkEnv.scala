@@ -1,7 +1,7 @@
 package io.univalence.sparkzio
 
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset, SparkSession, _}
-import zio.{RIO, Task, ZIO}
+import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession, _ }
+import zio.{ RIO, Task, ZIO }
 
 final case class Write[T](ds: Dataset[T],
                           options: Seq[(String, String)],

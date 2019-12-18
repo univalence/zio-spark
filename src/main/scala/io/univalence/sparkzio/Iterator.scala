@@ -1,7 +1,7 @@
 package io.univalence.sparkzio
 
 import zio.stream.ZStream
-import zio.{Exit, URIO, ZIO, ZManaged}
+import zio.{ Exit, URIO, ZIO, ZManaged }
 
 import scala.annotation.tailrec
 
@@ -50,8 +50,7 @@ object Iterator {
   def onLastElement[R, E, A](
     iterator: Iterator[E, A]
   )(onClose: Exit[E, Any] => URIO[R, Any]): URIO[R, Iterator[E, A]] =
-    ZIO
-      .runtime[R]
+    ZIO.runtime
       .map(
         runtime =>
           new Iterator[E, A] {
@@ -94,7 +93,7 @@ object Iterator {
       iterator
     }
 
-  def fromStream[R, E, A](zStream: ZStream[R, E, A]): URIO[R, Iterator[E, A]] = {
+  def fromStream[R, E, A](zStream: ZStream[R, E, A]): ZManaged[R, Nothing, Iterator[E, A]] = {
     val zManaged: ZManaged[R, E, Iterator[E, A]] = for {
       pull    <- zStream.process
       runtime <- ZIO.runtime[R].toManaged_
@@ -141,6 +140,6 @@ object Iterator {
       }
     }
 
-    unwrapManaged(zManaged).either.map(absolve)
+    zManaged.either.map(absolve)
   }
 }
