@@ -58,6 +58,8 @@ final class Ratio private (val value: Double) extends AnyVal with Ordered[Ratio]
 }
 object Ratio {
 
+  implicit val ordering: Ordering[Ratio] = Ordering.by(_.value)
+
   private def create(value: Double): Ratio = {
     assert(value >= 0.0 && value <= 1)
     new Ratio(value)

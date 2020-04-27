@@ -1,66 +1,72 @@
 package io.univalence.sparkzio
 
-import org.scalatest.FunSuite
-import zio.{ DefaultRuntime, Ref, UIO, ZIO, ZManaged }
+import zio.{ DefaultRuntime, IO, Ref, Task, UIO, ZIO, ZManaged }
 import zio.clock.Clock
-import zio.stream.{ Stream, ZStream }
+import zio.stream.{ Stream, ZSink, ZStream }
+import zio.test.DefaultRunnableSpec
+import zio.test._
+import zio.test.Assertion._
 
-class IteratorTest extends FunSuite {
+object StreamTest {
 
-  test("To Iterator should be lazy") {
-    case class Element(n: Int, time: Long)
+  def assertForAll[R, E, A](zstream: ZStream[R, E, A])(f: A => TestResult): ZIO[R, E, TestResult] =
+    zstream.fold(assert(Unit, Assertion.anything))((as, a) => as && f(a))
 
-    val io: ZIO[Clock, Nothing, Stream[Nothing, Element]] = for {
-      clock <- ZIO.environment[Clock]
-      v     <- Ref.make(0)
-      _     <- v.update(_ + 1).forever.fork
-    } yield {
-      Stream.repeatEffect(v.get.zipWith(clock.clock.nanoTime)(Element))
-    }
-
-    val iterator: ZIO[Clock, Nothing, Iterator[Nothing, Element]] =
-      Iterator.unwrapManaged(io.toManaged_ >>= Iterator.fromStream)
-
-    val runningIterator: Iterator[Nothing, Element] = new DefaultRuntime {}.unsafeRun(iterator)
-
-    def testIterator(prevElement: Element): Element = {
-      val currentTime = System.nanoTime()
-      val element     = runningIterator.next()
-      assert(prevElement.n < element.n)
-      assert(currentTime < element.time)
-      element
-    }
-
-    scala.Iterator.iterate(Element(n = 0, time = 0))(testIterator).take(200).foreach(_ => { Thread.sleep(1) })
-  }
-
-  test("<=>") {
-
-    val in: List[Int] = (1 to 100).toList
-
-    val test: ZManaged[Any, Nothing, Unit] = for {
-      _ <- UIO.unit.toManaged_
-      stream1 = ZStream.fromIterator(UIO(in.toIterator))
-      iterator <- Iterator.fromStream(stream1)
-      stream2 = ZStream.fromIterator(UIO(iterator))
-      out <- stream2.runCollect.toManaged_
-    } yield {
-      assert(in == out)
-    }
-
-    new DefaultRuntime {}.unsafeRun(test.use_(ZIO.unit))
-  }
-
-  test("on Exit") {
-    val test: ZManaged[Any, Nothing, Unit] = for {
-      isOpen <- Ref.make(false).toManaged_
-      stream = ZStream.managed(ZManaged.make(isOpen.update(_ => true))(_ => isOpen.set(false)))
-      iterator <- Iterator.fromStream(stream)
-    } yield {
-      assert(iterator.toList == List(true))
-    }
-
-    new DefaultRuntime {}.unsafeRun(test.use_(ZIO.unit))
-  }
-
+  def isSorted[A: Ordering]: Assertion[Iterable[A]] =
+    Assertion.assertion("sorted")()(x => {
+      val y = x.toList
+      y.sorted == y
+    })
 }
+
+object IteratorTest
+    extends DefaultRunnableSpec(
+      suite("iterator")(
+        testM("to iterator should be lazy")({
+          case class Element(n: Int, time: Long)
+
+          (for {
+            clock      <- ZIO.environment[Clock]
+            n          <- Ref.make(0)
+            incCounter <- n.update(_ + 1).forever.fork
+
+          } yield {
+            def element: UIO[Element] = n.get.zipWith(clock.clock.nanoTime)(Element)
+
+            val in = Stream.repeatEffect(element)
+
+            val iterator = Iterator.unwrapManaged(Iterator.fromStream(in))
+
+            val out: ZStream[Any, Nothing, Element] =
+              ZStream.fromIterator(iterator).mapConcatM(e => element.map(List(e, _)))
+
+            implicit val ordering: Ordering[Element] = Ordering.by(x => x.n -> x.time)
+
+            out.take(2000).runCollect.map(e => assert(e, StreamTest.isSorted))
+          }).flatten
+        }),
+        testM("<=>")({
+          val in: List[Int] = (1 to 100).toList
+
+          (for {
+            _ <- UIO.unit.toManaged_
+            stream1 = ZStream.fromIterator(UIO(in.toIterator))
+            iterator <- Iterator.fromStream(stream1)
+            stream2 = ZStream.fromIterator(UIO(iterator))
+            out <- stream2.runCollect.toManaged_
+          } yield {
+            assert(in, equalTo(out))
+          }).use(x => ZIO.effect(x))
+
+        }),
+        testM("on exit")(
+          (for {
+            isOpen <- Ref.make(false).toManaged_
+            stream = ZStream.managed(ZManaged.make(isOpen.update(_ => true))(_ => isOpen.set(false)))
+            iterator <- Iterator.fromStream(stream)
+          } yield {
+            assert(iterator.toList, equalTo(List(true)))
+          }).use(x => IO.effect(x))
+        )
+      )
+    )
