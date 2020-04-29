@@ -1,20 +1,19 @@
 package io.univalence.sparkzio
 
-import java.util.concurrent.{ BlockingQueue, SynchronousQueue, TimeUnit }
-
-import io.univalence.sparktest.SparkTest
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.scalatest.FunSuite
+import org.apache.spark.sql._
 import zio._
-import zio.clock.Clock
-import zio.duration.Duration
+import zio.console.Console
 import zio.stream._
-import zio.syntax._
+import zio.test._
 
-import scala.util.{ Failure, Success, Try }
+import scala.util._
 
 object syntax {
+
+  implicit class ValueOps[T](t: T) {
+    def fail: IO[T, Nothing] = IO.fail(t)
+  }
 
   implicit class ToTask[A](t: Try[A]) {
     def toTask: Task[A] = Task.fromTry(t)
@@ -23,18 +22,20 @@ object syntax {
 
 object ProtoMapWithEffetTest {
 
-  def putStrLn(line: String): UIO[Unit] = zio.console.putStrLn(line).provide(console.Console.Live)
+  def putStrLn(line: String): ZIO[Console, Nothing, Unit] = zio.console.putStrLn(line)
 
   def tap[E1, E2 >: E1, A](
     rddIO: RDD[IO[E1, A]]
-  )(onRejected: E2,
-    maxErrorRatio: Ratio      = Ratio(0.05).get,
-    keepOrdering: Boolean     = false,
-    decayScale: Int           = 1000,
-    localConcurrentTasks: Int = 4): RDD[Either[E2, A]] =
+  )(
+    onRejected: E2,
+    maxErrorRatio: Ratio = Ratio(0.05).get,
+    keepOrdering: Boolean = false,
+    decayScale: Int = 1000,
+    localConcurrentTasks: Int = 4
+  ): RDD[Either[E2, A]] =
     rddIO.mapPartitions(it => {
 
-      val in: stream.Stream[Nothing, IO[E1, A]] = zio.stream.Stream.fromIterator(it.succeed)
+      val in: Stream[Nothing, IO[E1, A]] = zio.stream.Stream.fromIterator(UIO(it))
 
       val circuitBreaked: ZIO[Any, Nothing, ZStream[Any, Nothing, Either[E2, A]]] = for {
         tap <- CircuitTap.make[E2, E2](maxErrorRatio, _ => true, onRejected, decayScale)
@@ -49,25 +50,34 @@ object ProtoMapWithEffetTest {
       val iterator: ZIO[Any, Nothing, Iterator[Nothing, Either[E2, A]]] =
         Iterator.unwrapManaged(circuitBreaked.toManaged_ >>= Iterator.fromStream)
 
-      new DefaultRuntime {}.unsafeRun(iterator)
+      zio.Runtime.default.unsafeRunTask(iterator)
 
     })
 
 }
 
-class ProtoMapWithEffetTest extends FunSuite with SparkTest {
+class ProtoMapWithEffetTest extends DefaultRunnableSpec {
 
   import ProtoMapWithEffetTest._
 
-  test("1") {
+  import zio.test._
 
-    val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
+  val ss: Task[SparkSession] = Task(SparkSession.builder().master("local[*]").appName("toto").getOrCreate())
 
-    val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
+  override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
+    suite("proto map with effet")(
+      testM("1") {
+        ss.map(ss => {
 
-    assert(executed.count() == 100)
+          val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
 
-  }
+          val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
+
+          assert(executed.count())(Assertion.equalTo(100L))
+        })
+      }
+    )
+  /*
 
   def time[R](block: => R): (Duration, R) = {
     val t0     = System.nanoTime()
@@ -89,9 +99,9 @@ class ProtoMapWithEffetTest extends FunSuite with SparkTest {
 
     val unit: RDD[Either[String, Int]] =
       tap(value)(
-        onRejected           = "rejected",
-        maxErrorRatio        = Ratio(0.10).get,
-        keepOrdering         = false,
+        onRejected = "rejected",
+        maxErrorRatio = Ratio(0.10).get,
+        keepOrdering = false,
         localConcurrentTasks = 8
       )
 
@@ -121,10 +131,11 @@ class ProtoMapWithEffetTest extends FunSuite with SparkTest {
 
     val prg: UIO[Iterator[Nothing, Either[String, String]]] =
       Iterator.unwrapManaged(h.toManaged_ >>= Iterator.fromStream)
+
     val xs: Seq[Either[String, String]] = new DefaultRuntime {}.unsafeRun(prg).toSeq
 
     assert(xs.length == n)
 
-  }
+  }*/
 
 }

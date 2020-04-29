@@ -6,13 +6,13 @@ import zio.{ Exit, URIO, ZIO, ZManaged }
 import scala.annotation.tailrec
 
 /**
-  * Iterator[+E, +A] allows to have an error "channel", on top of scala.collection.Iterator[+A]
-  *
-  * When an error has been raised (lastError.isDefined), the Iterator is empty (!hasNext)
-  *
-  * @tparam E Type of the error "channel"
-  * @tparam A Type of the value
-  */
+ * Iterator[+E, +A] allows to have an error "channel", on top of scala.collection.Iterator[+A]
+ *
+ * When an error has been raised (lastError.isDefined), the Iterator is empty (!hasNext)
+ *
+ * @tparam E Type of the error "channel"
+ * @tparam A Type of the value
+ */
 trait Iterator[+E, +A] extends scala.Iterator[A] {
   def lastError: Option[E]
 
@@ -31,10 +31,10 @@ object Iterator {
 
   sealed private trait State[+E, +V]
   private object State {
-    case object Running extends State[Nothing, Nothing]
-    sealed trait ValueOrClosed[+E, +V] extends State[E, V]
+    case object Running                         extends State[Nothing, Nothing]
+    sealed trait ValueOrClosed[+E, +V]          extends State[E, V]
     case class Closed[+E](lastError: Option[E]) extends ValueOrClosed[E, Nothing]
-    case class Value[+V](value: V) extends ValueOrClosed[Nothing, V]
+    case class Value[+V](value: V)              extends ValueOrClosed[Nothing, V]
   }
 
   private case class EmptyIterator[+E](lastError: Option[E]) extends Iterator[E, Nothing] {

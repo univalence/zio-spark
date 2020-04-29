@@ -110,10 +110,10 @@ object SparkEnv {
       protected def _sqlContext: SQLContext
 
       /**
-        * Converts $"col name" into a [[org.apache.spark.sql.Column]].
-        *
-        * @since 2.0.0
-        */
+       * Converts $"col name" into a [[org.apache.spark.sql.Column]].
+       *
+       * @since 2.0.0
+       */
       implicit class StringToColumn(val sc: StringContext) {
         def $(args: Any*): ColumnName = new ColumnName(sc.s(args: _*))
       }
@@ -230,24 +230,24 @@ object SparkEnv {
         ExpressionEncoder()
 
       /**
-        * Creates a [[org.apache.spark.sql.Dataset]] from an RDD.
-        *
-        * @since 1.6.0
-        */
+       * Creates a [[org.apache.spark.sql.Dataset]] from an RDD.
+       *
+       * @since 1.6.0
+       */
       implicit def rddToDatasetHolder[T: Encoder](rdd: RDD[T]): DatasetHolder[T] =
         DatasetHolder(_sqlContext.createDataset(rdd))
 
       /**
-        * Creates a [[Dataset]] from a local Seq.
-        * @since 1.6.0
-        */
+       * Creates a [[Dataset]] from a local Seq.
+       * @since 1.6.0
+       */
       implicit def localSeqToDatasetHolder[T: Encoder](s: Seq[T]): DatasetHolder[T] =
         DatasetHolder(_sqlContext.createDataset(s))
 
       /**
-        * An implicit conversion that turns a Scala `Symbol` into a [[org.apache.spark.sql.Column]].
-        * @since 1.3.0
-        */
+       * An implicit conversion that turns a Scala `Symbol` into a [[org.apache.spark.sql.Column]].
+       * @since 1.3.0
+       */
       implicit def symbolToColumn(s: Symbol): ColumnName = new ColumnName(s.name)
 
     }
