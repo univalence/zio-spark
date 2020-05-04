@@ -3,10 +3,12 @@ package io.univalence.sparkzio
 import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession, _ }
 import zio.{ RIO, Task, ZIO }
 
-final case class Write[T](ds: Dataset[T],
-                          options: Seq[(String, String)],
-                          format: Option[String],
-                          mode: Option[String]) {
+final case class Write[T](
+  ds: Dataset[T],
+  options: Seq[(String, String)],
+  format: Option[String],
+  mode: Option[String]
+) {
   def option(key: String, value: String): Write[T] = this.copy(options = options :+ (key -> value))
 
   def save(path: String): Task[Unit] =
