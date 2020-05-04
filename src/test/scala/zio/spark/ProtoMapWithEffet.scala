@@ -1,5 +1,7 @@
 package zio.spark
 
+import java.util.concurrent.TimeUnit
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import zio._
@@ -58,20 +60,19 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec {
 
   import zio.test._
 
-  val ss: Task[SparkSession] = Task(SparkSession.builder().master("local[*]").appName("toto").getOrCreate())
-
   override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
     suite("proto map with effet")(
       testM("1") {
-        ss.map(ss => {
+        ss.flatMap(_.ss)
+          .map(ss => {
 
-          val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
+            val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
 
-          val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
+            val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
 
-          assert(executed.count())(Assertion.equalTo(100L))
-        })
-      }
+            assert(executed.count())(Assertion.equalTo(100L))
+          })
+      } @@ TestAspect.ignore @@ max10s
     )
   /*
 

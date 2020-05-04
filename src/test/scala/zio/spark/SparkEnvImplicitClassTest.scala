@@ -1,12 +1,11 @@
 package zio.spark
 
-import org.apache.spark.sql.SparkSession
 import zio._
 import zio.test._
 
 object SparkEnvImplicitClassTest extends DefaultRunnableSpec {
 
-  val sparkZIO: Task[SparkZIO] = Task(SparkSession.builder.master("local[*]").getOrCreate()).map(x => new SparkZIO(x))
+  val sparkZIO: Task[SparkZIO] = ss
   val pathToto: String         = "src/test/resources/toto"
 
   import zio.test._
@@ -20,13 +19,13 @@ object SparkEnvImplicitClassTest extends DefaultRunnableSpec {
       } yield assert(df.collect().toSeq)(zio.test.Assertion.equalTo(df2.collect().toSeq))
 
       sparkZIO.flatMap(prg.provide)
-    },
+    } @@ max10s,
     testM("toDataSet") {
       import SparkEnv.implicits._
 
       val prg = for {
 
-        df <- SparkEnv.read.textFile("pathToto")
+        df <- SparkEnv.read.textFile(pathToto)
         ds <- Task(df.as[String])
         v  <- Task(ds.take(1)(0))
       } yield {
@@ -35,7 +34,7 @@ object SparkEnvImplicitClassTest extends DefaultRunnableSpec {
 
       sparkZIO.flatMap(prg.provide)
 
-    }
+    } @@ max10s
   )
 
 }
