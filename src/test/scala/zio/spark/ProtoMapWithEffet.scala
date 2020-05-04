@@ -31,46 +31,34 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec {
   )(
     onRejected: E2,
     maxErrorRatio: Ratio = Ratio(0.05).get,
-    keepOrdering: Boolean = false,
     decayScale: Int = 1000,
     localConcurrentTasks: Int = 4
   ): RDD[Either[E2, A]] =
     rddIO.mapPartitions(it => {
-
       val in: Stream[Nothing, IO[E1, A]] = zio.stream.Stream.fromIterator(UIO(it))
 
-      val circuitBreaked: ZIO[Any, Nothing, ZStream[Any, Nothing, Either[E2, A]]] = for {
-        tap <- CircuitTap.make[E2, E2](maxErrorRatio, _ => true, onRejected, decayScale)
-      } yield {
-        if (keepOrdering)
-          in.mapMPar(localConcurrentTasks)(x => tap(x).either)
-        else
-          in.mapMParUnordered(localConcurrentTasks)(x => tap(x).either)
+      val out: ZManaged[Any, Nothing, Iterator[Either[E1, A]]] = in.mapM(identity).toIterator
 
-      }
+      val runtime: Runtime[zio.ZEnv] = zio.Runtime.global
 
-      val out: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] =
-        circuitBreaked.toManaged_.flatMap(_.toIterator.map(_.map(_.merge)))
+      val reserve: Reservation[Any, Nothing, Iterator[Either[E1, A]]] = runtime.unsafeRun(out.reserve)
 
-      val reserve: Reservation[Any, Nothing, Iterator[Either[E2, A]]] = zio.Runtime.default.unsafeRunTask(out.reserve)
-
-      val aquired: Iterator[Either[E2, A]] = zio.Runtime.default.unsafeRunTask(reserve.acquire)
+      val outIterator = runtime.unsafeRun(reserve.acquire)
 
       new Iterator[Either[E2, A]] {
         var opened = true
 
-        override def hasNext(): Boolean = {
-          val hasNext = aquired.hasNext
+        override def hasNext: Boolean = {
+          val hasNext = outIterator.hasNext
           if (opened && !hasNext) {
             opened = false
-            zio.Runtime.default.unsafeRunTask(reserve.release(Exit.unit))
+            runtime.unsafeRun(reserve.release(Exit.unit))
           }
           hasNext
         }
 
-        override def next(): Either[E2, A] = aquired.next()
+        override def next(): Either[E2, A] = outIterator.next()
       }
-
     })
 
   import zio.test._
