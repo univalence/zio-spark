@@ -1,4 +1,4 @@
-package io.univalence.sparkzio
+package zio.spark
 
 import zio.{ Ref, UIO, ZIO }
 
@@ -24,11 +24,12 @@ trait CircuitTap[-E1, +E2] {
   def getState: UIO[CircuitTap.State]
 }
 
-class SmartCircuitTap[-E1, +E2](errBound: Ratio,
-                                qualified: E1 => Boolean,
-                                rejected: => E2,
-                                state: Ref[CircuitTap.State])
-    extends CircuitTap[E1, E2] {
+class SmartCircuitTap[-E1, +E2](
+  errBound: Ratio,
+  qualified: E1 => Boolean,
+  rejected: => E2,
+  state: Ref[CircuitTap.State]
+) extends CircuitTap[E1, E2] {
 
   override def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
     for {
@@ -120,10 +121,12 @@ object CircuitTap {
    * default error used for rejecting tasks
    * submitted to the tap.
    */
-  def make[E1, E2](maxError: Ratio,
-                   qualified: E1 => Boolean,
-                   rejected: => E2,
-                   decayScale: Int): UIO[CircuitTap[E1, E2]] =
+  def make[E1, E2](
+    maxError: Ratio,
+    qualified: E1 => Boolean,
+    rejected: => E2,
+    decayScale: Int
+  ): UIO[CircuitTap[E1, E2]] =
     for {
       state <- Ref.make[State](zeroState(decayScale))
     } yield {

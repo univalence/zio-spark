@@ -1,4 +1,4 @@
-package io.univalence.sparkzio
+package zio.spark
 
 import zio.IO
 import zio.test._

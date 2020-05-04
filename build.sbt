@@ -11,8 +11,8 @@ val libVersion =
 scmInfo := Some(
   ScmInfo(
     url("https://github.com/univalence/zio-spark"),
-    "scm:git:https://github.com/univalence/spark-tools.git",
-    "scm:git:git@github.com:univalence/spark-tools.git"
+    "scm:git:https://github.com/univalence/zio-spark.git",
+    "scm:git:git@github.com:univalence/zio-spark.git"
   )
 )
 

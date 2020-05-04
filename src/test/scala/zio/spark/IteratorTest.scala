@@ -1,4 +1,4 @@
-package io.univalence.sparkzio
+package zio.spark
 
 import zio._
 import zio.clock.Clock

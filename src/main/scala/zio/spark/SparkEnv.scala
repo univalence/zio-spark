@@ -1,4 +1,4 @@
-package io.univalence.sparkzio
+package zio.spark
 
 import org.apache.spark.sql.{ DataFrame, DataFrameReader, Dataset, SparkSession, _ }
 import zio.{ RIO, Task, ZIO }

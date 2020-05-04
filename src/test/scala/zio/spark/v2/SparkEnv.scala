@@ -1,4 +1,4 @@
-package io.univalence.sparkzio.v2
+package zio.spark.v2
 
 import org.apache.spark.sql.DataFrame
 import zio.Task

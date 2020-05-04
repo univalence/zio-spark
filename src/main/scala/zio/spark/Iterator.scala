@@ -1,4 +1,4 @@
-package io.univalence.sparkzio
+package zio.spark
 
 import zio.stream.ZStream
 import zio.{ Exit, URIO, ZIO, ZManaged }

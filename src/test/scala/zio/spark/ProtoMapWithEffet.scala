@@ -1,4 +1,4 @@
-package io.univalence.sparkzio
+package zio.spark
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
