@@ -20,7 +20,7 @@ object syntax {
   }
 }
 
-object ProtoMapWithEffetTest {
+object ProtoMapWithEffetTest extends DefaultRunnableSpec {
 
   def putStrLn(line: String): ZIO[Console, Nothing, Unit] = zio.console.putStrLn(line)
 
@@ -53,10 +53,6 @@ object ProtoMapWithEffetTest {
       zio.Runtime.default.unsafeRunTask(iterator)
 
     })
-
-}
-
-class ProtoMapWithEffetTest extends DefaultRunnableSpec {
 
   import ProtoMapWithEffetTest._
 
