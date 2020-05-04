@@ -49,10 +49,12 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec {
 
       }
 
-      val iterator: ZIO[Any, Nothing, Iterator[Nothing, Either[E2, A]]] =
-        Iterator.unwrapManaged(circuitBreaked.toManaged_ >>= Iterator.fromStream)
+      val out: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] =
+        circuitBreaked.toManaged_.flatMap(_.toIterator.map(_.map(_.merge)))
 
-      zio.Runtime.default.unsafeRunTask(iterator)
+      //zio.Runtime.default.unsafeRunTask(iterator)
+
+      ???
 
     })
 
