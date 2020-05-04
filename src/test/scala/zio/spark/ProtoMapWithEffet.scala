@@ -52,13 +52,26 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec {
       val out: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] =
         circuitBreaked.toManaged_.flatMap(_.toIterator.map(_.map(_.merge)))
 
-      //zio.Runtime.default.unsafeRunTask(iterator)
+      val reserve: Reservation[Any, Nothing, Iterator[Either[E2, A]]] = zio.Runtime.default.unsafeRunTask(out.reserve)
 
-      ???
+      val aquired: Iterator[Either[E2, A]] = zio.Runtime.default.unsafeRunTask(reserve.acquire)
+
+      new Iterator[Either[E2, A]] {
+        var opened = true
+
+        override def hasNext(): Boolean = {
+          val hasNext = aquired.hasNext
+          if (opened && !hasNext) {
+            opened = false
+            zio.Runtime.default.unsafeRunTask(reserve.release(Exit.unit))
+          }
+          hasNext
+        }
+
+        override def next(): Either[E2, A] = aquired.next()
+      }
 
     })
-
-  import ProtoMapWithEffetTest._
 
   import zio.test._
 
@@ -67,14 +80,13 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec {
       testM("1") {
         ss.flatMap(_.ss)
           .map(ss => {
-
             val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
 
             val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
 
             assert(executed.count())(Assertion.equalTo(100L))
           })
-      } @@ TestAspect.ignore @@ max10s
+      } @@ max20secondes
     )
   /*
 

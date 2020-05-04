@@ -19,7 +19,7 @@ object SparkEnvImplicitClassTest extends DefaultRunnableSpec {
       } yield assert(df.collect().toSeq)(zio.test.Assertion.equalTo(df2.collect().toSeq))
 
       sparkZIO.flatMap(prg.provide)
-    } @@ max10s,
+    } @@ max20secondes,
     testM("toDataSet") {
       import SparkEnv.implicits._
 
@@ -34,7 +34,7 @@ object SparkEnvImplicitClassTest extends DefaultRunnableSpec {
 
       sparkZIO.flatMap(prg.provide)
 
-    } @@ max10s
+    } @@ max20secondes
   )
 
 }

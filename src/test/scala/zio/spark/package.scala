@@ -10,5 +10,5 @@ package object spark {
 
   val ss: Task[SparkZIO] = Task(new SparkZIO(SparkSession.builder().master("local[*]").appName("toto").getOrCreate()))
 
-  val max10s: TestAspectAtLeastR[Live] = TestAspect.timeout(zio.duration.Duration(10, TimeUnit.SECONDS))
+  val max20secondes: TestAspectAtLeastR[Live] = TestAspect.timeout(zio.duration.Duration(20, TimeUnit.SECONDS))
 }
