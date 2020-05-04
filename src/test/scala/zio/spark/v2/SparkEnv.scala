@@ -7,7 +7,13 @@ import scala.util.Try
 
 trait ZSparkSession {
 
-  def read: ZSparkSession.Read[Any] = ???
+  trait Read {
+    def option(key: String, value: String): Read
+    def parquet(path: String): Task[ZDataFrame]
+    def textFile(path: String): Task[ZDataFrame]
+  }
+
+  def read: Read = ???
 }
 
 trait ZDataFrame {
@@ -25,13 +31,13 @@ trait ZDataFrame {
 
 object ZSparkSession {
 
-  trait Read[S] {
-    def option(key: String, value: String): Read[S]
-    def parquet(path: String): RIO[S, ZDataFrame]
-    def textFile(path: String): RIO[S, ZDataFrame]
+  trait RRead {
+    def option(key: String, value: String): RRead
+    def parquet(path: String): SIO[ZDataFrame]
+    def textFile(path: String): SIO[ZDataFrame]
   }
 
-  def read: Read[SparkEnv] = ???
+  def read: RRead = ???
 }
 
 object TestApp {
