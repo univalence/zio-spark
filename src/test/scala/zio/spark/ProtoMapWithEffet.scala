@@ -24,41 +24,20 @@ object syntax {
 
 object ProtoMapWithEffetTest extends DefaultRunnableSpec {
 
-  def putStrLn(line: String): ZIO[Console, Nothing, Unit] = zio.console.putStrLn(line)
-
   def tap[E1, E2 >: E1, A](
     rddIO: RDD[IO[E1, A]]
   )(
     onRejected: E2,
     maxErrorRatio: Ratio = Ratio(0.05).get,
-    decayScale: Int = 1000,
-    localConcurrentTasks: Int = 4
+    decayScale: Int = 1000
   ): RDD[Either[E2, A]] =
     rddIO.mapPartitions(it => {
-      val in: Stream[Nothing, IO[E1, A]] = zio.stream.Stream.fromIterator(UIO(it))
 
-      val out: ZManaged[Any, Nothing, Iterator[Either[E1, A]]] = in.mapM(identity).toIterator
+      val in: Stream[Nothing, IO[E1, A]] = ZStream.fromIterator(UIO(it))
 
-      val runtime: Runtime[zio.ZEnv] = zio.Runtime.global
+      //don't need to release here
+      zio.Runtime.global.unsafeRun(in.mapM(identity).toIterator.reserve >>= (_.acquire))
 
-      val reserve: Reservation[Any, Nothing, Iterator[Either[E1, A]]] = runtime.unsafeRun(out.reserve)
-
-      val outIterator = runtime.unsafeRun(reserve.acquire)
-
-      new Iterator[Either[E2, A]] {
-        var opened = true
-
-        override def hasNext: Boolean = {
-          val hasNext = outIterator.hasNext
-          if (opened && !hasNext) {
-            opened = false
-            runtime.unsafeRun(reserve.release(Exit.unit))
-          }
-          hasNext
-        }
-
-        override def next(): Either[E2, A] = outIterator.next()
-      }
     })
 
   import zio.test._
