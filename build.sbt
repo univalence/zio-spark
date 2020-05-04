@@ -10,7 +10,7 @@ val libVersion =
 
 scmInfo := Some(
   ScmInfo(
-    url("https://github.com/univalence/spark-zio"),
+    url("https://github.com/univalence/zio-spark"),
     "scm:git:https://github.com/univalence/spark-tools.git",
     "scm:git:git@github.com:univalence/spark-tools.git"
   )
@@ -59,9 +59,9 @@ organization := "io.univalence"
 organizationName := "Univalence"
 organizationHomepage := Some(url("https://univalence.io/"))
 licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
-name := "spark-zio"
+name := "zio-spark"
 description := "Spark Zio is to use Zio with Spark"
-homepage := Option(url("https://github.com/univalence/spark-zio"))
+homepage := Option(url("https://github.com/univalence/zio-spark"))
 
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio"          % libVersion.zio,

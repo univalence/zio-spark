@@ -1,7 +1,6 @@
 Spark-ZIO
 ======================
 
-[ ![Download](https://api.bintray.com/packages/univalence/univalence-jvm/spark-zio/images/download.svg) ](https://bintray.com/univalence/univalence-jvm/spark-zio/_latestVersion)
 
 Spark-ZIO allows access to Spark using ZIO's environment.
 
