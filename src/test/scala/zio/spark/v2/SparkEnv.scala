@@ -1,19 +1,13 @@
 package zio.spark.v2
 
 import org.apache.spark.sql.DataFrame
-import zio.Task
+import zio.{ RIO, Task }
 
 import scala.util.Try
 
 trait ZSparkSession {
 
-  trait Read {
-    def option(key: String, value: String): Read
-    def parquet(path: String): Task[ZDataFrame]
-    def textFile(path: String): Task[ZDataFrame]
-  }
-
-  def read: Read = ???
+  def read: ZSparkSession.Read[Any] = ???
 }
 
 trait ZDataFrame {
@@ -31,13 +25,13 @@ trait ZDataFrame {
 
 object ZSparkSession {
 
-  trait Read {
-    def option(key: String, value: String): Read
-    def parquet(path: String): SIO[ZDataFrame]
-    def textFile(path: String): SIO[ZDataFrame]
+  trait Read[S] {
+    def option(key: String, value: String): Read[S]
+    def parquet(path: String): RIO[S, ZDataFrame]
+    def textFile(path: String): RIO[S, ZDataFrame]
   }
 
-  def read: Read = ???
+  def read: Read[SparkEnv] = ???
 }
 
 object TestApp {
@@ -45,4 +39,6 @@ object TestApp {
   val df: DataFrame = ???
 
   val value: SIO[ZDataFrame] = ZSparkSession.read.parquet("toto.parquet")
+
+  def main(args: Array[String]): Unit = {}
 }

@@ -32,20 +32,22 @@ class SmartCircuitTap[-E1, +E2](
 ) extends CircuitTap[E1, E2] {
 
   override def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
-    for {
-      s <- state.get
-      r <- if (s.decayingErrorRatio.ratio.value > errBound.value) {
-            state.update(_.incRejected) *> ZIO.fail(rejected)
-          } else {
-            run(effect)
-          }
-    } yield r
+    state.get >>= { s =>
+      val tooMuchError: Boolean = s.decayingErrorRatio.ratio.value > errBound.value
+      if (tooMuchError) {
+        zio.ZRef.UnifiedSyntax(state).update(_.incRejected) *> ZIO.fail(rejected)
+      } else {
+        run(effect)
+      }
+    }
 
-  private def run[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
-    effect.tapBoth({
-      case e if qualified(e) => state.update(_.incFailure)
-      case _                 => state.update(_.incSuccess)
-    }, _ => state.update(_.incSuccess))
+  private def run[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] = {
+    def tapError(e: E): UIO[Unit] =
+      if (qualified(e)) state.update(_.incFailure)
+      else state.update(_.incSuccess)
+
+    effect.tapBoth(tapError, _ => state.update(_.incSuccess))
+  }
 
   override def getState: UIO[CircuitTap.State] = state.get
 }
@@ -89,7 +91,7 @@ case class DecayingRatio(ratio: Ratio, scale: Int) {
 }
 
 object CircuitTap {
-  private[sparkzio] case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: DecayingRatio) {
+  private[spark] case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: DecayingRatio) {
 
     private def nextErrorRatio(ratio: Ratio): DecayingRatio =
       if (total == 0) DecayingRatio(ratio, decayingErrorRatio.scale)
