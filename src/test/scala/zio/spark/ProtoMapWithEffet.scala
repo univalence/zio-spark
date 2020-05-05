@@ -35,14 +35,11 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec {
       val prg: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] =
         CircuitTap
           .make[E2, E2](maxErrorRatio, _ => true, onRejected, 1000)
-          .toManaged_
-          .flatMap(
-            circuitTap => {
-              val in: Stream[Nothing, IO[E1, A]] = ZStream.fromIterator(UIO(it))
-              val out: ZStream[Any, E2, A]       = in.mapM(io => circuitTap(io))
-              out.toIterator
-            }
-          )
+          .toManaged_ >>= (circuitTap => {
+          val in: Stream[Nothing, IO[E1, A]] = ZStream.fromIterator(UIO(it))
+          val out: ZStream[Any, E2, A]       = in.mapM(io => circuitTap(io))
+          out.toIterator
+        })
 
       zio.Runtime.global.unsafeRun(prg.reserve >>= (_.acquire))
     })
