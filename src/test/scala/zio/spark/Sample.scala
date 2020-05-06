@@ -7,6 +7,16 @@ object Sample {
 
   def main(args: Array[String]): Unit = {
 
+    /*
+    val prg = for {
+      df  <- zio.spark.read.parquet("src/test/resources/toto")
+      ds  <- df.as[String].toTask
+      seq <- ds.take(1)
+    } yield { seq(0) }
+
+    prg.provideCustomLayer(zio.spark.zlayer)
+     */
+
     val ss = SparkSession.builder().master("local").appName("xxx").getOrCreate()
 
     import ss.implicits._

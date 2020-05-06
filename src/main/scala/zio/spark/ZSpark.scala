@@ -3,6 +3,7 @@ package zio.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
+import zio.spark.wrap.ZWrap
 import zio.{ Task, UIO }
 
 import scala.reflect.ClassTag

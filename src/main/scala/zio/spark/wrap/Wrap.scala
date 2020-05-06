@@ -1,19 +1,13 @@
-package zio.spark
+package zio.spark.wrap
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import zio.spark.Wrap.Aux
-import zio.{ RIO, Task, UIO, ZIO }
+import zio._
+import zio.spark._
+import zio.spark.wrap.Wrap.Aux
 
 import scala.util.Try
-
-trait Wrap[A] {
-  type Out
-
-  @inline
-  def apply(a: A): Out
-}
 
 sealed trait LowLowPriorityWrap {
   final implicit def _any[T]: Wrap.Aux[T, ZWrap[T]] = new Wrap[T] {
@@ -25,6 +19,37 @@ sealed trait LowLowPriorityWrap {
 sealed trait LowPriorityWrap extends LowLowPriorityWrap {
 
   final implicit def _dataset[T]: Aux[Dataset[T], ZDataset[T]] = Wrap.zwrap(ds => new ZDataset(ds))
+}
+
+abstract class ZWrap[V](private val value: V) {
+
+  /** ...
+   * ...
+   *
+   * @usecase def execute[B](f: V => B):Task[B]
+   */
+  final def execute[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Task[C] = Task(W(f(value)))
+
+  final def executeM[R, B, C](f: V => RIO[R, B])(implicit W: Wrap.Aux[B, C]): RIO[R, C] =
+    Task(f(value).map(W.apply)).flatten
+
+  final protected def executeTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): UIO[C] = UIO(W(f(value)))
+
+  final protected def executeTotalM[R, E, B, C](f: V => ZIO[R, E, B])(implicit W: Wrap.Aux[B, C]): ZIO[R, E, C] =
+    f(value).map(W.apply)
+
+  final protected def unsafeTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): C = W(f(value))
+
+  final protected def unsafe[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
+
+  final protected def executeNoWrap[B](f: V => B): Task[B] = Task(f(value))
+}
+
+trait Wrap[A] {
+  type Out
+
+  @inline
+  def apply(a: A): Out
 }
 
 object Wrap extends LowPriorityWrap {
@@ -71,28 +96,4 @@ object Wrap extends LowPriorityWrap {
 
   def apply[A, B](a: A)(implicit W: Wrap[A]): W.Out = W(a)
 
-}
-
-abstract class ZWrap[V](private val value: V) {
-
-  final protected def executeTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): UIO[C] = UIO(W(f(value)))
-
-  final protected def executeTotalM[R, E, B, C](f: V => ZIO[R, E, B])(implicit W: Wrap.Aux[B, C]): ZIO[R, E, C] =
-    f(value).map(W.apply)
-
-  final protected def unsafeTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): C = W(f(value))
-
-  final protected def unsafe[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
-
-  final protected def executeNoWrap[B](f: V => B): Task[B] = Task(f(value))
-
-  /** ...
-   *  ...
-   *
-   *  @usecase def execute[B](f: V => B):Task[B]
-   */
-  final def execute[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Task[C] = Task(W(f(value)))
-
-  final def executeM[R, B, C](f: V => RIO[R, B])(implicit W: Wrap.Aux[B, C]): RIO[R, C] =
-    Task(f(value).map(W.apply)).flatten
 }
