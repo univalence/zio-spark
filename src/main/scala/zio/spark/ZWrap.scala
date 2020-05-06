@@ -1,8 +1,9 @@
 package zio.spark
 
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Column, DataFrame, Dataset, Row, SparkSession }
-import zio.spark.Wrap.{ zwrap, Aux, NoWrap }
+import org.apache.spark.sql._
+import zio.spark.Wrap.Aux
 import zio.{ RIO, Task, UIO, ZIO }
 
 import scala.util.Try
@@ -15,7 +16,6 @@ trait Wrap[A] {
 }
 
 sealed trait LowLowPriorityWrap {
-
   final implicit def _any[T]: Wrap.Aux[T, ZWrap[T]] = new Wrap[T] {
     override type Out = ZWrap[T]
     override def apply(a: T): Out = new ZWrap[T](a) {}
@@ -23,20 +23,8 @@ sealed trait LowLowPriorityWrap {
 }
 
 sealed trait LowPriorityWrap extends LowLowPriorityWrap {
-  final protected def noWrap[T]: NoWrap[T] = new Wrap[T] {
-    override type Out = T
 
-    @inline
-    override def apply(a: T): Out = a
-  }
-
-  final protected def zwrap[A, B <: ZWrap[_]](f: A => B): Aux[A, B] = new Wrap[A] {
-    override type Out = B
-    override def apply(a: A): Out = f(a)
-  }
-
-  final implicit def _dataset[T]: Aux[Dataset[T], ZDataset[T]] = zwrap(ds => new ZDataset(ds))
-
+  final implicit def _dataset[T]: Aux[Dataset[T], ZDataset[T]] = Wrap.zwrap(ds => new ZDataset(ds))
 }
 
 object Wrap extends LowPriorityWrap {
@@ -46,8 +34,22 @@ object Wrap extends LowPriorityWrap {
 
   type NoWrap[T] = Aux[T, T]
 
+  final protected[spark] def noWrap[T]: NoWrap[T] = new Wrap[T] {
+    override type Out = T
+
+    @inline
+    override def apply(a: T): Out = a
+  }
+
+  final protected[spark] def zwrap[A, B <: ZWrap[_]](f: A => B): Aux[A, B] = new Wrap[A] {
+    override type Out = B
+    override def apply(a: A): Out = f(a)
+  }
+
   implicit val _string: NoWrap[String]            = noWrap
   implicit val _int: NoWrap[Int]                  = noWrap
+  implicit val _long: NoWrap[Long]                = noWrap
+  implicit val _unit: NoWrap[Unit]                = noWrap
   implicit val _row: NoWrap[Row]                  = noWrap
   implicit val _column: NoWrap[Column]            = noWrap
   implicit def _wrapped[T <: ZWrap[_]]: NoWrap[T] = noWrap
@@ -55,6 +57,7 @@ object Wrap extends LowPriorityWrap {
   implicit def _rdd[T]: Aux[RDD[T], ZRDD[T]]                   = zwrap(rdd => new ZRDD(rdd))
   implicit val _dataframe: Aux[DataFrame, ZDataFrame]          = zwrap(df => new ZDataFrame(df))
   implicit val _sparkSession: Aux[SparkSession, ZSparkSession] = zwrap(ss => new ZSparkSession(ss))
+  implicit val _sparkContext: Aux[SparkContext, ZSparkContext] = zwrap(sc => new ZSparkContext(sc))
 
   implicit def _seq[A, B](implicit W: Aux[A, B]): Aux[Seq[A], Seq[B]] = new Wrap[Seq[A]] {
     override type Out = Seq[B]
@@ -81,22 +84,15 @@ abstract class ZWrap[V](private val value: V) {
 
   final protected def unsafe[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
 
+  final protected def executeNoWrap[B](f: V => B): Task[B] = Task(f(value))
+
   /** ...
    *  ...
+   *
    *  @usecase def execute[B](f: V => B):Task[B]
    */
   final def execute[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Task[C] = Task(W(f(value)))
 
   final def executeM[R, B, C](f: V => RIO[R, B])(implicit W: Wrap.Aux[B, C]): RIO[R, C] =
     Task(f(value).map(W.apply)).flatten
-}
-
-object MyApp {
-  val rdd: ZRDD[String] = ???
-
-  val rdd3: ZRDD[String] = rdd.map(_.toUpperCase)
-
-  val rdd2: Task[String] = rdd.execute(_.name)
-
-  def main(args: Array[String]): Unit = {}
 }

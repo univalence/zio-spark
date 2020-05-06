@@ -3,10 +3,9 @@ package zio.spark
 import zio._
 import zio.test._
 
-object SparkEnvImplicitClassTest extends DefaultRunnableSpec {
+object SparkEnvImplicitClassTest extends DefaultRunnableSpec with SparkTest {
 
-  val sparkZIO: Task[SparkZIO] = ss
-  val pathToto: String         = "src/test/resources/toto"
+  val pathToto: String = "src/test/resources/toto"
 
   import zio.test._
 
@@ -14,28 +13,25 @@ object SparkEnvImplicitClassTest extends DefaultRunnableSpec {
     testM("sparkEven read and SparkEnv sql example") {
 
       val prg: ZIO[SparkEnv, Throwable, TestResult] = for {
-        df   <- SparkEnv.read.textFile(pathToto)
-        _    <- Task(df.createTempView("totoview"))
-        df2  <- SparkEnv.sql(s"""SELECT * FROM totoview""")
-        seq1 <- Task(df.collect().toSeq)
-        seq2 <- Task(df2.collect().toSeq)
-      } yield assert(seq1.head.getString(0))(zio.test.Assertion.equalTo(seq2.head.getString(0)))
+        df   <- zio.spark.read.textFile(pathToto)
+        _    <- df.execute(_.createTempView("totoview"))
+        df2  <- zio.spark.sql(s"""SELECT * FROM totoview""")
+        seq1 <- df.collect()
+        seq2 <- df2.collect()
+      } yield assert(seq1.head)(zio.test.Assertion.equalTo(seq2.head.getString(0)))
 
-      sparkZIO.flatMap(prg.provide)
+      ss >>= (x => prg.provide(Has(x)))
+
     } @@ max20secondes,
     testM("toDataSet") {
-      import SparkEnv.implicits._
-
       val prg = for {
-
-        df <- SparkEnv.read.textFile(pathToto)
-        ds <- Task(df.as[String])
-        v  <- Task(ds.take(1)(0))
+        ds <- zio.spark.read.textFile(pathToto)
+        v  <- ds.take(1)
       } yield {
-        assert(v.trim)(Assertion.equalTo("bonjour"))
+        assert(v.head.trim)(Assertion.equalTo("bonjour"))
       }
 
-      sparkZIO.flatMap(prg.provide)
+      ss >>= (x => prg.provide(Has(x)))
 
     } @@ max20secondes
   )

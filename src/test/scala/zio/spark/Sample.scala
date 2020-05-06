@@ -1,17 +1,7 @@
 package zio.spark
 
-import java.util.concurrent.TimeUnit
-
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
-import zio.clock.Clock
-import zio.duration.Duration
-import zio.spark.ProtoMapWithEffetTest.tap
-import zio.spark.SparkEnvImplicitClassTest.pathToto
-import zio.test.{ assert, Assertion, TestResult }
-import zio.{ RIO, Schedule, Task, UIO, URIO, ZIO }
-
-import scala.util.Either
+import zio.{ RIO, Task, ZIO }
 
 object Sample {
 
@@ -22,25 +12,6 @@ object Sample {
     import ss.implicits._
     println(ss.read.textFile("src/test/resources/toto/").as[String].take(1)(0))
 
-  }
-
-}
-
-object Sample2 {
-
-  def main(args: Array[String]): Unit = {
-
-    val prg: ZIO[Any, Throwable, TestResult] = ss
-      .flatMap(_.ss)
-      .map(ss => {
-        val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
-
-        val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
-
-        assert(executed.count())(Assertion.equalTo(100L))
-      })
-
-    println(zio.Runtime.default.unsafeRun(prg.run))
   }
 
 }

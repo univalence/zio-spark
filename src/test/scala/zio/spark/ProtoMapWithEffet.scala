@@ -1,11 +1,6 @@
 package zio.spark
 
-import java.util.concurrent.TimeUnit
-
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql._
 import zio._
-import zio.console.Console
 import zio.stream._
 import zio.test._
 
@@ -22,43 +17,41 @@ object syntax {
   }
 }
 
-object ProtoMapWithEffetTest extends DefaultRunnableSpec {
+object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
+
+  override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
+    suite("proto map with effet")(
+      testM("1") {
+        ss.flatMap(ss => {
+
+          val someThing: ZRDD[Task[Int]]             = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
+          val executed: ZRDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
+
+          assertM(executed.count)(Assertion.equalTo(100L))
+
+        })
+      } @@ max20secondes
+    )
 
   def tap[E1, E2 >: E1, A](
-    rddIO: RDD[IO[E1, A]]
+    rddIO: ZRDD[IO[E1, A]]
   )(
     onRejected: E2,
     maxErrorRatio: Ratio = Ratio(0.05).get,
     decayScale: Int = 1000
-  ): RDD[Either[E2, A]] =
+  ): ZRDD[Either[E2, A]] =
     rddIO.mapPartitions(it => {
       val prg: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] =
         CircuitTap
           .make[E2, E2](maxErrorRatio, _ => true, onRejected, 1000)
           .toManaged_ >>= (circuitTap => {
-          val in: ZStream[Any, Nothing, IO[E2, A]] = ZStream.fromIterator(it).refineOrDie({ case t if false => ??? })
+          val in: ZStream[Any, Nothing, IO[E2, A]] = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
           val out: ZStream[Any, E2, A]             = in.mapM(io => circuitTap(io))
           out.toIterator
         })
 
       zio.Runtime.global.unsafeRun(prg.reserve >>= (_.acquire))
     })
-
-  import zio.test._
-
-  override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
-    suite("proto map with effet")(
-      testM("1") {
-        ss.flatMap(_.ss)
-          .map(ss => {
-            val someThing: RDD[Task[Int]] = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
-
-            val executed: RDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
-
-            assert(executed.count())(Assertion.equalTo(100L))
-          })
-      } @@ max20secondes
-    )
   /*
 
   def time[R](block: => R): (Duration, R) = {
