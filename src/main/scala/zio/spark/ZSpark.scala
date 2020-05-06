@@ -68,22 +68,56 @@ final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession
   }
 }
 
-final class ZDataFrame(dataFrame: DataFrame) extends ZWrap(dataFrame) {
-  def col(colName: String): Try[Column] = unsafe(_.col(colName))
+abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
+  final def write: Write = {
+    class WriteImpl(task: Task[ZWrap[DataFrameWriter[T]]]) extends Write {
+      override def option(key: String, value: String): Write = copy(_.option(key, value))
 
-  def sparkSession: ZSparkSession = unsafeTotal(_.sparkSession)
+      def copy(f: DataFrameWriter[T] => DataFrameWriter[T]): Write = new WriteImpl(task.flatMap(_.execute(f)))
 
+      override def format(name: String): Write    = copy(_.format(name))
+      override def mode(writeMode: String): Write = copy(_.mode(writeMode))
+
+      override def parquet(path: String): Task[Unit] = execute(_.parquet(path))
+
+      override def text(path: String): Task[Unit] = execute(_.text(path))
+
+      def execute(f: DataFrameWriter[T] => Unit): Task[Unit] = task >>= (_.execute(f))
+
+      override def save(path: String): Task[Unit] = execute(_.save(path))
+    }
+    new WriteImpl(execute(_.write))
+  }
+
+  final def sparkSession: ZSparkSession = unsafeTotal(_.sparkSession)
+
+  final def col(colName: String): Try[Column] = unsafe(_.col(colName))
+
+  final def apply(colName: String): Try[Column] = unsafe(_(colName))
+
+  final def cache: Task[Unit] = execute(_.cache()).unit
+
+  final def createTempView(viewName: String): Task[Unit] = execute(_.createTempView(viewName))
+
+  trait Write {
+    def option(key: String, value: String): Write
+    def format(name: String): Write
+    def mode(writeMode: String): Write
+
+    def parquet(path: String): Task[Unit]
+    def text(path: String): Task[Unit]
+    def save(path: String): Task[Unit]
+  }
+
+}
+
+final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
   def rdd: ZRDD[Row] = unsafeTotal(_.rdd)
 
   def collect(): Task[Seq[Row]] = execute(_.collect().toSeq)
-
-  def apply(colName: String): Try[Column] = unsafe(_(colName))
-
-  def createTempView(viewName: String): Task[Unit] = execute(_.createTempView(viewName))
 }
 
-final class ZDataset[T](dataset: Dataset[T]) extends ZWrap(dataset) {
-
+final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
   def map[B: Encoder](f: T => B): ZDataset[B] = unsafeTotal(_.map(f))
 
   def collect(): Task[Seq[T]] = executeNoWrap(_.collect().toSeq)
