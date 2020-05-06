@@ -2,6 +2,7 @@ package zio.spark
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Column, DataFrame, Dataset, Row, SparkSession }
+import zio.spark.Wrap.{ zwrap, Aux, NoWrap }
 import zio.{ RIO, Task, UIO, ZIO }
 
 import scala.util.Try
@@ -13,11 +14,28 @@ trait Wrap[A] {
   def apply(a: A): Out
 }
 
-sealed trait LowPriorityWrap {
-  implicit def _any[T]: Wrap.Aux[T, ZWrap[T]] = new Wrap[T] {
+sealed trait LowLowPriorityWrap {
+
+  final implicit def _any[T]: Wrap.Aux[T, ZWrap[T]] = new Wrap[T] {
     override type Out = ZWrap[T]
     override def apply(a: T): Out = new ZWrap[T](a) {}
   }
+}
+
+sealed trait LowPriorityWrap extends LowLowPriorityWrap {
+  final protected def noWrap[T]: NoWrap[T] = new Wrap[T] {
+    override type Out = T
+
+    @inline
+    override def apply(a: T): Out = a
+  }
+
+  final protected def zwrap[A, B <: ZWrap[_]](f: A => B): Aux[A, B] = new Wrap[A] {
+    override type Out = B
+    override def apply(a: A): Out = f(a)
+  }
+
+  final implicit def _dataset[T]: Aux[Dataset[T], ZDataset[T]] = zwrap(ds => new ZDataset(ds))
 
 }
 
@@ -27,17 +45,6 @@ object Wrap extends LowPriorityWrap {
   }
 
   type NoWrap[T] = Aux[T, T]
-  private def noWrap[T]: NoWrap[T] = new Wrap[T] {
-    override type Out = T
-
-    @inline
-    override def apply(a: T): Out = a
-  }
-
-  private def zwrap[A, B <: ZWrap[_]](f: A => B): Aux[A, B] = new Wrap[A] {
-    override type Out = B
-    override def apply(a: A): Out = f(a)
-  }
 
   implicit val _string: NoWrap[String]            = noWrap
   implicit val _int: NoWrap[Int]                  = noWrap
@@ -48,7 +55,6 @@ object Wrap extends LowPriorityWrap {
   implicit def _rdd[T]: Aux[RDD[T], ZRDD[T]]                   = zwrap(rdd => new ZRDD(rdd))
   implicit val _dataframe: Aux[DataFrame, ZDataFrame]          = zwrap(df => new ZDataFrame(df))
   implicit val _sparkSession: Aux[SparkSession, ZSparkSession] = zwrap(ss => new ZSparkSession(ss))
-  implicit def _dataset[T]: Aux[Dataset[T], ZDataset[T]]       = zwrap(ds => new ZDataset(ds))
 
   implicit def _seq[A, B](implicit W: Aux[A, B]): Aux[Seq[A], Seq[B]] = new Wrap[Seq[A]] {
     override type Out = Seq[B]

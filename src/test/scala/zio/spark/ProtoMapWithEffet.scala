@@ -36,8 +36,8 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec {
         CircuitTap
           .make[E2, E2](maxErrorRatio, _ => true, onRejected, 1000)
           .toManaged_ >>= (circuitTap => {
-          val in: Stream[Nothing, IO[E1, A]] = ZStream.fromIterator(UIO(it))
-          val out: ZStream[Any, E2, A]       = in.mapM(io => circuitTap(io))
+          val in: ZStream[Any, Nothing, IO[E2, A]] = ZStream.fromIterator(it).refineOrDie({ case t if false => ??? })
+          val out: ZStream[Any, E2, A]             = in.mapM(io => circuitTap(io))
           out.toIterator
         })
 
