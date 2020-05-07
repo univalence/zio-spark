@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import org.apache.spark.sql.SparkSession
 import zio.Task
+import zio.spark.wrap.Wrap
 import zio.test.environment.Live
 import zio.test.{ TestAspect, TestAspectAtLeastR }
 

@@ -1,8 +1,16 @@
 package zio.spark
 
 import org.apache.spark.sql.{ ColumnName, Encoder, Encoders }
+import zio.{ Task, ZIO }
+import zio.spark.wrap.ZWrap
+
+import scala.util.Try
 
 object implicits {
+
+  implicit class TryOps[T <: ZWrap[_]](t: Try[T]) {
+    def toTask: Task[T] = ZIO.fromTry(t)
+  }
 
   import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 

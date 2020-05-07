@@ -70,6 +70,17 @@ final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession
 }
 
 abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
+
+  trait Write {
+    def option(key: String, value: String): Write
+    def format(name: String): Write
+    def mode(writeMode: String): Write
+
+    def parquet(path: String): Task[Unit]
+    def text(path: String): Task[Unit]
+    def save(path: String): Task[Unit]
+  }
+
   final def write: Write = {
     class WriteImpl(task: Task[ZWrap[DataFrameWriter[T]]]) extends Write {
       override def option(key: String, value: String): Write = copy(_.option(key, value))
@@ -87,8 +98,11 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
 
       override def save(path: String): Task[Unit] = execute(_.save(path))
     }
+
     new WriteImpl(execute(_.write))
   }
+
+  final def as[X: Encoder]: Try[ZDataset[X]] = unsafe(_.as[X])
 
   final def sparkSession: ZSparkSession = unsafeTotal(_.sparkSession)
 
@@ -99,17 +113,6 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
   final def cache: Task[Unit] = execute(_.cache()).unit
 
   final def createTempView(viewName: String): Task[Unit] = execute(_.createTempView(viewName))
-
-  trait Write {
-    def option(key: String, value: String): Write
-    def format(name: String): Write
-    def mode(writeMode: String): Write
-
-    def parquet(path: String): Task[Unit]
-    def text(path: String): Task[Unit]
-    def save(path: String): Task[Unit]
-  }
-
 }
 
 final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {

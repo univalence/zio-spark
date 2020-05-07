@@ -1,31 +1,28 @@
 package zio.spark
 
-import org.apache.spark.sql.SparkSession
-import zio.{ RIO, Task, ZIO }
+import zio.console.Console
+import zio.{ ZIO, ZLayer }
 
-object Sample {
+object Sample extends zio.App {
 
-  def main(args: Array[String]): Unit = {
+  import zio.spark.implicits._
 
-    /*
-    val prg = for {
-      df  <- zio.spark.read.parquet("src/test/resources/toto")
-      ds  <- df.as[String].toTask
-      seq <- ds.take(1)
-    } yield { seq(0) }
+  val prg: ZIO[Console with SparkEnv, Throwable, Int] = for {
+    dataFrame <- zio.spark.read.textFile("src/test/resources/toto")
+    dataset   <- dataFrame.as[String].toTask
+    seq       <- dataset.take(1)
+    _         <- zio.console.putStrLn(seq.head)
+  } yield { 0 }
 
-    prg.provideCustomLayer(zio.spark.zlayer)
-     */
+  val ss: ZLayer[Any, Throwable, SparkEnv] =
+    zio.spark.builder.master("local").appName("xxx").getOrCreate
 
-    val ss = SparkSession.builder().master("local").appName("xxx").getOrCreate()
-
-    import ss.implicits._
-    println(ss.read.textFile("src/test/resources/toto/").as[String].take(1)(0))
-
-  }
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
+    prg.provideCustomLayer(ss).orDie
 
 }
 
+/*
 object Sample4 extends zio.App {
 
   implicit class ZIOExtractOps[R, A](rio: RIO[R, A]) {
@@ -40,3 +37,4 @@ object Sample4 extends zio.App {
       .catchAll(e => zio.console.putStrLn("🎉" + e.toString))
       .as(0)
 }
+ */
