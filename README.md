@@ -25,6 +25,11 @@ resolvers += "zio-spark" at "http://dl.bintray.com/univalence/univalence-jvm"
 libraryDependencies += "io.univalence" %% "zio-spark" % "0.3+79-4936e981"
 ```
 
+## Roadmap
+
+- 
+
+
 ## License
 
 Copyright 2019 Univalence.io

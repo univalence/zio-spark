@@ -1,30 +1,30 @@
 package zio.spark
 
-import org.apache.spark.sql.SparkSession
-import zio.spark.wrap.{ Wrap, ZWrap }
-import zio.{ Has, Task, ZIO, ZLayer }
+import org.apache.spark.sql.{ DataFrameReader, SparkSession }
+import zio.spark.wrap.{ Wrap, ZWrap, ZWrapLazyR }
+import zio.{ Has, RIO, Task, ZIO, ZLayer }
 
 trait PackageSyntax {
 
   def sql(queryString: String): SIO[ZDataFrame] = ZIO.accessM(_.get.sql(queryString))
 
-  def read: Read = {
-    case class ReadImpl(read: SIO[ZSparkSession#Read]) extends Read {
-      override def option(key: String, value: String): Read      = copy(read.map(_.option(key, value)))
-      override def parquet(path: String): SIO[ZDataFrame]        = read.flatMap(_.parquet(path))
-      override def textFile(path: String): SIO[ZDataset[String]] = read.flatMap(_.textFile(path))
-    }
+  trait Read extends ZWrapLazyR[DataFrameReader, Read, SparkEnv] {
+    def option(key: String, value: String): Read      = chain(_.option(key, value))
+    def parquet(path: String): SIO[ZDataFrame]        = execute(_.parquet(path))
+    def textFile(path: String): SIO[ZDataset[String]] = execute(_.textFile(path))
+  }
 
-    ReadImpl(sparkSession.map(_.read))
+  def read: Read = {
+    def create(task: SIO[ZWrap[DataFrameReader]]): Read =
+      new Read {
+        override protected def _task: RIO[SparkEnv, ZWrap[DataFrameReader]] = task
+        override protected val copy: Copy                                   = create
+      }
+
+    create(sparkSession >>= (_.execute(_.read)))
   }
 
   def sparkSession: SIO[ZSparkSession] = ZIO.access(_.get)
-
-  trait Read {
-    def option(key: String, value: String): Read
-    def parquet(path: String): SIO[ZDataFrame]
-    def textFile(path: String): SIO[ZDataset[String]]
-  }
 
   trait Builder {
     def appName(name: String): Builder

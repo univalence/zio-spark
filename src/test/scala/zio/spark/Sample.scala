@@ -1,7 +1,10 @@
 package zio.spark
 
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.execution.QueryExecution
 import zio.console.Console
-import zio.{ ZIO, ZLayer }
+import zio.spark.wrap.{ Wrap, ZWrap }
+import zio.{ Task, ZIO, ZLayer }
 
 object Sample extends zio.App {
 
@@ -12,6 +15,7 @@ object Sample extends zio.App {
     dataset   <- dataFrame.as[String].toTask
     seq       <- dataset.take(1)
     _         <- zio.console.putStrLn(seq.head)
+    _         <- dataset.filter(_.contains("bonjour")).write.text("yolo")
   } yield { 0 }
 
   val ss: ZLayer[Any, Throwable, SparkEnv] =
@@ -20,6 +24,33 @@ object Sample extends zio.App {
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
     prg.provideCustomLayer(ss).orDie
 
+}
+
+object Sample5 {
+
+  import zio.spark.implicits._
+
+  val ds: ZDataset[String] = ???
+
+  ds.map(_.length)
+
+  private val v1: Task[ZWrap[QueryExecution]] = ds.execute(_.queryExecution)
+
+  private val v2: Task[String] = ds.execute(_ => "abc")
+
+  private val v3: Task[ZRDD[String]] = ds.execute(_.rdd)
+
+  val v6: Task[ZRDD[Int]] = Task(Wrap({
+    val sc: SparkContext = ???
+
+    sc.parallelize(0 to 1000)
+  }))
+
+  v6 flatMap (_.count)
+
+  private val v4: ZIO[Any, Throwable, Int] = v3.map(_.id)
+
+  v1 flatMap (_.execute(_.analyzed))
 }
 
 /*

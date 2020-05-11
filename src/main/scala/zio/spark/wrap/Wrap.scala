@@ -9,18 +9,6 @@ import zio.spark.wrap.Wrap.Aux
 
 import scala.util.Try
 
-sealed trait LowLowPriorityWrap {
-  final implicit def _any[T]: Wrap.Aux[T, ZWrap[T]] = new Wrap[T] {
-    override type Out = ZWrap[T]
-    override def apply(a: T): Out = new ZWrap[T](a) {}
-  }
-}
-
-sealed trait LowPriorityWrap extends LowLowPriorityWrap {
-
-  final implicit def _dataset[T]: Aux[Dataset[T], ZDataset[T]] = Wrap.zwrap(ds => new ZDataset(ds))
-}
-
 abstract class ZWrap[V](private val value: V) {
 
   /** ...
@@ -38,11 +26,33 @@ abstract class ZWrap[V](private val value: V) {
   final protected def executeTotalM[R, E, B, C](f: V => ZIO[R, E, B])(implicit W: Wrap.Aux[B, C]): ZIO[R, E, C] =
     f(value).map(W.apply)
 
-  final protected def unsafeTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): C = W(f(value))
+  final protected def nowTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): C = W(f(value))
 
-  final protected def unsafe[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
+  final protected def now[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
+}
 
-  final protected def executeNoWrap[B](f: V => B): Task[B] = Task(f(value))
+//F-BoundedTypes
+abstract class ZWrapLazy[Impure, Self <: ZWrapLazy[Impure, Self]] {
+  protected def _task: Task[ZWrap[Impure]]
+
+  final type Copy = Task[ZWrap[Impure]] => Self
+  protected val copy: Copy
+
+  final def chain(f: Impure => Impure): Self = copy(_task.flatMap(x => x.execute(f)))
+
+  final def execute[B, C](f: Impure => B)(implicit W: Wrap.Aux[B, C]): Task[C] = _task.flatMap(_.execute(f))
+}
+
+abstract class ZWrapLazyR[Impure, Self <: ZWrapLazyR[Impure, Self, Resources], Resources] {
+  protected def _task: RIO[Resources, ZWrap[Impure]]
+
+  final type Copy = RIO[Resources, ZWrap[Impure]] => Self
+  protected val copy: Copy
+
+  final def chain(f: Impure => Impure): Self = copy(_task.flatMap(x => x.execute(f)))
+
+  final def execute[B, Pure](f: Impure => B)(implicit W: Wrap.Aux[B, Pure]): RIO[Resources, Pure] =
+    _task.flatMap(_.execute(f))
 }
 
 trait Wrap[A] {
@@ -50,6 +60,17 @@ trait Wrap[A] {
 
   @inline
   def apply(a: A): Out
+}
+
+sealed trait LowLowPriorityWrap {
+  final implicit def _any[T]: Wrap.Aux[T, ZWrap[T]] = new Wrap[T] {
+    override type Out = ZWrap[T]
+    override def apply(a: T): Out = new ZWrap[T](a) {}
+  }
+}
+
+sealed trait LowPriorityWrap extends LowLowPriorityWrap {
+  final implicit def _dataset[T]: Aux[Dataset[T], ZDataset[T]] = Wrap.zwrap(ds => new ZDataset(ds))
 }
 
 object Wrap extends LowPriorityWrap {
@@ -75,6 +96,7 @@ object Wrap extends LowPriorityWrap {
   implicit val _int: NoWrap[Int]                  = noWrap
   implicit val _long: NoWrap[Long]                = noWrap
   implicit val _unit: NoWrap[Unit]                = noWrap
+  implicit val _boolean: NoWrap[Boolean]          = noWrap
   implicit val _row: NoWrap[Row]                  = noWrap
   implicit val _column: NoWrap[Column]            = noWrap
   implicit def _wrapped[T <: ZWrap[_]]: NoWrap[T] = noWrap
@@ -96,4 +118,5 @@ object Wrap extends LowPriorityWrap {
 
   def apply[A, B](a: A)(implicit W: Wrap[A]): W.Out = W(a)
 
+  def effect[A, B](a: => A)(implicit W: Wrap[A]): Task[W.Out] = Task(W(a))
 }

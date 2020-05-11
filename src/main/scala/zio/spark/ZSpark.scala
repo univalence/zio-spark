@@ -3,7 +3,7 @@ package zio.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import zio.spark.wrap.ZWrap
+import zio.spark.wrap.{ Wrap, ZWrap, ZWrapLazy }
 import zio.{ Task, UIO }
 
 import scala.reflect.ClassTag
@@ -13,119 +13,90 @@ final class ZRDD[T](rdd: RDD[T]) extends ZWrap(rdd) {
   def count: Task[Long] = execute(_.count())
 
   def name: UIO[String] = executeTotal(_.name)
-  def id: Int           = unsafeTotal(_.id)
+  def id: Int           = nowTotal(_.id)
 
-  def ++(rdd: RDD[T]): ZRDD[T]   = unsafeTotal(_.++(rdd))
-  def ++(zrdd: ZRDD[T]): ZRDD[T] = unsafeTotal(x => zrdd.unsafeTotal(x ++ _))
+  def ++(rdd: RDD[T]): ZRDD[T]   = nowTotal(_.++(rdd))
+  def ++(zrdd: ZRDD[T]): ZRDD[T] = nowTotal(x => zrdd.nowTotal(x ++ _))
 
-  def mapPartitions[B: ClassTag](f: Iterator[T] => Iterator[B]): ZRDD[B] = unsafeTotal(_.mapPartitions(f))
+  def mapPartitions[B: ClassTag](f: Iterator[T] => Iterator[B]): ZRDD[B] = nowTotal(_.mapPartitions(f))
 
-  def map[B: ClassTag](f: T => B): ZRDD[B]          = unsafeTotal(_.map(f))
-  def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B] = unsafeTotal(_.flatMap(f))
+  def map[B: ClassTag](f: T => B): ZRDD[B]          = nowTotal(_.map(f))
+  def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B] = nowTotal(_.flatMap(f))
 }
 
 final class ZSparkContext(sparkContext: SparkContext) extends ZWrap(sparkContext) {
-  def parallelize[T: ClassTag](seq: Seq[T]): ZRDD[T] = unsafeTotal(_.parallelize(seq))
+  def parallelize[T: ClassTag](seq: Seq[T]): ZRDD[T] = nowTotal(_.parallelize(seq))
 
 }
 
 final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession) {
 
-  def sparkContext: ZSparkContext = unsafeTotal(_.sparkContext)
+  def sparkContext: ZSparkContext = nowTotal(_.sparkContext)
 
   def sql(sqlText: String): Task[ZDataFrame] = execute(_.sql(sqlText))
 
+  trait Read extends ZWrapLazy[DataFrameReader, Read] {
+    def option(key: String, value: String): Read = chain(_.option(key, value))
+    def option(key: String, value: Long): Read   = chain(_.option(key, value))
+
+    def load: Task[ZDataFrame]                         = execute(_.load())
+    def parquet(path: String): Task[ZDataFrame]        = execute(_.parquet(path))
+    def textFile(path: String): Task[ZDataset[String]] = execute(_.textFile(path))
+  }
+
   def read: Read = {
-    //
-    case class ReadImpl(config: Seq[(String, String)]) extends Read {
-      override def option(key: String, value: String): Read = copy(config :+ ((key, value)))
-
-      override def parquet(path: String): Task[ZDataFrame] = reader >>= (_.execute(_.parquet(path)))
-
-      def reader: UIO[ZWrap[DataFrameReader]] =
-        executeTotal(ss => {
-          val read = ss.read
-
-          config.foreach({
-            case (k, v) => read.option(k, v)
-          })
-
-          read
-        })
-
-      override def textFile(path: String): Task[ZDataset[String]] = reader >>= (_.execute(_.textFile(path)))
+    def create(task: Task[ZWrap[DataFrameReader]]): Read = new Read {
+      override protected def _task: Task[ZWrap[DataFrameReader]] = task
+      override protected val copy: Copy                          = create
     }
-
-    ReadImpl(Vector.empty)
-
+    create(execute(_.read))
   }
 
-  trait Read {
-    def option(key: String, value: String): Read
-
-    def parquet(path: String): Task[ZDataFrame]
-
-    def textFile(path: String): Task[ZDataset[String]]
-  }
 }
 
 abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
 
-  trait Write {
-    def option(key: String, value: String): Write
-    def format(name: String): Write
-    def mode(writeMode: String): Write
+  trait Write extends ZWrapLazy[DataFrameWriter[T], Write] {
+    final def option(key: String, value: String): Write = chain(_.option(key, value))
+    final def format(name: String): Write               = chain(_.format(name))
+    final def mode(saveMode: String): Write             = chain(_.mode(saveMode = saveMode))
 
-    def parquet(path: String): Task[Unit]
-    def text(path: String): Task[Unit]
-    def save(path: String): Task[Unit]
+    final def parquet(path: String): Task[Unit] = execute(_.parquet(path))
+    final def text(path: String): Task[Unit]    = execute(_.text(path))
+    final def save(path: String): Task[Unit]    = execute(_.save(path))
   }
 
   final def write: Write = {
-    class WriteImpl(task: Task[ZWrap[DataFrameWriter[T]]]) extends Write {
-      override def option(key: String, value: String): Write = copy(_.option(key, value))
-
-      def copy(f: DataFrameWriter[T] => DataFrameWriter[T]): Write = new WriteImpl(task.flatMap(_.execute(f)))
-
-      override def format(name: String): Write    = copy(_.format(name))
-      override def mode(writeMode: String): Write = copy(_.mode(writeMode))
-
-      override def parquet(path: String): Task[Unit] = execute(_.parquet(path))
-
-      override def text(path: String): Task[Unit] = execute(_.text(path))
-
-      def execute(f: DataFrameWriter[T] => Unit): Task[Unit] = task >>= (_.execute(f))
-
-      override def save(path: String): Task[Unit] = execute(_.save(path))
+    def create(task: Task[ZWrap[DataFrameWriter[T]]]): Write = new Write {
+      override protected def _task: Task[ZWrap[DataFrameWriter[T]]] = task
+      override protected val copy: Copy                             = create
     }
 
-    new WriteImpl(execute(_.write))
+    create(execute(_.write))
   }
 
-  final def as[X: Encoder]: Try[ZDataset[X]] = unsafe(_.as[X])
+  final def as[X: Encoder]: Try[ZDataset[X]] = now(_.as[X])
 
-  final def sparkSession: ZSparkSession = unsafeTotal(_.sparkSession)
+  final def sparkSession: ZSparkSession = nowTotal(_.sparkSession)
 
-  final def col(colName: String): Try[Column] = unsafe(_.col(colName))
+  final def col(colName: String): Try[Column] = now(_.col(colName))
 
-  final def apply(colName: String): Try[Column] = unsafe(_(colName))
+  final def apply(colName: String): Try[Column] = now(_.apply(colName))
 
   final def cache: Task[Unit] = execute(_.cache()).unit
 
   final def createTempView(viewName: String): Task[Unit] = execute(_.createTempView(viewName))
+
+  final def rdd: ZRDD[T] = nowTotal(_.rdd)
+
+  final def collect(): Task[Seq[T]] = execute(_.collect().toSeq)(Wrap.noWrap)
+
+  def take(n: Int): Task[Seq[T]] = execute(_.take(n).toSeq)(Wrap.noWrap)
 }
 
-final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
-  def rdd: ZRDD[Row] = unsafeTotal(_.rdd)
-
-  def collect(): Task[Seq[Row]] = execute(_.collect().toSeq)
-}
+final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {}
 
 final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
-  def map[B: Encoder](f: T => B): ZDataset[B] = unsafeTotal(_.map(f))
-
-  def collect(): Task[Seq[T]] = executeNoWrap(_.collect().toSeq)
-
-  def take(n: Int): Task[Seq[T]] = executeNoWrap(_.take(n).toSeq)
-
+  def filter(func: T => Boolean): ZDataset[T] = nowTotal(_.filter(func))
+  def map[B: Encoder](f: T => B): ZDataset[B] = nowTotal(_.map(f))
 }
