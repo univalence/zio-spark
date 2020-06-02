@@ -9,9 +9,13 @@ trait PackageSyntax {
   def sql(queryString: String): SIO[ZDataFrame] = ZIO.accessM(_.get.sql(queryString))
 
   trait Read extends ZWrapLazyR[DataFrameReader, Read, SparkEnv] {
-    def option(key: String, value: String): Read      = chain(_.option(key, value))
+    def option(key: String, value: String): Read = chain(_.option(key, value))
+    def format(source: String): Read             = chain(_.format(source))
+    def schema(schema: String): Read             = chain(_.schema(schema))
+
     def parquet(path: String): SIO[ZDataFrame]        = execute(_.parquet(path))
     def textFile(path: String): SIO[ZDataset[String]] = execute(_.textFile(path))
+    def load(path: String): SIO[ZDataFrame]           = execute(_.load(path))
   }
 
   def read: Read = {

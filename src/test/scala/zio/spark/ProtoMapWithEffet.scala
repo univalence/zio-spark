@@ -41,16 +41,19 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
     decayScale: Int = 1000
   ): ZRDD[Either[E2, A]] =
     rddIO.mapPartitions(it => {
-      val prg: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] =
-        CircuitTap
-          .make[E2, E2](maxErrorRatio, _ => true, onRejected, 1000)
-          .toManaged_ >>= (circuitTap => {
-          val in: ZStream[Any, Nothing, IO[E2, A]] = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
-          val out: ZStream[Any, E2, A]             = in.mapM(io => circuitTap(io))
-          out.toIterator
-        })
 
-      zio.Runtime.global.unsafeRun(prg.reserve >>= (_.acquire))
+      val createCircuit: UIO[CircuitTap[E2, E2]] =
+        CircuitTap.make[E2, E2](maxErrorRatio, _ => true, onRejected, decayScale)
+
+      def iterator(circuitTap: CircuitTap[E2, E2]): UManaged[Iterator[Either[E2, A]]] = {
+        val in: Stream[Nothing, IO[E1, A]] = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
+        val out: Stream[E2, A]             = in.mapM(circuitTap.apply)
+        out.toIterator
+      }
+
+      val prg: UIO[Iterator[Either[E2, A]]] = (createCircuit.toManaged_ >>= iterator).reserve >>= (_.acquire)
+
+      zio.Runtime.global.unsafeRun(prg)
     })
   /*
 

@@ -9,52 +9,6 @@ import zio.spark.wrap.Wrap.Aux
 
 import scala.util.Try
 
-abstract class ZWrap[V](private val value: V) {
-
-  /** ...
-   * ...
-   *
-   * @usecase def execute[B](f: V => B):Task[B]
-   */
-  final def execute[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Task[C] = Task(W(f(value)))
-
-  final def executeM[R, B, C](f: V => RIO[R, B])(implicit W: Wrap.Aux[B, C]): RIO[R, C] =
-    Task(f(value).map(W.apply)).flatten
-
-  final protected def executeTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): UIO[C] = UIO(W(f(value)))
-
-  final protected def executeTotalM[R, E, B, C](f: V => ZIO[R, E, B])(implicit W: Wrap.Aux[B, C]): ZIO[R, E, C] =
-    f(value).map(W.apply)
-
-  final protected def nowTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): C = W(f(value))
-
-  final protected def now[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
-}
-
-//F-BoundedTypes
-abstract class ZWrapLazy[Impure, Self <: ZWrapLazy[Impure, Self]] {
-  protected def _task: Task[ZWrap[Impure]]
-
-  final type Copy = Task[ZWrap[Impure]] => Self
-  protected val copy: Copy
-
-  final def chain(f: Impure => Impure): Self = copy(_task.flatMap(x => x.execute(f)))
-
-  final def execute[B, C](f: Impure => B)(implicit W: Wrap.Aux[B, C]): Task[C] = _task.flatMap(_.execute(f))
-}
-
-abstract class ZWrapLazyR[Impure, Self <: ZWrapLazyR[Impure, Self, Resources], Resources] {
-  protected def _task: RIO[Resources, ZWrap[Impure]]
-
-  final type Copy = RIO[Resources, ZWrap[Impure]] => Self
-  protected val copy: Copy
-
-  final def chain(f: Impure => Impure): Self = copy(_task.flatMap(x => x.execute(f)))
-
-  final def execute[B, Pure](f: Impure => B)(implicit W: Wrap.Aux[B, Pure]): RIO[Resources, Pure] =
-    _task.flatMap(_.execute(f))
-}
-
 trait Wrap[A] {
   type Out
 
@@ -119,4 +73,50 @@ object Wrap extends LowPriorityWrap {
   def apply[A, B](a: A)(implicit W: Wrap[A]): W.Out = W(a)
 
   def effect[A, B](a: => A)(implicit W: Wrap[A]): Task[W.Out] = Task(W(a))
+}
+
+abstract class ZWrap[V](private val value: V) {
+
+  /** ...
+   * ...
+   *
+   * @usecase def execute[B](f: V => B):Task[B]
+   */
+  final def execute[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Task[C] = Task(W(f(value)))
+
+  final def executeM[R, B, C](f: V => RIO[R, B])(implicit W: Wrap.Aux[B, C]): RIO[R, C] =
+    Task(f(value).map(W.apply)).flatten
+
+  final protected def executeTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): UIO[C] = UIO(W(f(value)))
+
+  final protected def executeTotalM[R, E, B, C](f: V => ZIO[R, E, B])(implicit W: Wrap.Aux[B, C]): ZIO[R, E, C] =
+    f(value).map(W.apply)
+
+  final protected def nowTotal[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): C = W(f(value))
+
+  final protected def now[B, C](f: V => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
+}
+
+//F-BoundedTypes
+abstract class ZWrapLazy[Impure, Self <: ZWrapLazy[Impure, Self]] {
+  protected def _task: Task[ZWrap[Impure]]
+
+  final type Copy = Task[ZWrap[Impure]] => Self
+  protected val copy: Copy
+
+  final def chain(f: Impure => Impure): Self = copy(_task.flatMap(x => x.execute(f)))
+
+  final def execute[B, C](f: Impure => B)(implicit W: Wrap.Aux[B, C]): Task[C] = _task.flatMap(_.execute(f))
+}
+
+abstract class ZWrapLazyR[Impure, Self <: ZWrapLazyR[Impure, Self, Resources], Resources] {
+  protected def _task: RIO[Resources, ZWrap[Impure]]
+
+  final type Copy = RIO[Resources, ZWrap[Impure]] => Self
+  protected val copy: Copy
+
+  final def chain(f: Impure => Impure): Self = copy(_task.flatMap(x => x.execute(f)))
+
+  final def execute[B, Pure](f: Impure => B)(implicit W: Wrap.Aux[B, Pure]): RIO[Resources, Pure] =
+    _task.flatMap(_.execute(f))
 }

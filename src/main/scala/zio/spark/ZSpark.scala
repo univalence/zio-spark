@@ -3,6 +3,7 @@ package zio.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
+import zio.spark.wrap.Wrap.NoWrap
 import zio.spark.wrap.{ Wrap, ZWrap, ZWrapLazy }
 import zio.{ Task, UIO }
 
@@ -22,6 +23,8 @@ final class ZRDD[T](rdd: RDD[T]) extends ZWrap(rdd) {
 
   def map[B: ClassTag](f: T => B): ZRDD[B]          = nowTotal(_.map(f))
   def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B] = nowTotal(_.flatMap(f))
+
+  def collect: Task[Seq[T]] = execute(_.collect.toSeq)(Wrap.noWrap)
 }
 
 final class ZSparkContext(sparkContext: SparkContext) extends ZWrap(sparkContext) {

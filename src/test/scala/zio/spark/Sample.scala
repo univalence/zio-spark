@@ -26,6 +26,15 @@ object Sample extends zio.App {
 
 }
 
+object Sample2 extends zio.App {
+
+  val df: SIO[ZDataset[String]] = zio.spark.read.option("xxx", "yyy").textFile("build.sbt")
+
+  val rdd: SIO[ZRDD[String]] = df.map(_.rdd)
+
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = ???
+}
+
 object Sample5 {
 
   import zio.spark.implicits._
