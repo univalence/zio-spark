@@ -93,4 +93,5 @@ final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {}
 final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
   def filter(func: T => Boolean): ZDataset[T] = nowTotal(_.filter(func))
   def map[B: Encoder](f: T => B): ZDataset[B] = nowTotal(_.map(f))
+  def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = nowTotal(_.flatMap(f))
 }
