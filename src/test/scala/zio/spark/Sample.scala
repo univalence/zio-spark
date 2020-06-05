@@ -26,6 +26,23 @@ object Sample extends zio.App {
 
 }
 
+object Backport extends zio.App {
+
+  def prg(ss: org.apache.spark.sql.SparkSession): org.apache.spark.sql.Dataset[String] = ???
+
+  val zPrg: ZIO[SparkEnv, Throwable, ZDataset[String]] = zio.spark.sparkSession >>= (_.execute(prg))
+
+  val zPrg2: ZIO[Console with SparkEnv, Throwable, Unit] = for {
+    ds <- zPrg
+    xs <- ds.take(10)
+    _  <- zio.console.putStrLn(xs.toString)
+  } yield {}
+
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
+    zPrg2.provideCustomLayer(Sample.ss).as(0).orDie
+
+}
+
 object Sample2 extends zio.App {
 
   val df: SIO[ZDataset[String]] = zio.spark.read.option("xxx", "yyy").textFile("build.sbt")

@@ -38,7 +38,9 @@ final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession
 
   def sql(sqlText: String): Task[ZDataFrame] = execute(_.sql(sqlText))
 
-  trait Read extends ZWrapLazy[DataFrameReader, Read] {
+  class Read(task: Task[ZWrap[DataFrameReader]]) extends ZWrapLazy(task) {
+    private val chain = makeChain(new Read(_))
+
     def option(key: String, value: String): Read = chain(_.option(key, value))
     def option(key: String, value: Long): Read   = chain(_.option(key, value))
 
@@ -47,19 +49,15 @@ final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession
     def textFile(path: String): Task[ZDataset[String]] = execute(_.textFile(path))
   }
 
-  def read: Read = {
-    def create(task: Task[ZWrap[DataFrameReader]]): Read = new Read {
-      override protected def _task: Task[ZWrap[DataFrameReader]] = task
-      override protected val copy: Copy                          = create
-    }
-    create(execute(_.read))
-  }
+  def read: Read = new Read(execute(_.read))
 
 }
 
 abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
 
-  trait Write extends ZWrapLazy[DataFrameWriter[T], Write] {
+  class Write(task: Task[ZWrap[DataFrameWriter[T]]]) extends ZWrapLazy(task) {
+    private val chain = makeChain(new Write(_))
+
     final def option(key: String, value: String): Write = chain(_.option(key, value))
     final def format(name: String): Write               = chain(_.format(name))
     final def mode(saveMode: String): Write             = chain(_.mode(saveMode = saveMode))
@@ -69,14 +67,7 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
     final def save(path: String): Task[Unit]    = execute(_.save(path))
   }
 
-  final def write: Write = {
-    def create(task: Task[ZWrap[DataFrameWriter[T]]]): Write = new Write {
-      override protected def _task: Task[ZWrap[DataFrameWriter[T]]] = task
-      override protected val copy: Copy                             = create
-    }
-
-    create(execute(_.write))
-  }
+  final def write: Write = new Write(execute(_.write))
 
   final def as[X: Encoder]: Try[ZDataset[X]] = now(_.as[X])
 
