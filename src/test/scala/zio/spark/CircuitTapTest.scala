@@ -1,6 +1,5 @@
 package zio.spark
 
-import zio.IO
 import zio.test._
 import zio.test.Assertion._
 

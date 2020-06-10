@@ -8,16 +8,36 @@ import scala.util._
 
 object syntax {
 
-  implicit class ValueOps[T](t: T) {
+  implicit class ZIOOps[R, E, A](val zio: ZIO[R, E, A]) extends AnyVal {
+
+    @inline
+    def >>-[B](f: A => B): ZIO[R, E, B] = zio.map(f)
+  }
+
+  implicit class AnyOps[A](val a: A) extends AnyVal {
+    @inline
+    def >-[B](f: A => B): B = f(a)
+  }
+
+  implicit class ValueOps[T](val t: T) extends AnyVal {
+    @inline
     def fail: IO[T, Nothing] = IO.fail(t)
   }
 
-  implicit class ToTask[A](t: Try[A]) {
+  implicit class ToTask[A](val t: Try[A]) {
+    @inline
     def toTask: Task[A] = Task.fromTry(t)
   }
 }
 
 object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
+
+  protected def unmanaged[R, E, A](zManaged: ZManaged[R, E, A]): ZIO[R, E, A] =
+    for {
+      r    <- ZIO.environment[R]
+      rMap <- ZManaged.ReleaseMap.make
+      t    <- zManaged.zio.provide(r -> rMap)
+    } yield t._2
 
   override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
     suite("proto map with effet")(
@@ -51,9 +71,9 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
         out.toIterator
       }
 
-      val prg: UIO[Iterator[Either[E2, A]]] = (createCircuit.toManaged_ >>= iterator).reserve >>= (_.acquire)
+      val managed: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] = createCircuit.toManaged_ >>= iterator
 
-      zio.Runtime.global.unsafeRun(prg)
+      zio.Runtime.global.unsafeRun(unmanaged(managed))
     })
   /*
 

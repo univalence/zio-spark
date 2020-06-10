@@ -1,16 +1,19 @@
 package zio.spark
 
 import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
+import org.apache.spark.rdd.{ PairRDDFunctions, RDD }
 import org.apache.spark.sql._
 import zio.spark.wrap.Wrap.NoWrap
-import zio.spark.wrap.{ Wrap, ZWrap, ZWrapLazy }
-import zio.{ Task, UIO }
+import zio.spark.wrap.{ Wrap, ZWrap, ZWrapFImpure }
+import zio.{ RIO, Task, UIO, ZIO }
 
 import scala.reflect.ClassTag
 import scala.util.Try
 
 final class ZRDD[T](rdd: RDD[T]) extends ZWrap(rdd) {
+  def toDF(colNames: String*)(implicit encoder: Encoder[T]): RIO[SparkEnv, ZDataFrame] =
+    sparkSession.flatMap(zss => zss.execute(ss => ss.implicits.rddToDatasetHolder(rdd).toDF(colNames: _*)))
+
   def count: Task[Long] = execute(_.count())
 
   def name: UIO[String] = executeTotal(_.name)
@@ -25,9 +28,19 @@ final class ZRDD[T](rdd: RDD[T]) extends ZWrap(rdd) {
   def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B] = nowTotal(_.flatMap(f))
 
   def collect: Task[Seq[T]] = execute(_.collect.toSeq)(Wrap.noWrap)
+
+  def saveAsTextFile(path: String): Task[Unit] = execute(_.saveAsTextFile(path))
+}
+
+object ZRDD {
+  implicit class ZPairRDD[K: ClassTag, V: ClassTag](zrdd: ZRDD[(K, V)]) {
+    def reduceByKey(func: (V, V) => V): ZRDD[(K, V)] = zrdd.nowTotal(new PairRDDFunctions(_).reduceByKey(func))
+  }
 }
 
 final class ZSparkContext(sparkContext: SparkContext) extends ZWrap(sparkContext) {
+  def textFile(path: String): Task[ZRDD[String]] = execute(_.textFile(path))
+
   def parallelize[T: ClassTag](seq: Seq[T]): ZRDD[T] = nowTotal(_.parallelize(seq))
 
 }
@@ -38,7 +51,7 @@ final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession
 
   def sql(sqlText: String): Task[ZDataFrame] = execute(_.sql(sqlText))
 
-  class Read(task: Task[ZWrap[DataFrameReader]]) extends ZWrapLazy(task) {
+  class Read(task: Task[ZWrap[DataFrameReader]]) extends ZWrapFImpure(task) {
     private val chain = makeChain(new Read(_))
 
     def option(key: String, value: String): Read = chain(_.option(key, value))
@@ -55,7 +68,7 @@ final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession
 
 abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
 
-  class Write(task: Task[ZWrap[DataFrameWriter[T]]]) extends ZWrapLazy(task) {
+  class Write(task: Task[ZWrap[DataFrameWriter[T]]]) extends ZWrapFImpure(task) {
     private val chain = makeChain(new Write(_))
 
     final def option(key: String, value: String): Write = chain(_.option(key, value))
@@ -91,7 +104,8 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
 final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {}
 
 final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
-  def filter(func: T => Boolean): ZDataset[T] = nowTotal(_.filter(func))
-  def map[B: Encoder](f: T => B): ZDataset[B] = nowTotal(_.map(f))
+  def filter(func: T => Boolean): ZDataset[T]          = nowTotal(_.filter(func))
+  def map[B: Encoder](f: T => B): ZDataset[B]          = nowTotal(_.map(f))
   def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = nowTotal(_.flatMap(f))
+
 }

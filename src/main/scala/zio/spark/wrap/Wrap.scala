@@ -75,7 +75,7 @@ object Wrap extends LowPriorityWrap {
   def effect[A, B](a: => A)(implicit W: Wrap[A]): Task[W.Out] = Task(W(a))
 }
 
-abstract class ZWrap[Impure](private val value: Impure) {
+abstract class ZWrap[+Impure](private val value: Impure) {
 
   /** ...
    * ...
@@ -97,9 +97,14 @@ abstract class ZWrap[Impure](private val value: Impure) {
   final protected def now[B, C](f: Impure => B)(implicit W: Wrap.Aux[B, C]): Try[C] = Try(W(f(value)))
 }
 
-abstract class ZWrapLazy[-R, Impure](rio: RIO[R, ZWrap[Impure]]) {
+abstract class ZWrapFImpure[-R, Impure](rio: RIO[R, ZWrap[Impure]]) {
   protected def makeChain[Self](create: RIO[R, ZWrap[Impure]] => Self): (Impure => Impure) => Self =
     f => create(execute(f))
 
   final def execute[B, Pure](f: Impure => B)(implicit W: Wrap.Aux[B, Pure]): RIO[R, Pure] = rio >>= (_.execute(f))
+}
+
+abstract class ZWrapF[-R, +A](rio: RIO[R, A]) {
+  def execute[B](f: A => B): RIO[R, B]                     = rio map f
+  def executeM[R1 <: R, B](f: A => RIO[R1, B]): RIO[R1, B] = rio >>= f
 }

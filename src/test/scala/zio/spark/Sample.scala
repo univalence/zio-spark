@@ -3,8 +3,8 @@ package zio.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.execution.QueryExecution
 import zio.console.Console
-import zio.spark.wrap.{ Wrap, ZWrap }
-import zio.{ Task, ZIO, ZLayer }
+import zio.spark.wrap.{Wrap, ZWrap}
+import zio.{ExitCode, Task, URIO, ZIO, ZLayer}
 
 object Sample extends zio.App {
 
@@ -21,8 +21,8 @@ object Sample extends zio.App {
   val ss: ZLayer[Any, Throwable, SparkEnv] =
     zio.spark.builder.master("local").appName("xxx").getOrCreate
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
-    prg.provideCustomLayer(ss).orDie
+  override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =
+    prg.provideCustomLayer(ss).exitCode
 
 }
 
@@ -38,8 +38,8 @@ object Backport extends zio.App {
     _  <- zio.console.putStrLn(xs.toString)
   } yield {}
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
-    zPrg2.provideCustomLayer(Sample.ss).as(0).orDie
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, ExitCode] =
+    zPrg2.provideCustomLayer(Sample.ss).exitCode
 
 }
 
@@ -49,7 +49,7 @@ object Sample2 extends zio.App {
 
   val rdd: SIO[ZRDD[String]] = df.map(_.rdd)
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = ???
+  override def run(args: List[String]) = ???
 }
 
 object Sample5 {
@@ -78,6 +78,8 @@ object Sample5 {
 
   v1 flatMap (_.execute(_.analyzed))
 }
+
+
 
 /*
 object Sample4 extends zio.App {
