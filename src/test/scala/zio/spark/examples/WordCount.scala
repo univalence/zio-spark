@@ -16,7 +16,7 @@ import zio.spark.syntax._
 
 object WordCount extends zio.App {
 
-  val extract: SIO[ZDataset[String]] = spark.read.textFile("hdfs://...")
+  val extract: SIO[ZDataset[String]] = spark.read.textFile("build.sbt")
 
   def transform(textFile: ZDataset[String]): ZRDD[(String, Int)] =
     textFile
@@ -26,7 +26,7 @@ object WordCount extends zio.App {
       .reduceByKey(_ + _)
 
   def load(counts: ZRDD[(String, Int)]): Task[Unit] =
-    counts.saveAsTextFile("...")
+    counts.saveAsTextFile("target/spark/wordcount.txt")
 
   val pipeline: SIO[Unit] = extract >>- transform >>= load
 
@@ -83,12 +83,17 @@ errors.count()
   val getTextFile: RIO[SparkEnv, ZRDD[String]] = zio.spark.sparkContext.textFile("hdfs://...")
 
   import zio.spark.implicits._
+  import org.apache.spark.sql.functions._
 
-  def errors(textFile: ZRDD[String]): RIO[SparkEnv, ZDataFrame] =
-    //textFile.toDF("line").flatMap(df => df.filter(col("line").like("%ERROR%")))
-    ???
+  def filterErrors(textFile: ZRDD[String]): RIO[SparkEnv, ZDataFrame] =
+    textFile.toDF("line").filter(col("line").like("%ERROR%"))
 
-
+  val prg: RIO[SparkEnv, (Long, Long)] = for {
+    textFile   <- getTextFile
+    errors     <- filterErrors(textFile)
+    count      <- errors.count
+    countMysql <- errors.filter(col("line").like("%MYSQL")).count
+  } yield (count, countMysql)
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, ExitCode] = ???
 }

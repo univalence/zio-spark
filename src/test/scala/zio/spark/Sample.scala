@@ -3,8 +3,8 @@ package zio.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.execution.QueryExecution
 import zio.console.Console
-import zio.spark.wrap.{Wrap, ZWrap}
-import zio.{ExitCode, Task, URIO, ZIO, ZLayer}
+import zio.spark.wrap.{ Wrap, ZWrap }
+import zio.{ ExitCode, Task, URIO, ZIO, ZLayer }
 
 object Sample extends zio.App {
 
@@ -78,9 +78,6 @@ object Sample5 {
 
   v1 flatMap (_.execute(_.analyzed))
 }
-
-
-
 /*
 object Sample4 extends zio.App {
 

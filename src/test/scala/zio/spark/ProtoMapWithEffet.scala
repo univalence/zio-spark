@@ -1,6 +1,8 @@
 package zio.spark
 
+import org.apache.spark.sql.Column
 import zio._
+import zio.spark.wrap.ZWrap
 import zio.stream._
 import zio.test._
 
@@ -8,26 +10,41 @@ import scala.util._
 
 object syntax {
 
-  implicit class ZIOOps[R, E, A](val zio: ZIO[R, E, A]) extends AnyVal {
+  implicit class ZIOOps[R, E, A](private val _value: ZIO[R, E, A]) extends AnyVal {
 
     @inline
-    def >>-[B](f: A => B): ZIO[R, E, B] = zio.map(f)
+    def >>-[B](f: A => B): ZIO[R, E, B] = _value.map(f)
   }
 
-  implicit class AnyOps[A](val a: A) extends AnyVal {
+  implicit class AnyOps[A](private val _value: A) extends AnyVal {
     @inline
-    def >-[B](f: A => B): B = f(a)
+    def >-[B](f: A => B): B = f(_value)
   }
 
-  implicit class ValueOps[T](val t: T) extends AnyVal {
+  implicit class ValueOps[T](private val _value: T) extends AnyVal {
     @inline
-    def fail: IO[T, Nothing] = IO.fail(t)
+    def fail: IO[T, Nothing] = IO.fail(_value)
   }
 
-  implicit class ToTask[A](val t: Try[A]) {
+  @inline
+  implicit def toTask[A <: ZWrap[_]](t: Try[A]): Task[A] = Task.fromTry(t)
+
+  implicit class toTaskOps[A](private val _value: Try[A]) extends AnyVal {
     @inline
-    def toTask: Task[A] = Task.fromTry(t)
+    def toTask: Task[A] = Task.fromTry(_value)
   }
+
+  protected abstract class ZDataframeOps[R](get: RIO[R, ZDataFrame]) {
+    @inline final def exec[X](f: ZDataFrame => X): RIO[R, X]          = get map f
+    @inline final def execM[X](f: ZDataFrame => RIO[R, X]): RIO[R, X] = get >>= f
+
+    @inline final def count: RIO[R, Long]                        = execM(_.count)
+    @inline final def filter(column: Column): RIO[R, ZDataFrame] = execM(_.filter(column))
+  }
+
+  implicit final class ZDataframeOpsRIO[R](_value: RIO[R, ZDataFrame]) extends ZDataframeOps[R](_value)
+  implicit final class ZDataframeOpsTry(_value: Try[ZDataFrame])       extends ZDataframeOps[Any](_value)
+
 }
 
 object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {

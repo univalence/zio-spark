@@ -6,7 +6,6 @@ import zio.spark.wrap.ZWrap
 
 import scala.util.Try
 
-
 object implicits {
 
   implicit class TryOps[T <: ZWrap[_]](t: Try[T]) {

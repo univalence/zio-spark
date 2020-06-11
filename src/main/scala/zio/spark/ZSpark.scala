@@ -101,7 +101,11 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
   def take(n: Int): Task[Seq[T]] = execute(_.take(n).toSeq)(Wrap.noWrap)
 }
 
-final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {}
+final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
+  def count: Task[Long]                          = execute(_.count())
+  def filter(condition: Column): Try[ZDataFrame] = now(_.filter(condition))
+
+}
 
 final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
   def filter(func: T => Boolean): ZDataset[T]          = nowTotal(_.filter(func))
