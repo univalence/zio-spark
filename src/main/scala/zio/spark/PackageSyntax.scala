@@ -24,6 +24,7 @@ trait PackageSyntax {
     def parquet(path: String): SIO[ZDataFrame]        = execute(_.parquet(path))
     def textFile(path: String): SIO[ZDataset[String]] = execute(_.textFile(path))
     def load(path: String): SIO[ZDataFrame]           = execute(_.load(path))
+    def load: SIO[ZDataFrame]                         = execute(_.load())
   }
 
   final def read: Read = new Read(retroCompat(_.read))

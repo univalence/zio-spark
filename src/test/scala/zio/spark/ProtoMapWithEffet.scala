@@ -34,6 +34,18 @@ object syntax {
     def toTask: Task[A] = Task.fromTry(_value)
   }
 
+  protected abstract class ZRelationalGroupedDatasetOps[R](get: RIO[R, ZRelationalGroupedDataset]) {
+    @inline final def exec[X](f: ZRelationalGroupedDataset => X): RIO[R, X]          = get map f
+    @inline final def execM[X](f: ZRelationalGroupedDataset => RIO[R, X]): RIO[R, X] = get >>= f
+
+    @inline final def count: RIO[R, ZDataFrame] = exec(_.count)
+  }
+
+  implicit final class ZRelationalGroupedDatasetOpsRIO[R](_value: RIO[R, ZRelationalGroupedDataset])
+      extends ZRelationalGroupedDatasetOps[R](_value)
+  implicit final class ZRelationalGroupedDatasetOpsTry(_value: Try[ZRelationalGroupedDataset])
+      extends ZRelationalGroupedDatasetOps[Any](_value)
+
   protected abstract class ZDataframeOps[R](get: RIO[R, ZDataFrame]) {
     @inline final def exec[X](f: ZDataFrame => X): RIO[R, X]          = get map f
     @inline final def execM[X](f: ZDataFrame => RIO[R, X]): RIO[R, X] = get >>= f

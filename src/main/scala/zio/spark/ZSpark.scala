@@ -99,11 +99,15 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
   final def collect(): Task[Seq[T]] = execute(_.collect().toSeq)(Wrap.noWrap)
 
   def take(n: Int): Task[Seq[T]] = execute(_.take(n).toSeq)(Wrap.noWrap)
+
+  def show: Task[Unit] = execute(_.show())
 }
 
 final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
-  def count: Task[Long]                          = execute(_.count())
-  def filter(condition: Column): Try[ZDataFrame] = now(_.filter(condition))
+  def count: Task[Long]                                      = execute(_.count())
+  def filter(condition: Column): Try[ZDataFrame]             = now(_.filter(condition))
+  def printSchema: Task[Unit]                                = execute(_.printSchema())
+  def groupBy(cols: Column*): Try[ZRelationalGroupedDataset] = now(_.groupBy(cols: _*))
 
 }
 
@@ -112,4 +116,9 @@ final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
   def map[B: Encoder](f: T => B): ZDataset[B]          = nowTotal(_.map(f))
   def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = nowTotal(_.flatMap(f))
 
+}
+
+case class ZRelationalGroupedDataset(relationalGroupedDataset: RelationalGroupedDataset)
+    extends ZWrap(relationalGroupedDataset) {
+  def count: ZDataFrame = nowTotal(_.count())
 }

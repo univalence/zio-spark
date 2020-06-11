@@ -59,6 +59,9 @@ object Wrap extends LowPriorityWrap {
   implicit val _dataframe: Aux[DataFrame, ZDataFrame]          = zwrap(df => new ZDataFrame(df))
   implicit val _sparkSession: Aux[SparkSession, ZSparkSession] = zwrap(ss => new ZSparkSession(ss))
   implicit val _sparkContext: Aux[SparkContext, ZSparkContext] = zwrap(sc => new ZSparkContext(sc))
+  implicit val _relationalgroupeddataset: Aux[RelationalGroupedDataset, ZRelationalGroupedDataset] = zwrap(
+    rgd => new ZRelationalGroupedDataset(rgd)
+  )
 
   implicit def _seq[A, B](implicit W: Aux[A, B]): Aux[Seq[A], Seq[B]] = new Wrap[Seq[A]] {
     override type Out = Seq[B]
