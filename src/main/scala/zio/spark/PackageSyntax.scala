@@ -23,7 +23,9 @@ trait PackageSyntax {
     def parquet(path: String): Spark[ZDataFrame]        = execute(_.parquet(path))
     def textFile(path: String): Spark[ZDataset[String]] = execute(_.textFile(path))
     def load(path: String): Spark[ZDataFrame]           = execute(_.load(path))
-    def csv(path: String): Spark[ZDataFrame]            = execute(_.csv(path))
+    def load: Spark[ZDataFrame]
+    def csv(path: String): Spark[ZDataFrame] = execute(_.csv(path))
+
   }
 
   final def read: ZReader = new ZReader(retroCompat(_.read))

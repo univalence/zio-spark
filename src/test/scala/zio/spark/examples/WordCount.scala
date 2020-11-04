@@ -1,8 +1,12 @@
 package zio.spark.examples
 
-import zio.spark.{ Spark, SparkEnv, ZDataFrame, ZDataset, ZRDD }
+import org.apache.spark.sql.RelationalGroupedDataset
+import zio.spark.{ Spark, SparkEnv, ZDataFrame, ZDataset, ZRDD, ZRelationalGroupedDataset }
 import zio._
 import zio.console.Console
+import zio.spark.wrap.ZWrap
+
+import scala.util.Try
 
 object Context {
 
@@ -96,6 +100,57 @@ errors.count()
     count      <- errors.count
     countMysql <- errors.filter(col("line").like("%MYSQL")).count
   } yield (count, countMysql)
+
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, ExitCode] = ???
+}
+
+object SimpleDataOp extends zio.App {
+  /*
+// Creates a DataFrame based on a table named "people"
+// stored in a MySQL database.
+val url =
+  "jdbc:mysql://yourIP:yourPort/test?user=yourUsername;password=yourPassword"
+val df = sqlContext
+  .read
+  .format("jdbc")
+  .option("url", url)
+  .option("dbtable", "people")
+  .load()
+
+// Looks the schema of this DataFrame.
+df.printSchema()
+
+// Counts people by age
+val countsByAge = df.groupBy("age").count()
+countsByAge.show()
+
+// Saves countsByAge to S3 in the JSON format.
+countsByAge.write.format("json").save("s3a://...")
+
+   */
+
+  import org.apache.spark.sql.functions._
+
+  val url =
+    "jdbc:mysql://yourIP:yourPort/test?user=yourUsername;password=yourPassword"
+
+  val df: RIO[SparkEnv, ZDataFrame] = zio.spark.read
+    .format("jdbc")
+    .option("url", url)
+    .option("dbtable", "people")
+    .load
+
+  def groupByAge(df: ZDataFrame): Try[ZRelationalGroupedDataset] =
+    df.groupBy(col("age"))
+
+  val prg: ZIO[SparkEnv, Throwable, Unit] = for {
+    df    <- df
+    -     <- df.printSchema
+    count <- groupByAge(df).count
+    _     <- count.show
+    _     <- count.write.format("json").save("s3a://...")
+
+  } yield ()
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, ExitCode] = ???
 }
