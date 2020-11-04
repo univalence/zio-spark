@@ -1,13 +1,13 @@
 package zio.spark.examples
 
-import zio.spark.{ SIO, SparkEnv, ZDataFrame, ZDataset, ZRDD }
+import zio.spark.{ Spark, SparkEnv, ZDataFrame, ZDataset, ZRDD }
 import zio._
 import zio.console.Console
 
 object Context {
 
-  val ss: TaskLayer[SparkEnv] =
-    zio.spark.builder.master("local").appName("wordCount").getOrCreate
+  def localSparkSession(name: String): TaskLayer[SparkEnv] =
+    zio.spark.builder.master("local").appName(name).getOrCreate
 }
 
 import Context._
@@ -16,7 +16,7 @@ import zio.spark.syntax._
 
 object WordCount extends zio.App {
 
-  val extract: SIO[ZDataset[String]] = spark.read.textFile("build.sbt")
+  val read: Spark[ZDataset[String]] = spark.read.textFile("build.sbt")
 
   def transform(textFile: ZDataset[String]): ZRDD[(String, Int)] =
     textFile
@@ -25,13 +25,15 @@ object WordCount extends zio.App {
       .rdd
       .reduceByKey(_ + _)
 
-  def load(counts: ZRDD[(String, Int)]): Task[Unit] =
-    counts.saveAsTextFile("target/spark/wordcount.txt")
+  def save(counts: ZRDD[(String, Int)]): Task[Unit] =
+    counts.saveAsTextFile("target/output/wordcount.txt")
 
-  val pipeline: SIO[Unit] = extract >>- transform >>= load
+  val pipeline: Spark[Unit] = read >>- transform >>= save
+
+  private val session = localSparkSession("wordCount")
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, ExitCode] =
-    pipeline.provideCustomLayer(ss).exitCode
+    pipeline.provideCustomLayer(session).exitCode
 
 }
 
@@ -61,7 +63,7 @@ object PIEstimation extends zio.App {
       _     <- zio.console.putStrLn(s"Pi is roughly ${4.0 * count / NUM_SAMPLES}")
     } yield ()
 
-    prg.provideCustomLayer(ss).exitCode
+    prg.provideCustomLayer(localSparkSession("PiEstimation")).exitCode
   }
 }
 
@@ -80,7 +82,7 @@ errors.count()
 
    */
 
-  val getTextFile: RIO[SparkEnv, ZRDD[String]] = zio.spark.sparkContext.textFile("hdfs://...")
+  val readTextFile: RIO[SparkEnv, ZRDD[String]] = zio.spark.sparkContext.textFile("hdfs://...")
 
   import zio.spark.implicits._
   import org.apache.spark.sql.functions._
@@ -89,7 +91,7 @@ errors.count()
     textFile.toDF("line").filter(col("line").like("%ERROR%"))
 
   val prg: RIO[SparkEnv, (Long, Long)] = for {
-    textFile   <- getTextFile
+    textFile   <- readTextFile
     errors     <- filterErrors(textFile)
     count      <- errors.count
     countMysql <- errors.filter(col("line").like("%MYSQL")).count

@@ -2,13 +2,13 @@ package zio.spark
 
 import org.apache.spark.sql.{ ColumnName, Encoder, Encoders }
 import zio.{ Task, ZIO }
-import zio.spark.wrap.ZWrap
+import zio.spark.wrap.Impure
 
 import scala.util.Try
 
 object implicits {
 
-  implicit class TryOps[T <: ZWrap[_]](t: Try[T]) {
+  implicit class TryOps[T <: Impure[_]](t: Try[T]) {
     def toTask: Task[T] = ZIO.fromTry(t)
   }
 

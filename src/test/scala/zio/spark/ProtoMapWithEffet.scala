@@ -2,13 +2,21 @@ package zio.spark
 
 import org.apache.spark.sql.Column
 import zio._
-import zio.spark.wrap.ZWrap
+import zio.spark.wrap.{ Impure, ImpureF }
 import zio.stream._
 import zio.test._
 
 import scala.util._
 
 object syntax {
+
+  object over9000 {
+    implicit class ZDataframeF[R, E, A](rio: Spark[ZDataFrame]) extends ImpureF(rio) {
+      def count: Spark[Long] = execute(_.count())
+
+      def filter(condition: String): Spark[ZDataFrame] = execute(_ filter condition)
+    }
+  }
 
   implicit class ZIOOps[R, E, A](private val _value: ZIO[R, E, A]) extends AnyVal {
 
@@ -27,7 +35,7 @@ object syntax {
   }
 
   @inline
-  implicit def toTask[A <: ZWrap[_]](t: Try[A]): Task[A] = Task.fromTry(t)
+  implicit def toTask[A <: Impure[_]](t: Try[A]): Task[A] = Task.fromTry(t)
 
   implicit class toTaskOps[A](private val _value: Try[A]) extends AnyVal {
     @inline

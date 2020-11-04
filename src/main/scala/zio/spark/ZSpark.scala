@@ -3,14 +3,14 @@ package zio.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.{ PairRDDFunctions, RDD }
 import org.apache.spark.sql._
-import zio.spark.wrap.Wrap.NoWrap
-import zio.spark.wrap.{ Wrap, ZWrap, ZWrapFImpure }
+import zio.spark.wrap.Clean.Pure
+import zio.spark.wrap.{ Clean, Impure, ImpureF }
 import zio.{ RIO, Task, UIO, ZIO }
 
 import scala.reflect.ClassTag
 import scala.util.Try
 
-final class ZRDD[T](rdd: RDD[T]) extends ZWrap(rdd) {
+final class ZRDD[T](rdd: RDD[T]) extends Impure(rdd) {
   def toDF(colNames: String*)(implicit encoder: Encoder[T]): RIO[SparkEnv, ZDataFrame] =
     sparkSession.flatMap(zss => zss.execute(ss => ss.implicits.rddToDatasetHolder(rdd).toDF(colNames: _*)))
 
@@ -27,7 +27,7 @@ final class ZRDD[T](rdd: RDD[T]) extends ZWrap(rdd) {
   def map[B: ClassTag](f: T => B): ZRDD[B]          = nowTotal(_.map(f))
   def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B] = nowTotal(_.flatMap(f))
 
-  def collect: Task[Seq[T]] = execute(_.collect.toSeq)(Wrap.noWrap)
+  def collect: Task[Seq[T]] = execute(_.collect.toSeq)(Clean.pure)
 
   def saveAsTextFile(path: String): Task[Unit] = execute(_.saveAsTextFile(path))
 }
@@ -38,49 +38,47 @@ object ZRDD {
   }
 }
 
-final class ZSparkContext(sparkContext: SparkContext) extends ZWrap(sparkContext) {
+final class ZSparkContext(sparkContext: SparkContext) extends Impure(sparkContext) {
   def textFile(path: String): Task[ZRDD[String]] = execute(_.textFile(path))
 
   def parallelize[T: ClassTag](seq: Seq[T]): ZRDD[T] = nowTotal(_.parallelize(seq))
 
 }
 
-final class ZSparkSession(sparkSession: SparkSession) extends ZWrap(sparkSession) {
+final class ZSparkSession(sparkSession: SparkSession) extends Impure(sparkSession) {
 
   def sparkContext: ZSparkContext = nowTotal(_.sparkContext)
 
   def sql(sqlText: String): Task[ZDataFrame] = execute(_.sql(sqlText))
 
-  class Read(task: Task[ZWrap[DataFrameReader]]) extends ZWrapFImpure(task) {
-    private val chain = makeChain(new Read(_))
-
-    def option(key: String, value: String): Read = chain(_.option(key, value))
-    def option(key: String, value: Long): Read   = chain(_.option(key, value))
+  implicit final class ZReader(task: Task[Impure[DataFrameReader]]) extends ImpureF(task) {
+    def option(key: String, value: String): ZReader = execute(_.option(key, value))
+    def option(key: String, value: Long): ZReader   = execute(_.option(key, value))
 
     def load: Task[ZDataFrame]                         = execute(_.load())
     def parquet(path: String): Task[ZDataFrame]        = execute(_.parquet(path))
     def textFile(path: String): Task[ZDataset[String]] = execute(_.textFile(path))
   }
 
-  def read: Read = new Read(execute(_.read))
-
+  def read: ZReader = new ZReader(execute(_.read))
 }
 
-abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
+abstract class ZDataX[T](dataset: Dataset[T]) extends Impure(dataset) {
 
-  class Write(task: Task[ZWrap[DataFrameWriter[T]]]) extends ZWrapFImpure(task) {
-    private val chain = makeChain(new Write(_))
+  final class ZWrite(task: Task[Impure[DataFrameWriter[T]]]) extends ImpureF(task) {
+    private type V = DataFrameWriter[T]
+    private def chain(f: V => V): ZWrite = new ZWrite(execute(f))
 
-    final def option(key: String, value: String): Write = chain(_.option(key, value))
-    final def format(name: String): Write               = chain(_.format(name))
-    final def mode(saveMode: String): Write             = chain(_.mode(saveMode = saveMode))
+    def option(key: String, value: String): ZWrite = chain(_.option(key, value))
+    def format(name: String): ZWrite               = chain(_.format(name))
+    def mode(saveMode: String): ZWrite             = chain(_.mode(saveMode = saveMode))
 
-    final def parquet(path: String): Task[Unit] = execute(_.parquet(path))
-    final def text(path: String): Task[Unit]    = execute(_.text(path))
-    final def save(path: String): Task[Unit]    = execute(_.save(path))
+    def parquet(path: String): Task[Unit] = execute(_.parquet(path))
+    def text(path: String): Task[Unit]    = execute(_.text(path))
+    def save(path: String): Task[Unit]    = execute(_.save(path))
   }
 
-  final def write: Write = new Write(execute(_.write))
+  final def write: ZWrite = new ZWrite(execute(_.write))
 
   final def as[X: Encoder]: Try[ZDataset[X]] = now(_.as[X])
 
@@ -96,20 +94,18 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends ZWrap(dataset) {
 
   final def rdd: ZRDD[T] = nowTotal(_.rdd)
 
-  final def collect(): Task[Seq[T]] = execute(_.collect().toSeq)(Wrap.noWrap)
+  final def collect(): Task[Seq[T]] = execute(_.collect().toSeq)(Clean.pure)
 
-  def take(n: Int): Task[Seq[T]] = execute(_.take(n).toSeq)(Wrap.noWrap)
+  def take(n: Int): Task[Seq[T]] = execute(_.take(n).toSeq)(Clean.pure)
 }
 
 final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
   def count: Task[Long]                          = execute(_.count())
   def filter(condition: Column): Try[ZDataFrame] = now(_.filter(condition))
-
 }
 
 final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
   def filter(func: T => Boolean): ZDataset[T]          = nowTotal(_.filter(func))
   def map[B: Encoder](f: T => B): ZDataset[B]          = nowTotal(_.map(f))
   def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = nowTotal(_.flatMap(f))
-
 }
