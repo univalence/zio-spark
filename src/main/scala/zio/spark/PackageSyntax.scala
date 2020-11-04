@@ -1,6 +1,6 @@
 package zio.spark
 
-import org.apache.spark.sql.{ DataFrameReader, DataFrameWriter, SparkSession }
+import org.apache.spark.sql.{ DataFrameReader, SparkSession }
 import zio.spark.wrap.{ Clean, Impure, ImpureF }
 import zio.{ RIO, Task, ZIO, ZLayer }
 
@@ -14,16 +14,23 @@ trait PackageSyntax {
 
   final class ZReader(rio: Spark[Impure[DataFrameReader]]) extends ImpureF(rio) {
     private type V = DataFrameReader
+
     private def chain(f: V => V): ZReader = new ZReader(execute(f))
 
     def option(key: String, value: String): ZReader = chain(_.option(key, value))
-    def format(source: String): ZReader             = chain(_.format(source))
-    def schema(schema: String): ZReader             = chain(_.schema(schema))
 
-    def parquet(path: String): Spark[ZDataFrame]        = execute(_.parquet(path))
+    def format(source: String): ZReader = chain(_.format(source))
+
+    def schema(schema: String): ZReader = chain(_.schema(schema))
+
+    def parquet(path: String): Spark[ZDataFrame] = execute(_.parquet(path))
+
     def textFile(path: String): Spark[ZDataset[String]] = execute(_.textFile(path))
-    def load(path: String): Spark[ZDataFrame]           = execute(_.load(path))
-    def load: Spark[ZDataFrame]
+
+    def load(path: String): Spark[ZDataFrame] = execute(_.load(path))
+
+    def load: Spark[ZDataFrame] = execute(_.load())
+
     def csv(path: String): Spark[ZDataFrame] = execute(_.csv(path))
 
   }

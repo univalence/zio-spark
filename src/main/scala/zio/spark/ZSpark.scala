@@ -3,9 +3,8 @@ package zio.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.{ PairRDDFunctions, RDD }
 import org.apache.spark.sql._
-import zio.spark.wrap.Clean.Pure
 import zio.spark.wrap.{ Clean, Impure, ImpureF }
-import zio.{ RIO, Task, UIO, ZIO }
+import zio.{ RIO, Task, UIO }
 
 import scala.reflect.ClassTag
 import scala.util.Try
@@ -102,8 +101,12 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends Impure(dataset) {
 }
 
 final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
-  def count: Task[Long]                          = execute(_.count())
-  def filter(condition: Column): Try[ZDataFrame] = now(_.filter(condition))def printSchema: Task[Unit]                                = execute(_.printSchema())
+  def count: Task[Long] = execute(_.count())
+
+  def filter(condition: Column): Try[ZDataFrame] = now(_.filter(condition))
+
+  def printSchema: Task[Unit] = execute(_.printSchema())
+
   def groupBy(cols: Column*): Try[ZRelationalGroupedDataset] = now(_.groupBy(cols: _*))
 }
 
@@ -114,6 +117,6 @@ final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
 }
 
 case class ZRelationalGroupedDataset(relationalGroupedDataset: RelationalGroupedDataset)
-    extends ZWrap(relationalGroupedDataset) {
+    extends Impure(relationalGroupedDataset) {
   def count: ZDataFrame = nowTotal(_.count())
 }

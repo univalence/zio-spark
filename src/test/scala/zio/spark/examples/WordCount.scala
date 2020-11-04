@@ -1,10 +1,8 @@
 package zio.spark.examples
 
-import org.apache.spark.sql.RelationalGroupedDataset
-import zio.spark.{ Spark, SparkEnv, ZDataFrame, ZDataset, ZRDD, ZRelationalGroupedDataset }
 import zio._
 import zio.console.Console
-import zio.spark.wrap.ZWrap
+import zio.spark.{ Spark, SparkEnv, ZDataFrame, ZDataset, ZRDD, ZRelationalGroupedDataset }
 
 import scala.util.Try
 
@@ -14,7 +12,7 @@ object Context {
     zio.spark.builder.master("local").appName(name).getOrCreate
 }
 
-import Context._
+import zio.spark.examples.Context._
 import zio.spark.implicits._
 import zio.spark.syntax._
 
@@ -88,8 +86,8 @@ errors.count()
 
   val readTextFile: RIO[SparkEnv, ZRDD[String]] = zio.spark.sparkContext.textFile("hdfs://...")
 
-  import zio.spark.implicits._
   import org.apache.spark.sql.functions._
+  import zio.spark.implicits._
 
   def filterErrors(textFile: ZRDD[String]): RIO[SparkEnv, ZDataFrame] =
     textFile.toDF("line").filter(col("line").like("%ERROR%"))

@@ -43,32 +43,41 @@ object Clean extends LowPriorityClean0 {
 
   final protected[spark] def impure[A, B <: Impure[_]](f: A => B): Aux[A, B] = new Clean[A] {
     override type Out = B
+
     override def apply(a: A): Out = f(a)
   }
 
-  implicit val _string: Pure[String]             = pure
-  implicit val _int: Pure[Int]                   = pure
-  implicit val _long: Pure[Long]                 = pure
-  implicit val _unit: Pure[Unit]                 = pure
-  implicit val _boolean: Pure[Boolean]           = pure
-  implicit val _row: Pure[Row]                   = pure
-  implicit val _column: Pure[Column]             = pure
+  implicit val _string: Pure[String]   = pure
+  implicit val _int: Pure[Int]         = pure
+  implicit val _long: Pure[Long]       = pure
+  implicit val _unit: Pure[Unit]       = pure
+  implicit val _boolean: Pure[Boolean] = pure
+  implicit val _row: Pure[Row]         = pure
+  implicit val _column: Pure[Column]   = pure
+
   implicit def _wrapped[T <: Impure[_]]: Pure[T] = pure
 
-  implicit def _rdd[T]: Aux[RDD[T], ZRDD[T]]                   = impure(rdd => new ZRDD(rdd))
+  implicit def _rdd[T]: Aux[RDD[T], ZRDD[T]] = impure(rdd => new ZRDD(rdd))
+
   implicit val _dataframe: Aux[DataFrame, ZDataFrame]          = impure(df => new ZDataFrame(df))
   implicit val _sparkSession: Aux[SparkSession, ZSparkSession] = impure(ss => new ZSparkSession(ss))
   implicit val _sparkContext: Aux[SparkContext, ZSparkContext] = impure(sc => new ZSparkContext(sc))
 
   implicit def _seq[A, B](implicit W: Aux[A, B]): Aux[Seq[A], Seq[B]] = new Clean[Seq[A]] {
     override type Out = Seq[B]
+
     override def apply(a: Seq[A]): Out = a.map(W.apply)
   }
 
   implicit def _option[A, B](implicit W: Aux[A, B]): Aux[Option[A], Option[B]] = new Clean[Option[A]] {
     override type Out = Option[B]
+
     override def apply(a: Option[A]): Out = a.map(W.apply)
   }
+
+  implicit val _relationalgroupeddataset: Aux[RelationalGroupedDataset, ZRelationalGroupedDataset] = impure(
+    rgd => ZRelationalGroupedDataset(rgd)
+  )
 
   //def apply[A](implicit W: Wrap[A]): W.type = W
 
