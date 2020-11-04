@@ -1,5 +1,6 @@
 import sbt.Keys._
 import sbt._
+import sbtdynver.GitCommitSuffix
 
 val libVersion =
   new {
@@ -124,3 +125,22 @@ onLoadMessage := {
       |${header(raw"                            |_|                     ")}
       |${header(s"version: ${Keys.version.value}")}""".stripMargin
 }
+
+def versionFmt(out: sbtdynver.GitDescribeOutput): String = {
+  def mkString(suffix: GitCommitSuffix): String = {
+    if (suffix.isEmpty) "" else f"+${suffix.distance}%04d-${suffix.sha}"
+  }
+  (out.ref.dropV.value
+    + mkString(out.commitSuffix)
+    + out.dirtySuffix.dropPlus.mkString("-", ""))
+}
+
+def fallbackVersion(d: java.util.Date): String = s"HEAD-${sbtdynver.DynVer timestamp d}"
+
+inThisBuild(List(
+  version := dynverGitDescribeOutput.value.mkVersion(versionFmt, fallbackVersion(dynverCurrentDate.value)),
+  dynver := {
+    val d = new java.util.Date
+    sbtdynver.DynVer.getGitDescribeOutput(d).mkVersion(versionFmt, fallbackVersion(d))
+  }
+))
