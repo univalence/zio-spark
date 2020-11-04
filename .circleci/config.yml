@@ -1,0 +1,87 @@
+version: 2.1
+
+aliases:
+  - &environment
+    docker:
+      - image: circleci/openjdk:8-jdk
+    environment:
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+
+  - &restore_cache_dependencies
+    name: "Restore dependencies from the cache"
+    keys:
+      - sbt-dependencies-{{ checksum "build.sbt" }}
+      # fallback to using the latest cache if no exact match is found
+      - sbt-dependencies-
+
+  - &update_dependencies
+    name: "Update all the dependencies"
+    command: .circleci/hasNotChanged build.sbt && echo "SKIPPING DEPS UPDATE" || cat /dev/null | sbt update +fenek/update +sparkTest/update
+
+  - &save_cache_dependencies
+    name: "Save dependencies in the cache"
+    paths:
+      - ~/.m2
+      - ~/.ivy2
+      - ~/.sbt
+      - ~/.cache
+    key: sbt-dependencies-{{ checksum "build.sbt" }}
+
+  - &fmt_check
+    name: "Check code format"
+    command: cat /dev/null | sbt check
+
+  - &configure_gpg
+    name: configure GPG
+    command: |
+      mkdir -p ~/.gnupg
+      echo "charset utf-8" > ~/.gnupg/gpg.conf
+      echo "use-agent" >> ~/.gnupg/gpg.conf
+      echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+      echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+      chown -R $(whoami) ~/.gnupg/
+      find ~/.gnupg -type f -exec chmod 600 {} \;
+      find ~/.gnupg -type d -exec chmod 700 {} \;
+      echo $SECR_GPG_ASC_BASE64 | base64 --decode | gpg --batch --no-tty --import --yes
+
+commands:
+  build_project:
+    description: build a sub-project
+    parameters:
+      project_name:
+        type: string
+      extra_fs_deps:
+        default:  ""
+        type: string
+    steps:
+      - checkout
+      - restore_cache: *restore_cache_dependencies
+      #- run:
+      #    name: check
+      #    command: ls -R
+      #- run:
+      #    name: Compile code and test code << parameters.project_name >>
+      #    command: cat /dev/null | sbt << parameters.project_name >>/compile << parameters.project_name >>/test:compile
+      - run:
+          name: Test and compute code coverage << parameters.project_name >>
+          command: bash -x .circleci/hasNotChanged build.sbt << parameters.extra_fs_deps >> . || cat /dev/null | sbt coverage test coverageReport doc
+
+jobs:
+  update_deps_in_cache:
+    <<: *environment
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache: *restore_cache_dependencies
+      - run: *update_dependencies
+      - save_cache: *save_cache_dependencies
+
+  build:
+    <<: *environment
+    working_directory: ~/repo
+    steps:
+      steps:
+        - build_project:
+            project_name: zio-spark
+  
