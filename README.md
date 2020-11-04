@@ -22,7 +22,7 @@ Here is an example using ```version 0.3+79-4936e981``` that work with ```scala 2
 
 ```scala
 resolvers += "zio-spark" at "http://dl.bintray.com/univalence/univalence-jvm"
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.3+79-4936e981"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.3+0079-4936e981"
 ```
 
 ## Roadmap
