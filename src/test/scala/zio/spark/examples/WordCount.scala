@@ -50,14 +50,14 @@ object PIEstimation extends zio.App {
    */
   val NUM_SAMPLES = 100000
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = {
-    val getRdd: RIO[SparkEnv, ZRDD[Int]] = zio.spark.retroCompat(ss => {
+    val getRdd: RIO[SparkEnv, ZRDD[Int]] = zio.spark.retroCompat { ss =>
       val landInCircle = ss.sparkContext.parallelize(1 to NUM_SAMPLES).filter { _ =>
         val x = math.random
         val y = math.random
         x * x + y * y < 1
       }
       landInCircle
-    })
+    }
 
     val prg: RIO[Console with SparkEnv, Unit] = for {
       rdd   <- getRdd

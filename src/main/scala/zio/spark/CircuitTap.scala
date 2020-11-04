@@ -131,7 +131,5 @@ object CircuitTap {
   ): UIO[CircuitTap[E1, E2]] =
     for {
       state <- Ref.make(zeroState(decayScale))
-    } yield {
-      new SmartCircuitTap[E1, E2](maxError, qualified, rejected, state)
-    }
+    } yield new SmartCircuitTap[E1, E2](maxError, qualified, rejected, state)
 }

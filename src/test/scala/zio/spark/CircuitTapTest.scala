@@ -19,12 +19,10 @@ object CircuitTapTest extends DefaultRunnableSpec {
           _       <- tap("second".fail).ignore
           a       <- tap("third".fail).either
           s       <- tap.getState
-        } yield {
-          assert(a.isLeft)(isTrue) &&
+        } yield assert(a.isLeft)(isTrue) &&
           assert(s.failed)(equalTo(1L)) &&
           assert(s.rejected)(equalTo(2L)) &&
           assert(s.decayingErrorRatio.ratio.value)(isGreaterThan(Ratio.zero.value))
-        }
       })
     )
 

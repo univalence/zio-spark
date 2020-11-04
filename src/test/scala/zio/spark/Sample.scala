@@ -1,11 +1,10 @@
 package zio.spark
 
 import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.QueryExecution
 import zio.console.Console
 import zio.spark.wrap.{ Clean, Impure }
-import zio.{ ExitCode, RIO, Task, URIO, ZIO, ZLayer }
+import zio._
 
 object SampleCSV extends zio.App {
 
@@ -51,7 +50,7 @@ object Sample extends zio.App {
     seq       <- dataset.take(1)
     _         <- zio.console.putStrLn(seq.head)
     _         <- dataset.filter(_.contains("bonjour")).write.text("yolo")
-  } yield { 0 }
+  } yield 0
 
   val ss: ZLayer[Any, Throwable, SparkEnv] =
     zio.spark.builder.master("local").appName("xxx").getOrCreate
@@ -63,7 +62,7 @@ object Sample extends zio.App {
 
 object Backport extends zio.App {
 
-  zio.spark.retroCompat(ss => {
+  zio.spark.retroCompat { ss =>
     val df = ss.read.json("examples/src/main/resources/people.json")
 
     df.show()
@@ -81,7 +80,7 @@ object Backport extends zio.App {
 
     ss.sql("SELECT * FROM global_temp.people").show()
     ss.newSession().sql("SELECT * FROM global_temp.people").show()
-  })
+  }
 
   def prg(ss: org.apache.spark.sql.SparkSession): org.apache.spark.sql.Dataset[String] = ???
 

@@ -79,14 +79,13 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
   override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
     suite("proto map with effet")(
       testM("1") {
-        ss.flatMap(ss => {
-
+        ss.flatMap { ss =>
           val someThing: ZRDD[Task[Int]]             = ss.sparkContext.parallelize(1 to 100).map(x => Task(x))
           val executed: ZRDD[Either[Throwable, Int]] = tap(someThing)(new Exception("rejected"))
 
           assertM(executed.count)(Assertion.equalTo(100L))
 
-        })
+        }
       } @@ max20secondes
     )
 
@@ -97,8 +96,7 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
     maxErrorRatio: Ratio = Ratio(0.05).get,
     decayScale: Int = 1000
   ): ZRDD[Either[E2, A]] =
-    rddIO.mapPartitions(it => {
-
+    rddIO.mapPartitions { it =>
       val createCircuit: UIO[CircuitTap[E2, E2]] =
         CircuitTap.make[E2, E2](maxErrorRatio, _ => true, onRejected, decayScale)
 
@@ -111,7 +109,7 @@ object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
       val managed: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] = createCircuit.toManaged_ >>= iterator
 
       zio.Runtime.global.unsafeRun(unmanaged(managed))
-    })
+    }
   /*
 
   def time[R](block: => R): (Duration, R) = {

@@ -27,9 +27,7 @@ object SparkEnvImplicitClassTest extends DefaultRunnableSpec with SparkTest {
       val prg = for {
         ds <- zio.spark.read.textFile(pathToto)
         v  <- ds.take(1)
-      } yield {
-        assert(v.head.trim)(Assertion.equalTo("bonjour"))
-      }
+      } yield assert(v.head.trim)(Assertion.equalTo("bonjour"))
 
       ss >>= (x => prg.provide(Has(x)))
 

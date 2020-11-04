@@ -75,9 +75,8 @@ object Clean extends LowPriorityClean0 {
     override def apply(a: Option[A]): Out = a.map(W.apply)
   }
 
-  implicit val _relationalgroupeddataset: Aux[RelationalGroupedDataset, ZRelationalGroupedDataset] = impure(
-    rgd => ZRelationalGroupedDataset(rgd)
-  )
+  implicit val _relationalgroupeddataset: Aux[RelationalGroupedDataset, ZRelationalGroupedDataset] =
+    impure(rgd => ZRelationalGroupedDataset(rgd))
 
   //def apply[A](implicit W: Wrap[A]): W.type = W
 
