@@ -4,30 +4,17 @@ Spark-ZIO
 
 Spark-ZIO allows access to Spark using ZIO's environment.
 
-## Installation
-
-### Stable version
-
-Version for scala 2.11.X :
-
-```scala
-libraryDependencies += "io.univalence" % "zio-spark_2.11" % "46e659ce"
-```
-
 ### Latest version
 
 If you want to get the very last version of this library you can still download it using bintray here : https://bintray.com/univalence/univalence-jvm/spark-zio
 
-Here is an example using ```version 0.3+79-4936e981``` that work with ```scala 2.11.X```:
 
 ```scala
 resolvers += "zio-spark" at "http://dl.bintray.com/univalence/univalence-jvm"
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.3+0079-4936e981"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.2"
 ```
 
 ## Roadmap
-
-- 
 
 
 ## License
