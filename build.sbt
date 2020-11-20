@@ -130,7 +130,7 @@ onLoadMessage := {
 
 def versionFmt(out: sbtdynver.GitDescribeOutput): String = {
   def mkString(suffix: GitCommitSuffix): String =
-    if (suffix.isEmpty) "" else f"+${suffix.distance}%04d-${suffix.sha}"
+    if (suffix.isEmpty) "" else f"-${suffix.distance}%05d-${suffix.sha}"
   (out.ref.dropV.value
     + mkString(out.commitSuffix)
     + out.dirtySuffix.dropPlus.mkString("-", ""))
