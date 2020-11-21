@@ -142,6 +142,8 @@ inThisBuild(
     dynver := {
       val d = new java.util.Date
       sbtdynver.DynVer.getGitDescribeOutput(d).mkVersion(versionFmt, fallbackVersion(d))
-    }
+    },
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision
   )
 )
