@@ -4,7 +4,7 @@ import sbtdynver.GitCommitSuffix
 
 val libVersion =
   new {
-    val zio              = "1.0.0-RC20"
+    val zio              = "1.0.3"
     val scala2_12        = "2.12.11"
     val organize_imports = "0.4.4"
     val scaluzzi         = "0.1.16"
@@ -74,7 +74,7 @@ libraryDependencies ++= Seq(
 
 testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
-scalafixDependencies in ThisBuild += "com.github.vovapolu" %% "scaluzzi" % "0.1.2"
+scalafixDependencies in ThisBuild += "com.github.vovapolu" %% "scaluzzi" % "0.1.16"
 
 scalaVersion := libVersion.scala2_12
 
@@ -100,7 +100,7 @@ releaseEarlyWith in Global := BintrayPublisher
 useSpark("sql", "core")
 
 def useSpark(modules: String*) =
-  libraryDependencies ++= modules.map(name => "org.apache.spark" %% s"spark-$name" % "2.4.1" % Provided)
+  libraryDependencies ++= modules.map(name => "org.apache.spark" %% s"spark-$name" % "2.4.7" % Provided)
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 
@@ -130,7 +130,7 @@ onLoadMessage := {
 
 def versionFmt(out: sbtdynver.GitDescribeOutput): String = {
   def mkString(suffix: GitCommitSuffix): String =
-    if (suffix.isEmpty) "" else f"+${suffix.distance}%04d-${suffix.sha}"
+    if (suffix.isEmpty) "" else f"-${suffix.distance}%05d-${suffix.sha}"
   (out.ref.dropV.value
     + mkString(out.commitSuffix)
     + out.dirtySuffix.dropPlus.mkString("-", ""))
