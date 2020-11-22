@@ -1,11 +1,13 @@
 package zio.spark.wrap
 
+import zio._
+
+import zio.spark._
+import zio.spark.wrap.Clean.Aux
+
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import zio._
-import zio.spark._
-import zio.spark.wrap.Clean.Aux
 
 import scala.util.Try
 

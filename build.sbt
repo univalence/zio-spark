@@ -4,8 +4,9 @@ import sbtdynver.GitCommitSuffix
 
 val libVersion =
   new {
-    val zio       = "1.0.0-RC20"
-    val scala2_12 = "2.12.11"
+    val zio              = "1.0.0-RC20"
+    val scala2_12        = "2.12.11"
+    val organize_imports = "0.4.4"
   }
 
 scmInfo := Some(
@@ -144,6 +145,7 @@ inThisBuild(
       sbtdynver.DynVer.getGitDescribeOutput(d).mkVersion(versionFmt, fallbackVersion(d))
     },
     semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision
+    semanticdbVersion := scalafixSemanticdb.revision,
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % libVersion.organize_imports
   )
 )
