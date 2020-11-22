@@ -81,6 +81,5 @@ jobs:
     <<: *environment
     working_directory: ~/repo
     steps:
-      steps:
-        - build_project:
-            project_name: "zio-spark"
+      - build_project:
+          project_name: "zio-spark"
