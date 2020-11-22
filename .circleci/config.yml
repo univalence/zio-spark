@@ -83,4 +83,4 @@ jobs:
     steps:
       steps:
         - build_project:
-            project_name: zio-spark
+            project_name: "zio-spark"
