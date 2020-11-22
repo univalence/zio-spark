@@ -144,6 +144,7 @@ object implicits {
    *
    * @since 1.3.0
    */
+  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
   implicit def symbolToColumn(s: Symbol): ColumnName = new ColumnName(s.name)
 
 }

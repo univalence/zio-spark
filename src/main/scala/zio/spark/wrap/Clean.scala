@@ -97,16 +97,16 @@ abstract class Impure[+V](private val value: V) {
   final def executeM[R, B, Pure](f: V => RIO[R, B])(implicit W: Clean.Aux[B, Pure]): RIO[R, Pure] =
     Task(f(value).map(W.apply)).flatten
 
-  final protected def executeTotal[B, C](f: V => B)(implicit W: Clean.Aux[B, C]): UIO[C] = UIO(W(f(value)))
+  final protected def executeSuccess[B, C](f: V => B)(implicit W: Clean.Aux[B, C]): UIO[C] = UIO(W(f(value)))
 
-  final protected def executeTotalM[R, E, B, Pure](
+  final protected def executeSuccessM[R, E, B, Pure](
     f: V => ZIO[R, E, B]
   )(implicit W: Clean.Aux[B, Pure]): ZIO[R, E, Pure] =
     f(value).map(W.apply)
 
-  final protected def nowTotal[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): Pure = W(f(value))
+  final protected def executeSuccessNow[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): Pure = W(f(value))
 
-  final protected def now[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): Try[Pure] = Try(W(f(value)))
+  final protected def executeNow[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): Try[Pure] = Try(W(f(value)))
 }
 
 abstract class ImpureF[-R, +V](rio: RIO[R, Impure[V]]) {

@@ -91,7 +91,12 @@ final case class DecayingRatio(ratio: Ratio, scale: Int) {
 }
 
 object CircuitTap {
-  final private[spark] case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: DecayingRatio) {
+  final private[spark] case class State(
+    failed: Long,
+    success: Long,
+    rejected: Long,
+    decayingErrorRatio: DecayingRatio
+  ) {
 
     def nextErrorRatio(ratio: Ratio): DecayingRatio =
       if (total == 0) DecayingRatio(ratio, decayingErrorRatio.scale)

@@ -17,16 +17,16 @@ final class ZRDD[T](rdd: RDD[T]) extends Impure(rdd) {
 
   def count: Task[Long] = execute(_.count())
 
-  def name: UIO[String] = executeTotal(_.name)
-  def id: Int           = nowTotal(_.id)
+  def name: UIO[String] = executeSuccess(_.name)
+  def id: Int           = executeSuccessNow(_.id)
 
-  def ++(rdd: RDD[T]): ZRDD[T]   = nowTotal(_.++(rdd))
-  def ++(zrdd: ZRDD[T]): ZRDD[T] = nowTotal(x => zrdd.nowTotal(x ++ _))
+  def ++(rdd: RDD[T]): ZRDD[T]   = executeSuccessNow(_.++(rdd))
+  def ++(zrdd: ZRDD[T]): ZRDD[T] = executeSuccessNow(x => zrdd.executeSuccessNow(x ++ _))
 
-  def mapPartitions[B: ClassTag](f: Iterator[T] => Iterator[B]): ZRDD[B] = nowTotal(_.mapPartitions(f))
+  def mapPartitions[B: ClassTag](f: Iterator[T] => Iterator[B]): ZRDD[B] = executeSuccessNow(_.mapPartitions(f))
 
-  def map[B: ClassTag](f: T => B): ZRDD[B]          = nowTotal(_.map(f))
-  def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B] = nowTotal(_.flatMap(f))
+  def map[B: ClassTag](f: T => B): ZRDD[B]          = executeSuccessNow(_.map(f))
+  def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B] = executeSuccessNow(_.flatMap(f))
 
   def collect: Task[Seq[T]] = execute(_.collect.toSeq)(Clean.pure)
 
@@ -35,20 +35,20 @@ final class ZRDD[T](rdd: RDD[T]) extends Impure(rdd) {
 
 object ZRDD {
   implicit class ZPairRDD[K: ClassTag, V: ClassTag](zrdd: ZRDD[(K, V)]) {
-    def reduceByKey(func: (V, V) => V): ZRDD[(K, V)] = zrdd.nowTotal(new PairRDDFunctions(_).reduceByKey(func))
+    def reduceByKey(func: (V, V) => V): ZRDD[(K, V)] = zrdd.executeSuccessNow(new PairRDDFunctions(_).reduceByKey(func))
   }
 }
 
 final class ZSparkContext(sparkContext: SparkContext) extends Impure(sparkContext) {
   def textFile(path: String): Task[ZRDD[String]] = execute(_.textFile(path))
 
-  def parallelize[T: ClassTag](seq: Seq[T]): ZRDD[T] = nowTotal(_.parallelize(seq))
+  def parallelize[T: ClassTag](seq: Seq[T]): ZRDD[T] = executeSuccessNow(_.parallelize(seq))
 
 }
 
 final class ZSparkSession(sparkSession: SparkSession) extends Impure(sparkSession) {
 
-  def sparkContext: ZSparkContext = nowTotal(_.sparkContext)
+  def sparkContext: ZSparkContext = executeSuccessNow(_.sparkContext)
 
   def sql(sqlText: String): Task[ZDataFrame] = execute(_.sql(sqlText))
 
@@ -81,19 +81,19 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends Impure(dataset) {
 
   final def write: ZWrite = new ZWrite(execute(_.write))
 
-  final def as[X: Encoder]: Try[ZDataset[X]] = now(_.as[X])
+  final def as[X: Encoder]: Try[ZDataset[X]] = executeNow(_.as[X])
 
-  final def sparkSession: ZSparkSession = nowTotal(_.sparkSession)
+  final def sparkSession: ZSparkSession = executeSuccessNow(_.sparkSession)
 
-  final def col(colName: String): Try[Column] = now(_.col(colName))
+  final def col(colName: String): Try[Column] = executeNow(_.col(colName))
 
-  final def apply(colName: String): Try[Column] = now(_.apply(colName))
+  final def apply(colName: String): Try[Column] = executeNow(_.apply(colName))
 
   final def cache: Task[Unit] = execute(_.cache()).unit
 
   final def createTempView(viewName: String): Task[Unit] = execute(_.createTempView(viewName))
 
-  final def rdd: ZRDD[T] = nowTotal(_.rdd)
+  final def rdd: ZRDD[T] = executeSuccessNow(_.rdd)
 
   final def collect(): Task[Seq[T]] = execute(_.collect().toSeq)(Clean.pure)
 
@@ -105,20 +105,20 @@ abstract class ZDataX[T](dataset: Dataset[T]) extends Impure(dataset) {
 final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
   def count: Task[Long] = execute(_.count())
 
-  def filter(condition: Column): Try[ZDataFrame] = now(_.filter(condition))
+  def filter(condition: Column): Try[ZDataFrame] = executeNow(_.filter(condition))
 
   def printSchema: Task[Unit] = execute(_.printSchema())
 
-  def groupBy(cols: Column*): Try[ZRelationalGroupedDataset] = now(_.groupBy(cols: _*))
+  def groupBy(cols: Column*): Try[ZRelationalGroupedDataset] = executeNow(_.groupBy(cols: _*))
 }
 
 final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
-  def filter(func: T => Boolean): ZDataset[T]          = nowTotal(_.filter(func))
-  def map[B: Encoder](f: T => B): ZDataset[B]          = nowTotal(_.map(f))
-  def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = nowTotal(_.flatMap(f))
+  def filter(func: T => Boolean): ZDataset[T]          = executeSuccessNow(_.filter(func))
+  def map[B: Encoder](f: T => B): ZDataset[B]          = executeSuccessNow(_.map(f))
+  def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = executeSuccessNow(_.flatMap(f))
 }
 
 final case class ZRelationalGroupedDataset(relationalGroupedDataset: RelationalGroupedDataset)
     extends Impure(relationalGroupedDataset) {
-  def count: ZDataFrame = nowTotal(_.count())
+  def count: ZDataFrame = executeSuccessNow(_.count())
 }
