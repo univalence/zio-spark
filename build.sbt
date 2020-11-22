@@ -100,7 +100,7 @@ releaseEarlyWith in Global := BintrayPublisher
 useSpark("sql", "core")
 
 def useSpark(modules: String*) =
-  libraryDependencies ++= modules.map(name => "org.apache.spark" %% s"spark-$name" % "2.4.1" % Provided)
+  libraryDependencies ++= modules.map(name => "org.apache.spark" %% s"spark-$name" % "2.4.7" % Provided)
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 
