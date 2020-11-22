@@ -118,7 +118,7 @@ final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
   def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = nowTotal(_.flatMap(f))
 }
 
-case class ZRelationalGroupedDataset(relationalGroupedDataset: RelationalGroupedDataset)
+final case class ZRelationalGroupedDataset(relationalGroupedDataset: RelationalGroupedDataset)
     extends Impure(relationalGroupedDataset) {
   def count: ZDataFrame = nowTotal(_.count())
 }

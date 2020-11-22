@@ -7,6 +7,7 @@ val libVersion =
     val zio              = "1.0.0-RC20"
     val scala2_12        = "2.12.11"
     val organize_imports = "0.4.4"
+    val scaluzzi         = "0.1.16"
   }
 
 scmInfo := Some(
@@ -146,6 +147,9 @@ inThisBuild(
     },
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
-    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % libVersion.organize_imports
+    scalafixDependencies ++= Seq(
+      "com.github.liancheng" %% "organize-imports" % libVersion.organize_imports,
+      "com.github.vovapolu"  %% "scaluzzi"         % libVersion.scaluzzi
+    )
   )
 )
