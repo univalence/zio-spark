@@ -1,0 +1,10 @@
+pull_request_rules:
+  - name: Automatic merge for scala steward 🐱
+    conditions:
+      - author=scala-steward
+      - "check-success=ci/circleci: build"
+    actions:
+      merge:
+        method: squash
+      label:
+        add: [dependency upgrade]
