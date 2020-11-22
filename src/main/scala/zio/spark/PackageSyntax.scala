@@ -1,8 +1,10 @@
 package zio.spark
 
-import org.apache.spark.sql.{ DataFrameReader, SparkSession }
-import zio.spark.wrap.{ Clean, Impure, ImpureF }
 import zio.{ RIO, Task, ZIO, ZLayer }
+
+import zio.spark.wrap.{ Clean, Impure, ImpureF }
+
+import org.apache.spark.sql.{ DataFrameReader, SparkSession }
 
 trait PackageSyntax {
 

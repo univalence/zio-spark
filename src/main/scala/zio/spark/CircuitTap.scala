@@ -85,13 +85,13 @@ object Ratio {
 
 }
 
-case class DecayingRatio(ratio: Ratio, scale: Int) {
+final case class DecayingRatio(ratio: Ratio, scale: Int) {
   def decay(value: Ratio, maxScale: Long): DecayingRatio =
     DecayingRatio(Ratio.mean(scale, ratio)(1, value), if (scale < maxScale) scale else maxScale.toInt)
 }
 
 object CircuitTap {
-  private[spark] case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: DecayingRatio) {
+  final private[spark] case class State(failed: Long, success: Long, rejected: Long, decayingErrorRatio: DecayingRatio) {
 
     def nextErrorRatio(ratio: Ratio): DecayingRatio =
       if (total == 0) DecayingRatio(ratio, decayingErrorRatio.scale)

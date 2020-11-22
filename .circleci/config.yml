@@ -30,7 +30,7 @@ aliases:
 
   - &fmt_check
     name: "Check code format"
-    command: cat /dev/null | sbt check
+    command: cat /dev/null | sbt check "scalafix --check"
 
   - &configure_gpg
     name: configure GPG
@@ -52,7 +52,7 @@ commands:
       project_name:
         type: string
       extra_fs_deps:
-        default:  ""
+        default: ""
         type: string
     steps:
       - checkout
@@ -81,7 +81,5 @@ jobs:
     <<: *environment
     working_directory: ~/repo
     steps:
-      steps:
-        - build_project:
-            project_name: zio-spark
-  
+      - build_project:
+          project_name: "zio-spark"

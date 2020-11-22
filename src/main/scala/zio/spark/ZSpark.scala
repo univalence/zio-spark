@@ -1,10 +1,12 @@
 package zio.spark
 
+import zio.{ RIO, Task, UIO }
+
+import zio.spark.wrap.{ Clean, Impure, ImpureF }
+
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.{ PairRDDFunctions, RDD }
 import org.apache.spark.sql._
-import zio.spark.wrap.{ Clean, Impure, ImpureF }
-import zio.{ RIO, Task, UIO }
 
 import scala.reflect.ClassTag
 import scala.util.Try
@@ -116,7 +118,7 @@ final class ZDataset[T](dataset: Dataset[T]) extends ZDataX(dataset) {
   def flatMap[B: Encoder](f: T => Seq[B]): ZDataset[B] = nowTotal(_.flatMap(f))
 }
 
-case class ZRelationalGroupedDataset(relationalGroupedDataset: RelationalGroupedDataset)
+final case class ZRelationalGroupedDataset(relationalGroupedDataset: RelationalGroupedDataset)
     extends Impure(relationalGroupedDataset) {
   def count: ZDataFrame = nowTotal(_.count())
 }
