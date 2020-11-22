@@ -4,7 +4,7 @@ import sbtdynver.GitCommitSuffix
 
 val libVersion =
   new {
-    val zio              = "1.0.0-RC20"
+    val zio              = "1.0.3"
     val scala2_12        = "2.12.11"
     val organize_imports = "0.4.4"
     val scaluzzi         = "0.1.16"
