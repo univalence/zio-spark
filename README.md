@@ -67,11 +67,9 @@ val job2: RIO[SparkEnv, Unit] = ds1 >>= (_.printSchema)
 ##Syntax
 
 zio-spark uses the syntax from ZIO + a new wrapping of Spark existing types to make them pure.
-```scaclass ZRDD[T
-](private val rdd:RDD) extends ZWrap(rdd){
+```scala
+class ZRDD[T](private val rdd: RDD) extends ZWrap(rdd) {
   def count:Task[Long] = execute(_.count())
-
-
 
   /* ... */
 }
