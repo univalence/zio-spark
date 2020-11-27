@@ -10,7 +10,7 @@ object CircuitTapTest extends DefaultRunnableSpec {
   override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
     suite("tap")(
       testM("smoking")({
-        import syntax._
+        import zio.spark.syntax._
 
         for {
           percent <- Ratio(0.05).toTask

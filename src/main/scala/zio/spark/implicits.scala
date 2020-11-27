@@ -1,11 +1,8 @@
 package zio.spark
 
 import zio.{ Task, ZIO }
-
 import zio.spark.wrap.Impure
-
 import org.apache.spark.sql.{ ColumnName, Encoder, Encoders }
-
 import scala.util.Try
 
 object implicits {

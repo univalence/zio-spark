@@ -107,6 +107,8 @@ final class ZDataFrame(dataFrame: DataFrame) extends ZDataX(dataFrame) {
 
   def filter(condition: Column): Try[ZDataFrame] = executeNow(_.filter(condition))
 
+  def filter(condition: String): Try[ZDataFrame] = executeNow(_.filter(condition))
+
   def printSchema: Task[Unit] = execute(_.printSchema())
 
   def groupBy(cols: Column*): Try[ZRelationalGroupedDataset] = executeNow(_.groupBy(cols: _*))
