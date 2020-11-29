@@ -102,7 +102,8 @@ object Backport extends zio.App {
 object Sample2 extends zio.App {
 
   import zio.spark.implicits._
-  import zio.spark.syntax.syntax_._
+  import zio.spark.syntax._
+  import zio.spark.syntax.over9000._
 
   val df: Spark[ZDataset[String]] = zio.spark.read
     .option("xxx", "yyy")

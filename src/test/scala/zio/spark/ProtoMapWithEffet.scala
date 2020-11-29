@@ -1,14 +1,9 @@
 package zio.spark
 
-import org.apache.spark.sql.Column
 import zio._
-import zio.spark.wrap.{ Impure, ImpureF }
 import zio.stream._
 import zio.test._
-
 import scala.util._
-
-
 
 object ProtoMapWithEffetTest extends DefaultRunnableSpec with SparkTest {
 

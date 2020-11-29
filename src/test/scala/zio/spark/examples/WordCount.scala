@@ -143,7 +143,7 @@ countsByAge.write.format("json").save("s3a://...")
 
   val prg: ZIO[SparkEnv, Throwable, Unit] = for {
     df    <- df
-    -     <- df.printSchema
+    _     <- df.printSchema
     count <- groupByAge(df).count
     _     <- count.show
     _     <- count.write.format("json").save("s3a://...")

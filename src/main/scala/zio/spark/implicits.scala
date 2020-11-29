@@ -5,6 +5,7 @@ import zio.spark.wrap.Impure
 import org.apache.spark.sql.{ ColumnName, Encoder, Encoders }
 import scala.util.Try
 
+//FROM SparkSession.implicits
 object implicits {
 
   implicit class TryOps[T <: Impure[_]](t: Try[T]) {
