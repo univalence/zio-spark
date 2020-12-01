@@ -39,6 +39,15 @@ If you want to get the very last version of this library you can still download 
 libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
 ```
 
+### Spark Version
+
+zio-spark is built against spark 2.4.x and scala 2.12.
+Spark is provided, you should your Spark version (as you would usually).
+
+```scala
+libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.7" % Provided
+```
+
 ### Snapshots
 
 ```scala
@@ -183,11 +192,6 @@ object RunPar extends zio.App {
 
 Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements.
 If you want to add new things in zio-spark, don't hesitate to open an issue!
-
-
-## Contributors
-
-
 
 
 ## Roadmap
