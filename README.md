@@ -36,7 +36,7 @@ More about that in this blog article (French):
 If you want to get the very last version of this library you can still download it using bintray here : https://bintray.com/univalence/univalence-jvm/spark-zio
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.2"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
 ```
 
 ### Snapshots
@@ -44,7 +44,7 @@ libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.2"
 ```scala
 resolvers += "univalence" at "http://dl.bintray.com/univalence/univalence-jvm"
 
-libraryDependecies += "io.univalence" %% "zio-spark" % "0.0.2-XXXX-XXXX"
+libraryDependecies += "io.univalence" %% "zio-spark" % "0.0.1-+"
 ```
 
 ## Migrating existing code
