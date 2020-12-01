@@ -52,9 +52,12 @@ final class ZSparkSession(sparkSession: SparkSession) extends Impure(sparkSessio
 
   def sql(sqlText: String): Task[ZDataFrame] = execute(_.sql(sqlText))
 
-  implicit final class ZReader(task: Task[Impure[DataFrameReader]]) extends ImpureF(task) {
-    def option(key: String, value: String): ZReader = execute(_.option(key, value))
-    def option(key: String, value: Long): ZReader   = execute(_.option(key, value))
+  implicit class ZReader(task: Task[Impure[DataFrameReader]]) extends ImpureF(task) {
+
+    override protected def copy(f: DataFrameReader => DataFrameReader): ZReader = execute(f)
+
+    def option(key: String, value: String): ZReader = copy(_.option(key, value))
+    def option(key: String, value: Long): ZReader   = copy(_.option(key, value))
 
     def load: Task[ZDataFrame]                         = execute(_.load())
     def parquet(path: String): Task[ZDataFrame]        = execute(_.parquet(path))
@@ -66,13 +69,12 @@ final class ZSparkSession(sparkSession: SparkSession) extends Impure(sparkSessio
 
 abstract class ZDataX[T](dataset: Dataset[T]) extends Impure(dataset) {
 
-  final class ZWrite(task: Task[Impure[DataFrameWriter[T]]]) extends ImpureF(task) {
-    private type V = DataFrameWriter[T]
-    private def chain(f: V => V): ZWrite = new ZWrite(execute(f))
+  implicit final class ZWrite(task: Task[Impure[DataFrameWriter[T]]]) extends ImpureF(task) {
+    override protected def copy(f: DataFrameWriter[T] => DataFrameWriter[T]): ZWrite = execute(f)
 
-    def option(key: String, value: String): ZWrite = chain(_.option(key, value))
-    def format(name: String): ZWrite               = chain(_.format(name))
-    def mode(saveMode: String): ZWrite             = chain(_.mode(saveMode = saveMode))
+    def option(key: String, value: String): ZWrite = copy(_.option(key, value))
+    def format(name: String): ZWrite               = copy(_.format(name))
+    def mode(saveMode: String): ZWrite             = copy(_.mode(saveMode = saveMode))
 
     def parquet(path: String): Task[Unit] = execute(_.parquet(path))
     def text(path: String): Task[Unit]    = execute(_.text(path))

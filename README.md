@@ -5,6 +5,32 @@
 
 Spark-ZIO allows access to Spark using ZIO's environment.
 
+## WHY ?
+
+There are 2 main reasons to use this kind of technique : 
+* making better code, pure FP, more readable (by some degree) and stopping the propagation of ```implicit SparkSessions```.
+* improving some of the performance.
+
+### About the performance
+We cannot do any magic, there are usual ways to improve the performances of spark jobs, in order of priority:
+* less join
+* less data (=> active location, streaming, ...)
+* less udf/rdd
+* better cluster allocation
+* better configuration
+
+What spark-zio can do is to launch different spark jobs in the same `SparkSession`, allowing to use more of the executors capacity. Eg. if you have 5 workers, and only 1 is working to finish the current job, and you wait before starting another job, that's not what's best efficiency, and at the end not the best for the lead time.
+
+On some pipeline, concurrent job launch takes 2-10 less time to compute.
+It's not "faster", however the overall lead time (wall clock time) is better.
+
+Spark is very good at optimizing the work on a single job, there is no issue with spark, but the imperative nature of the API.
+
+
+More on this blog article (French):
+* [Amélioration du lead time des chaines en spark](https://univalence.io/blog/articles/amelioration-du-lead-time-des-chaines-en-spark-avec-un-peu-de-monix/)
+
+
 ## Latest version
 
 If you want to get the very last version of this library you can still download it using bintray here : https://bintray.com/univalence/univalence-jvm/spark-zio
@@ -75,7 +101,7 @@ class ZRDD[T](private val rdd: RDD) extends ZWrap(rdd) {
 }
 ```
 
-All the existing type useute pattern, which allow to tap into Spark types, and compose using the new wrapping whou
+All the existing type use the execute pattern, which allow to tap into Spark types, and compose using the new wrapping whou
 
 
 
@@ -84,7 +110,7 @@ All the existing type useute pattern, which allow to tap into Spark types, and c
  * Cancellable computations: find an non invasive way to cancel jobs as you would cancel ZIO computations
  * Externalize purity Auxs: the purity mechanism is not exclusive to zio-spark. It should be externalized and reworked
 
-## Alternative
+## Alternatives
 
  *  (Deprecated) [spark-zio 0.3](https://github.com/univalence/spark-tools/tree/master/spark-zio), our first experiment to combine ZIO and Spark
  *  [ZparkIO](https://github.com/leobenkel/ZparkIO) a framework for Spark, ZIO

@@ -80,11 +80,11 @@ object Clean extends LowPriorityClean0 {
   implicit val _relationalgroupeddataset: Aux[RelationalGroupedDataset, ZRelationalGroupedDataset] =
     impure(rgd => ZRelationalGroupedDataset(rgd))
 
-  //def apply[A](implicit W: Wrap[A]): W.type = W
+  def apply[A](implicit C: Clean[A]): C.type = C
 
-  def apply[A](a: A)(implicit W: Clean[A]): W.Out = W(a)
+  //def apply[A](a: A)(implicit C: Clean[A]): C.Out = C(a)
 
-  def effect[A](a: => A)(implicit W: Clean[A]): Task[W.Out] = Task(W(a))
+  def effect[A](a: => A)(implicit C: Clean[A]): Task[C.Out] = Task(C(a))
 }
 
 abstract class Impure[+V](private val value: V) {
@@ -92,23 +92,29 @@ abstract class Impure[+V](private val value: V) {
   /**
    * @usecase def execute[B](f: V => B):Task[B]
    */
-  final def execute[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): Task[Pure] = Task(W(f(value)))
+  final def execute[B, Pure](f: V => B)(implicit C: Clean.Aux[B, Pure]): Task[Pure] = Task(C(f(value)))
 
-  final def executeM[R, B, Pure](f: V => RIO[R, B])(implicit W: Clean.Aux[B, Pure]): RIO[R, Pure] =
-    Task(f(value).map(W.apply)).flatten
+  final def executeM[R, B, Pure](f: V => RIO[R, B])(implicit C: Clean.Aux[B, Pure]): RIO[R, Pure] =
+    Task(f(value).map(C.apply)).flatten
 
-  final protected def executeSuccess[B, C](f: V => B)(implicit W: Clean.Aux[B, C]): UIO[C] = UIO(W(f(value)))
+  final protected def executeSuccess[B, C](f: V => B)(implicit C: Clean.Aux[B, C]): UIO[C] = UIO(C(f(value)))
 
   final protected def executeSuccessM[R, E, B, Pure](
     f: V => ZIO[R, E, B]
   )(implicit W: Clean.Aux[B, Pure]): ZIO[R, E, Pure] =
     f(value).map(W.apply)
 
-  final protected def executeSuccessNow[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): Pure = W(f(value))
+  final protected def executeSuccessNow[B, Pure](f: V => B)(implicit C: Clean.Aux[B, Pure]): Pure = C(f(value))
 
-  final protected def executeNow[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): Try[Pure] = Try(W(f(value)))
+  final protected def executeNow[B, Pure](f: V => B)(implicit C: Clean.Aux[B, Pure]): Try[Pure] = Try(C(f(value)))
 }
 
-abstract class ImpureF[-R, +V](rio: RIO[R, Impure[V]]) {
-  final def execute[B, Pure](f: V => B)(implicit W: Clean.Aux[B, Pure]): RIO[R, Pure] = rio >>= (_.execute(f))
+abstract class ImpureF[R, V](final val rio: RIO[R, Impure[V]]) {
+  protected def copy(f: V => V): ImpureF[R, V]
+
+  @inline final def execute[B, Pure](f: V => B)(implicit C: Clean.Aux[B, Pure]): RIO[R, Pure] = rio >>= (_.execute(f))
+
+  @inline final def executeM[B, Pure](f: V => RIO[R, B])(implicit C: Clean.Aux[B, Pure]): RIO[R, Pure] =
+    rio >>= (_.executeM(f))
+
 }

@@ -1,6 +1,7 @@
 package zio.spark
 
-import org.apache.spark.sql.Column
+import org.apache.spark.sql.{ Column, Dataset, Row }
+
 import scala.util.Try
 import zio.spark.wrap.{ Impure, ImpureF }
 import zio.spark.{ Spark, ZDataFrame, ZRelationalGroupedDataset }
@@ -9,7 +10,9 @@ import zio.{ IO, RIO, Task, ZIO }
 package object syntax {
 
   object over9000 {
-    implicit class ZDataframeF[R, E, A](rio: Spark[ZDataFrame]) extends ImpureF(rio) {
+    implicit class ZDataframeF(rio: Spark[ZDataFrame]) extends ImpureF(rio) {
+      override protected def copy(f: Dataset[Row] => Dataset[Row]): ZDataframeF = execute(f)
+
       def count: Spark[Long] = execute(_.count())
 
       def filter(condition: String): Spark[ZDataFrame] = execute(_ filter condition)
@@ -52,12 +55,12 @@ package object syntax {
   implicit final class ZRelationalGroupedDatasetOpsTry(_value: Try[ZRelationalGroupedDataset])
       extends ZRelationalGroupedDatasetOps[Any](_value)
 
-  protected abstract class ZDataframeOps[R](get: RIO[R, ZDataFrame]) {
-    @inline final def exec[X](f: ZDataFrame => X): RIO[R, X]          = get map f
-    @inline final def execM[X](f: ZDataFrame => RIO[R, X]): RIO[R, X] = get >>= f
+  protected abstract class ZDataframeOps[R](get: RIO[R, ZDataFrame]) extends ImpureF(get) {
 
-    @inline final def count: RIO[R, Long]                        = execM(_.count)
-    @inline final def filter(column: Column): RIO[R, ZDataFrame] = execM(_.filter(column))
+    override protected def copy(f: Dataset[Row] => Dataset[Row]): ZDataframeOps[R] = execute(f)
+
+    @inline final def count: RIO[R, Long]                        = execute(_.count)
+    @inline final def filter(column: Column): RIO[R, ZDataFrame] = execute(_.filter(column))
   }
 
   implicit final class ZDataframeOpsRIO[R](_value: RIO[R, ZDataFrame]) extends ZDataframeOps[R](_value)

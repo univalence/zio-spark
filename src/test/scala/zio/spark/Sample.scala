@@ -129,11 +129,11 @@ object Sample5 {
 
   private val v3: Task[ZRDD[String]] = ds.execute(_.rdd)
 
-  val v6: Task[ZRDD[Int]] = Task(Clean({
+  val v6: Task[ZRDD[Int]] = Clean.effect({
     val sc: SparkContext = ???
 
     sc.parallelize(0 to 1000)
-  }))
+  })
 
   v6 flatMap (_.count)
 

@@ -10,7 +10,7 @@ import zio.test.{ TestAspect, TestAspectAtLeastR }
 
 trait SparkTest {
 
-  val ss: Task[ZSparkSession] = Task(Clean(SparkSession.builder().master("local[*]").appName("toto").getOrCreate()))
+  val ss: Task[ZSparkSession] = Clean.effect(SparkSession.builder().master("local[*]").appName("toto").getOrCreate())
 
   val max20secondes: TestAspectAtLeastR[Live] = TestAspect.timeout(zio.duration.Duration(20, TimeUnit.SECONDS))
 }
