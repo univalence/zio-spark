@@ -7,27 +7,27 @@ Spark-ZIO allows access to Spark using ZIO's environment.
 
 ## WHY ?
 
-There are 2 main reasons to use this kind of technique : 
-* making better code, pure FP, more readable (by some degree) and stopping the propagation of ```implicit SparkSessions```.
-* improving some of the performance.
+There are 2 main reasons to use this kind of technique of library : 
+* making better code, pure FP, more composable, more readable (by some degree) and stopping the propagation of ```implicit SparkSessions```.
+* improving some performances.
 
 ### About the performance
-We cannot do any magic, there are usual ways to improve the performances of spark jobs, in order of priority:
+There are usual ways to improve the performances of spark jobs, in order of priority:
 * less join
 * less data (=> active location, streaming, ...)
 * less udf/rdd
-* better cluster allocation
 * better configuration
+* **better resource allocation** <-
 
-What spark-zio can do is to launch different spark jobs in the same `SparkSession`, allowing to use more of the executors capacity. Eg. if you have 5 workers, and only 1 is working to finish the current job, and you wait before starting another job, that's not what's best efficiency, and at the end not the best for the lead time.
+What zio-spark can do is to launch different spark jobs in the same `SparkSession`, allowing to use more of the executors capacity. Eg. if you have 5 workers, and only 1 is working to finish the current job, and you wait before starting another job, that's not what's best efficiency, and at the end not the best for the lead time.
 
-On some pipeline, concurrent job launch takes 2-10 less time to compute.
-It's not "faster", however the overall lead time (wall clock time) is better.
+On some pipeline, concurrent job launch speed up the pipeline by 2-10 times.
+It's not "faster", it's just the overall lead time (wall clock time) is better.
 
-Spark is very good at optimizing the work on a single job, there is no issue with spark, but the imperative nature of the API.
+Spark is very good at optimizing the work on a single job, there is no issue with spark, but the imperative nature of the API don't allow Spark to know for remaining jobs.
 
 
-More on this blog article (French):
+More about that in this blog article (French):
 * [Amélioration du lead time des chaines en spark](https://univalence.io/blog/articles/amelioration-du-lead-time-des-chaines-en-spark-avec-un-peu-de-monix/)
 
 
@@ -90,7 +90,7 @@ val ds1: RIO[SparkEnv, ZDataFrame] = retroCompat(ss => {
 val job2: RIO[SparkEnv, Unit] = ds1 >>= (_.printSchema)
 ```
 
-##Syntax
+## Syntax
 
 zio-spark uses the syntax from ZIO + a new wrapping of Spark existing types to make them pure.
 ```scala
@@ -101,7 +101,92 @@ class ZRDD[T](private val rdd: RDD) extends ZWrap(rdd) {
 }
 ```
 
-All the existing type use the execute pattern, which allow to tap into Spark types, and compose using the new wrapping whou
+The provided type use the "execute pattern", which allow to tap into Spark types, and compose using new definition that are more type safe.
+
+For the RDD, we have a ZRDD:
+```scala
+
+class ZRDD[T](rdd: RDD[T]) {
+
+  //To access directly spark API
+  def execute[B, Pure](f: RDD[T] => B)(implicit C: Clean.Aux[B, Pure]): Task[Pure]
+  def executeM[R, B, Pure](f: RDD[T] => RIO[R, B])(implicit C: Clean.Aux[B, Pure]): RIO[R, Pure]
+
+
+  //Rewrapped APIs, as close as possible to the original API, making them pure
+  def ++(zrdd: ZRDD[T]): ZRDD[T]
+
+  def ++(rdd: RDD[T]): ZRDD[T]
+
+  def collect: Task[Seq[T]]
+
+  def count: Task[Long]
+
+  def flatMap[B: ClassTag](f: T => Seq[B]): ZRDD[B]
+
+  def id: Int
+
+  def map[B: ClassTag](f: T => B): ZRDD[B]
+
+  def mapPartitions[B: ClassTag](f: (Iterator[T]) => Iterator[B]): ZRDD[B]
+
+  def name: UIO[String]
+
+  def saveAsTextFile(path: String): Task[Unit]
+
+  def toDF(colNames: String*)(implicit encoder: Encoder[T]): RIO[SparkEnv, ZDataFrame]
+
+  /* ... */
+}
+```
+
+### Running jobs in parallel
+
+You can run job in parallel as you would run things in parallel using ZIO.
+
+```scala
+
+object RunPar extends zio.App {
+
+  import zio.spark.syntax._
+
+  val prg: RIO[Console with SparkEnv, Unit] = for {
+    df   <- zio.spark.sql("select * from person")
+    _    <- df.cache
+    df2  <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
+    pair <- df.count zipPar df2.count
+    _    <- zio.console.putStr(s"${pair._1} persons (${pair._2} adults)")
+  } yield {}
+
+  override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =
+    prg.provideCustomLayer(zio.spark.builder.master("local").appName("counts").getOrCreate).exitCode
+
+  //would work with anything with Par, like collectPar, ... and fibers
+  {
+    val prg: RIO[Console with SparkEnv, Unit] = for {
+      df         <- zio.spark.sql("select * from person")
+      _          <- df.cache
+      df2        <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
+      
+      personsJob <- df.count.forkAs("persons")
+      adultsJob  <- df2.count.forkAs("adults")
+      persons    <- personsJob.join
+      adults     <- adultsJob.join
+      
+      _          <- zio.console.putStr(s"$persons persons ($adults adults)")
+    } yield {}
+  }
+}
+```
+
+## Contributions
+
+Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements.
+If you want to add new things in zio-spark, don't hesitate to open an issue!
+
+
+## Contributors
+
 
 
 

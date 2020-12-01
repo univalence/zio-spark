@@ -141,6 +141,40 @@ object Sample5 {
 
   v1 flatMap (_.execute(_.analyzed))
 }
+
+object RunPar extends zio.App {
+
+  import zio.spark.syntax._
+
+  val prg: RIO[Console with SparkEnv, Unit] = for {
+    df   <- zio.spark.sql("select * from person")
+    _    <- df.cache
+    df2  <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
+    pair <- df.count zipPar df2.count
+    _    <- zio.console.putStr(s"${pair._1} persons (${pair._2} adults)")
+  } yield {}
+
+  override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =
+    prg.provideCustomLayer(zio.spark.builder.master("local").appName("counts").getOrCreate).exitCode
+
+  //would work with anything with Par, like collectPar, ... and fibers
+
+  {
+    val prg: RIO[Console with SparkEnv, Unit] = for {
+      df  <- zio.spark.sql("select * from person")
+      _   <- df.cache
+      df2 <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
+
+      personsJob <- df.count.forkAs("persons")
+      adultsJob  <- df2.count.forkAs("adults")
+      persons    <- personsJob.join
+      adults     <- adultsJob.join
+
+      _ <- zio.console.putStr(s"$persons persons ($adults adults)")
+    } yield {}
+  }
+}
+
 /*
 object Sample4 extends zio.App {
 
