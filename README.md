@@ -191,17 +191,20 @@ object RunPar extends zio.App {
 ## Contributions
 
 Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements.
-If you want to add new things in zio-spark, don't hesitate to open an issue!
+If you want to add new things in `zio-spark`, don't hesitate to open an issue!
 
 
 ## Roadmap
 
+ * Tests : recode / integrate [spark-test](https://github.com/univalence/spark-tools/tree/master/spark-test) on:
+   * [zio-test](https://zio.dev/docs/usecases/usecases_testing)
+   * [Probably](https://github.com/propensive/probably)
  * Cancellable computations: find an non invasive way to cancel jobs as you would cancel ZIO computations
  * Externalize purity Auxs: the purity mechanism is not exclusive to zio-spark. It should be externalized and reworked
 
 ## Alternatives
 
- *  (Deprecated) [spark-zio 0.3](https://github.com/univalence/spark-tools/tree/master/spark-zio), our first experiment to combine ZIO and Spark
+ *  (Deprecated) [spark-zio 0.3](https://github.com/univalence/spark-tools/tree/master/spark-zio), our first experiment to combine ZIO and Spark, if you use it, we can work with you to update to `zio-spark`
  *  [ZparkIO](https://github.com/leobenkel/ZparkIO) a framework for Spark, ZIO
 
 ## License
