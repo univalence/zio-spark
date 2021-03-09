@@ -4,8 +4,8 @@ import sbtdynver.GitCommitSuffix
 
 val libVersion =
   new {
-    val zio              = "1.0.4-2"
-    val scala2_12        = "2.12.13"
+    val zio              = "1.0.5"
+    val scala2_12        = "2.12.11"
     val organize_imports = "0.5.0"
     val scaluzzi         = "0.1.16"
   }
@@ -74,7 +74,7 @@ libraryDependencies ++= Seq(
 
 testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
-scalafixDependencies in ThisBuild += "com.github.vovapolu" %% "scaluzzi" % "0.1.16"
+scalafixDependencies in ThisBuild += "com.github.vovapolu" %% "scaluzzi" % "0.1.18"
 
 scalaVersion := libVersion.scala2_12
 
@@ -100,7 +100,7 @@ releaseEarlyWith in Global := BintrayPublisher
 useSpark("sql", "core")
 
 def useSpark(modules: String*) =
-  libraryDependencies ++= modules.map(name => "org.apache.spark" %% s"spark-$name" % "3.1.0" % Provided)
+  libraryDependencies ++= modules.map(name => "org.apache.spark" %% s"spark-$name" % "3.1.1" % Provided)
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 
