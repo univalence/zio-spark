@@ -74,7 +74,7 @@ libraryDependencies ++= Seq(
 
 testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
-scalafixDependencies in ThisBuild += "com.github.vovapolu" %% "scaluzzi" % "0.1.18"
+scalafixDependencies in ThisBuild += "com.github.vovapolu" %% "scaluzzi" % "0.1.19"
 
 scalaVersion := libVersion.scala2_12
 
