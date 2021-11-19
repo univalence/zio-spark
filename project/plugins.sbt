@@ -1,4 +1,4 @@
-addSbtPlugin("org.scalameta"             % "sbt-scalafmt"         % "2.4.3")
+addSbtPlugin("org.scalameta"             % "sbt-scalafmt"         % "2.4.4")
 addSbtPlugin("net.virtual-void"          % "sbt-dependency-graph" % "0.9.2")
 //another plugin is getting sbt-pgp 1.1.0
 //addSbtPlugin("com.jsuereth"              % "sbt-pgp"              % "2.0.1")
