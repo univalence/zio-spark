@@ -1,0 +1,21 @@
+name: Univalence Continuous Integration
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run linting
+        run: sbt scalafmtCheck
+      - name: Run tests
+        run: sbt clean coverage test
+      - name: Generate coverage report
+        run: sbt coverageReport
+      - name: Publish coverage to codecov
+        uses: codecov/codecov-action@v2
