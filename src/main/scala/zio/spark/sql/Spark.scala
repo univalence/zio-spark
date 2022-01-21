@@ -13,7 +13,7 @@ object Spark {
     for {
       session <- ZIO.service[SparkSession]
       df      <- input(session)
-      processed = process(df)
-      value <- output(processed)
+      processedDf = process(df)
+      value <- output(processedDf)
     } yield value
 }
