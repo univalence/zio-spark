@@ -18,19 +18,19 @@ object Builder {
 
   sealed trait MasterConfiguration
 
-  case class MasterNodeConfiguration(host: String, port: Int) {
+  final case class MasterNodeConfiguration(host: String, port: Int) {
     def toSparkString: String = s"$host:$port"
   }
 
-  case class Local(nWorkers: Int) extends MasterConfiguration
+  final case class Local(nWorkers: Int) extends MasterConfiguration
 
-  case class LocalWithFailures(nWorkers: Int, maxFailures: Int) extends MasterConfiguration
+  final case class LocalWithFailures(nWorkers: Int, maxFailures: Int) extends MasterConfiguration
 
-  case class LocalAllNodesWithFailures(maxFailures: Int) extends MasterConfiguration
+  final case class LocalAllNodesWithFailures(maxFailures: Int) extends MasterConfiguration
 
-  case class Spark(masters: List[MasterNodeConfiguration]) extends MasterConfiguration
+  final case class Spark(masters: List[MasterNodeConfiguration]) extends MasterConfiguration
 
-  case class Mesos(master: MasterNodeConfiguration) extends MasterConfiguration
+  final case class Mesos(master: MasterNodeConfiguration) extends MasterConfiguration
 
   case object LocalAllNodes extends MasterConfiguration
 

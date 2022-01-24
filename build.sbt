@@ -1,6 +1,7 @@
 // Scala configuration
-ThisBuild / crossScalaVersions := Seq("2.13.8")
-ThisBuild / scalaVersion       := crossScalaVersions.value.head
+ThisBuild / crossScalaVersions         := Seq("2.13.8")
+ThisBuild / scalaVersion               := crossScalaVersions.value.head
+ThisBuild / scalafixScalaBinaryVersion := "2.13"
 
 // Scalafix configuration
 ThisBuild / semanticdbEnabled := true
@@ -69,18 +70,3 @@ lazy val metadataSettings =
       )
     )
   )
-
-lazy val scalaSettings =
-  Def.settings(
-    crossScalaVersions := Seq("2.13.8"),
-    scalaVersion       := crossScalaVersions.value.head
-  )
-
-// Coverage configuration
-coverageFailOnMinimum           := true
-coverageMinimumStmtTotal        := 80
-coverageMinimumBranchTotal      := 80
-coverageMinimumStmtPerPackage   := 80
-coverageMinimumBranchPerPackage := 80
-coverageMinimumStmtPerFile      := 50
-coverageMinimumBranchPerFile    := 50

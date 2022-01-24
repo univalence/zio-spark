@@ -4,7 +4,7 @@ import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
 
-case class ZSparkSession(session: UnderlyingSparkSession) extends SparkSession {
+final case class ZSparkSession(session: UnderlyingSparkSession) extends SparkSession {
   override def read: DataFrameReader = ZDataFrameReader(session.read)
 
   override def close: Task[Unit] = Task.attemptBlocking(session.close())
@@ -13,7 +13,7 @@ case class ZSparkSession(session: UnderlyingSparkSession) extends SparkSession {
 object ZSparkSession {
   def builder(): ZBuilder = ZBuilder(UnderlyingSparkSession.builder())
 
-  case class ZBuilder(builder: UnderlyingSparkSession.Builder) extends Builder {
+  final case class ZBuilder(builder: UnderlyingSparkSession.Builder) extends Builder {
 
     import Builder._
 
