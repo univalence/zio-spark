@@ -1,3 +1,23 @@
+// Scala configuration
+ThisBuild / crossScalaVersions := Seq("2.13.8")
+ThisBuild / scalaVersion       := crossScalaVersions.value.head
+
+// Scalafix configuration
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / scalafixDependencies ++= Seq(
+  "com.github.vovapolu" %% "scaluzzi" % "0.1.21"
+)
+
+// SCoverage configuration
+ThisBuild / coverageFailOnMinimum           := true
+ThisBuild / coverageMinimumStmtTotal        := 80
+ThisBuild / coverageMinimumBranchTotal      := 80
+ThisBuild / coverageMinimumStmtPerPackage   := 80
+ThisBuild / coverageMinimumBranchPerPackage := 80
+ThisBuild / coverageMinimumStmtPerFile      := 50
+ThisBuild / coverageMinimumBranchPerFile    := 50
+
 // -- Lib versions
 lazy val libVersion =
   new {

@@ -11,8 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run linting
+      - name: Run formatting
         run: sbt scalafmtCheck
+      - name: Run linting
+        run: sbt "scalafix --check"
       - name: Run tests
         run: sbt clean coverage test
       - name: Generate coverage report
