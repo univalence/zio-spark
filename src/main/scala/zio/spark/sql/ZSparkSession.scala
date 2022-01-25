@@ -5,7 +5,7 @@ import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 import zio._
 
 final case class ZSparkSession(session: UnderlyingSparkSession) extends SparkSession {
-  override def read: DataFrameReader = ZDataFrameReader(session.read)
+  override def read: ZDataFrameReader = ZDataFrameReader(session.read)
 
   override def close: Task[Unit] = Task.attemptBlocking(session.close())
 }
@@ -17,12 +17,10 @@ object ZSparkSession {
 
     import Builder._
 
-    override def getOrCreateLayer(): ZLayer[Any, Throwable, SparkSession] = {
-      val acquire = Task.attempt(getOrCreate())
-      ZLayer.fromAcquireRelease(acquire)(_.close.orDie)
-    }
+    override def getOrCreateLayer(): ZLayer[Any, Throwable, ZSparkSession] =
+      ZLayer.fromAcquireRelease(getOrCreate())(_.close.orDie)
 
-    override def getOrCreate(): SparkSession = ZSparkSession(builder.getOrCreate())
+    override def getOrCreate(): Task[ZSparkSession] = Task.attemptBlocking(ZSparkSession(builder.getOrCreate()))
 
     override def master(masterConfiguration: MasterConfiguration): ZBuilder =
       master(masterConfigurationToMaster(masterConfiguration))

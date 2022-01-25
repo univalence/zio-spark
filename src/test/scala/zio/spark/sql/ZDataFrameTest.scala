@@ -19,7 +19,7 @@ object ZDataFrameTest extends DefaultRunnableSpec {
       test("ZDataFrame should implement count correctly") {
         val pipeline =
           Spark(
-            input   = _.read.csv("src/test/resources/data.csv"),
+            input   = _.read.inferSchema.withHeader.csv("src/test/resources/data.csv"),
             process = df => df,
             output  = _.count()
           )
@@ -35,7 +35,7 @@ object ZDataFrameTest extends DefaultRunnableSpec {
       test("ZDataFrame should implement limit correctly") {
         val pipeline =
           Spark(
-            input   = _.read.csv("src/test/resources/data.csv"),
+            input   = _.read.inferSchema.withHeader.csv("src/test/resources/data.csv"),
             process = _.limit(2),
             output  = _.count()
           )

@@ -40,7 +40,7 @@ object Builder {
 trait Builder {
   import Builder._
 
-  def getOrCreate(): SparkSession
+  def getOrCreate(): Task[ZSparkSession]
 
   def getOrCreateLayer(): ZLayer[Any, Throwable, SparkSession]
 
