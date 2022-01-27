@@ -11,23 +11,23 @@ final case class ZSparkSession(session: UnderlyingSparkSession) extends SparkSes
 }
 
 object ZSparkSession {
-  def builder(): ZBuilder = ZBuilder(UnderlyingSparkSession.builder())
+  def builder(): Builder = ZBuilder(UnderlyingSparkSession.builder())
 
   final case class ZBuilder(builder: UnderlyingSparkSession.Builder) extends Builder {
 
     import Builder._
 
-    override def getOrCreateLayer(): ZLayer[Any, Throwable, ZSparkSession] =
+    override def getOrCreateLayer(): ZLayer[Any, Throwable, SparkSession] =
       ZLayer.fromAcquireRelease(getOrCreate())(_.close.orDie)
 
-    override def getOrCreate(): Task[ZSparkSession] = Task.attemptBlocking(ZSparkSession(builder.getOrCreate()))
+    override def getOrCreate(): Task[SparkSession] = Task.attemptBlocking(ZSparkSession(builder.getOrCreate()))
 
-    override def master(masterConfiguration: MasterConfiguration): ZBuilder =
+    override def master(masterConfiguration: MasterConfiguration): Builder =
       master(masterConfigurationToMaster(masterConfiguration))
 
-    override def master(master: String): ZBuilder = ZBuilder(builder.master(master))
+    override def master(master: String): Builder = ZBuilder(builder.master(master))
 
-    override def appName(name: String): ZBuilder = ZBuilder(builder.appName(name))
+    override def appName(name: String): Builder = ZBuilder(builder.appName(name))
 
     def underlying: UnderlyingSparkSession.Builder = builder
   }

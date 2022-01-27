@@ -3,9 +3,9 @@ package zio.spark.sql
 import zio._
 
 final case class Pipeline[TIn, TOut, Out](
-    input:   SparkSession => Task[ZDataset[TIn]],
-    process: ZDataset[TIn] => ZDataset[TOut],
-    output:  ZDataset[TOut] => Task[Out]
+    input:   SparkSession => Task[Dataset[TIn]],
+    process: Dataset[TIn] => Dataset[TOut],
+    output:  Dataset[TOut] => Task[Out]
 ) {
   def run: RIO[SparkSession, Out] =
     for {
@@ -38,11 +38,9 @@ object Pipeline {
    * @return
    *   The pipeline description
    */
-  def build[TIn, TOut, Out](input: SparkSession => Task[ZDataset[TIn]])(
-      process: ZDataset[TIn] => ZDataset[TOut]
-  )(
-      output: ZDataset[TOut] => Task[Out]
-  ): Pipeline[TIn, TOut, Out] =
+  def build[TIn, TOut, Out](
+      input: SparkSession => Task[Dataset[TIn]]
+  )(process: Dataset[TIn] => Dataset[TOut])(output: Dataset[TOut] => Task[Out]): Pipeline[TIn, TOut, Out] =
     Pipeline(
       input   = input,
       process = process,

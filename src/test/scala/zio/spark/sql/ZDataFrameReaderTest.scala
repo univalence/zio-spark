@@ -1,11 +1,11 @@
 package zio.spark.sql
 
 import zio.ZIO
-import zio.test.Assertion._
 import zio.test._
+import zio.test.Assertion._
 
 object ZDataFrameReaderTest extends DefaultRunnableSpec {
-  val reader: ZIO[Any, Throwable, ZDataFrameReader] =
+  val reader: ZIO[Any, Throwable, DataFrameReader] =
     ZSparkSession.builder().master(Builder.LocalAllNodes).getOrCreate().map(_.read)
 
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
@@ -25,7 +25,7 @@ object ZDataFrameReaderTest extends DefaultRunnableSpec {
     suite("ZDataFrameReader Option Definitions")({
       case class OptionDefinitionTest(
           text:        String,
-          f:           ZDataFrameReader => ZDataFrameReader,
+          f:           DataFrameReader => DataFrameReader,
           keyOutput:   String,
           valueOutput: String
       )
