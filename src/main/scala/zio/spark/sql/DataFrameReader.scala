@@ -3,7 +3,7 @@ package zio.spark.sql
 import zio._
 
 trait DataFrameReader {
-  def csv(path: String): Task[DataFrame]
+  def csv(path: String): Task[ZDataFrame]
 
   def option(key: String, value: String): DataFrameReader
   def option(key: String, value: Boolean): DataFrameReader

@@ -3,10 +3,10 @@ import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame}
 
 import zio.Task
 
-final case class ZDataFrame(df: UnderlyingDataFrame) extends DataFrame {
-  override def limit(n: Int): DataFrame = transformation(_.limit(n))
+final case class ZDataset[T](df: UnderlyingDataFrame) extends Dataset[T] {
+  override def limit(n: Int): ZDataset[T] = transformation(_.limit(n))
 
-  def transformation(f: UnderlyingDataFrame => UnderlyingDataFrame): DataFrame = ZDataFrame(f(df))
+  def transformation(f: UnderlyingDataFrame => UnderlyingDataFrame): ZDataset[T] = ZDataset(f(df))
 
   override def count(): Task[Long] = action(_.count())
 
