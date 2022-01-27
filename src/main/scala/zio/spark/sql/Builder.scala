@@ -2,7 +2,13 @@ package zio.spark.sql
 
 import zio._
 
+/**
+ * A builder allows to create a spark session according to a specific
+ * configuration.
+ */
 object Builder {
+
+  /** Convert a master configuration into a master string. */
   def masterConfigurationToMaster(masterConfiguration: MasterConfiguration): String =
     masterConfiguration match {
       case Local(nWorkers)                          => s"local[$nWorkers]"
@@ -38,6 +44,7 @@ object Builder {
 }
 
 trait Builder {
+
   import Builder._
 
   def getOrCreate(): Task[SparkSession]
