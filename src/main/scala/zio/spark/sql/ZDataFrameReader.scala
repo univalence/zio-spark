@@ -32,11 +32,9 @@ final case class ZDataFrameReader(reader: UnderlyingDataFrameReader, extraOption
   /** Add an option to the DataFrameReader (for Float) */
   override def option(key: String, value: Float): DataFrameReader = option(key, value.toString)
 
-  /** Add an option to the DataFrameReader */
-  override def option(key: String, value: String): DataFrameReader = copy(reader, extraOptions + (key -> value))
-
   /** Add an option to the DataFrameReader (for Double) */
   override def option(key: String, value: Double): DataFrameReader = option(key, value.toString)
 
-  def underlying: UnderlyingDataFrameReader = reader
+  /** Add an option to the DataFrameReader */
+  override def option(key: String, value: String): DataFrameReader = copy(reader, extraOptions + (key -> value))
 }
