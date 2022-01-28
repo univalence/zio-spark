@@ -12,8 +12,8 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
     zDataFrameReaderOptionsSpec + zDataFrameReaderOptionDefinitionsSpec
 
   def zDataFrameReaderOptionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
-    suite("ZDataFrameReader Options")(
-      test("ZDataFrameReader should apply options correctly") {
+    suite("DataFrameReader Options")(
+      test("DataFrameReader should apply options correctly") {
         val options           = Map("a" -> "x", "b" -> "y")
         val readerWithOptions = reader.map(_.options(options))
 
@@ -22,7 +22,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
     )
 
   def zDataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
-    suite("ZDataFrameReader Option Definitions")({
+    suite("DataFrameReader Option Definitions")({
       case class OptionDefinitionTest(
           text:        String,
           f:           DataFrameReader => DataFrameReader,
@@ -43,7 +43,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
 
       val tests =
         conftests.map(conftest =>
-          test(s"ZDataFrameReader can add the option (${conftest.text})") {
+          test(s"DataFrameReader can add the option (${conftest.text})") {
             val readerWithOptions = reader.map(conftest.f(_))
             val options           = Map(conftest.keyOutput -> conftest.valueOutput)
 

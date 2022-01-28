@@ -28,22 +28,22 @@ object DatasetTest extends DefaultRunnableSpec {
     (zDataFrameActionsSpec + zDataFrameTransformationsSpec).provideShared(session)
 
   def zDataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
-    suite("ZDataset Actions")(
-      test("ZDataset should implement count correctly") {
+    suite("Dataset Actions")(
+      test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
 
         val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
         pipeline.run.map(assert(_)(equalTo(4L)))
       },
-      test("ZDataset should implement collect correctly") {
+      test("Dataset should implement collect correctly") {
         val write: DataFrame => Task[List[Row]] = _.collect
 
         val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
         pipeline.run.map(assert(_)(hasSize(equalTo(4))))
       },
-      test("ZDataset should implement head(n)/take(n) correctly") {
+      test("Dataset should implement head(n)/take(n) correctly") {
         val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[List[String]] = _.take(2)
 
@@ -51,7 +51,7 @@ object DatasetTest extends DefaultRunnableSpec {
 
         pipeline.run.map(assert(_)(equalTo(List("Maria", "John"))))
       },
-      test("ZDataset should implement head/first correctly") {
+      test("Dataset should implement head/first correctly") {
         val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[String] = _.first
 
@@ -59,14 +59,14 @@ object DatasetTest extends DefaultRunnableSpec {
 
         pipeline.run.map(assert(_)(equalTo("Maria")))
       },
-      test("ZDataset should implement headOption/firstOption correctly") {
+      test("Dataset should implement headOption/firstOption correctly") {
         val write: DataFrame => Task[Option[Row]] = _.firstOption
 
         val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
 
         pipeline.run.map(assert(_)(isNone))
       },
-      test("ZDataset should implement tail(n)/takeRight(n) correctly") {
+      test("Dataset should implement tail(n)/takeRight(n) correctly") {
         val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[List[String]] = _.takeRight(2)
 
@@ -74,7 +74,7 @@ object DatasetTest extends DefaultRunnableSpec {
 
         pipeline.run.map(assert(_)(equalTo(List("Peter", "Cassandra"))))
       },
-      test("ZDataset should implement tail/last correctly") {
+      test("Dataset should implement tail/last correctly") {
         val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[String] = _.last
 
@@ -82,7 +82,7 @@ object DatasetTest extends DefaultRunnableSpec {
 
         pipeline.run.map(assert(_)(equalTo("Cassandra")))
       },
-      test("ZDataset should implement tailOption/lastOption correctly") {
+      test("Dataset should implement tailOption/lastOption correctly") {
         val write: DataFrame => Task[Option[Row]] = _.lastOption
 
         val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
@@ -92,8 +92,8 @@ object DatasetTest extends DefaultRunnableSpec {
     )
 
   def zDataFrameTransformationsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
-    suite("ZDataset Transformations")(
-      test("ZDataset should implement limit correctly") {
+    suite("Dataset Transformations")(
+      test("Dataset should implement limit correctly") {
         val process: DataFrame => DataFrame = _.limit(2)
         val write: DataFrame => Task[Long]  = _.count
 
@@ -101,7 +101,7 @@ object DatasetTest extends DefaultRunnableSpec {
 
         pipeline.run.map(assert(_)(equalTo(2L)))
       },
-      test("ZDataset should implement as correctly") {
+      test("Dataset should implement as correctly") {
         val process: DataFrame => Dataset[Person]        = _.as[Person]
         val write: Dataset[Person] => Task[List[Person]] = _.collect
 
@@ -109,7 +109,7 @@ object DatasetTest extends DefaultRunnableSpec {
 
         pipeline.run.map(res => assert(res.headOption)(isSome(equalTo(Person("Maria", 93)))))
       },
-      test("ZDataset should implement map correctly") {
+      test("Dataset should implement map correctly") {
         val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[List[String]] = _.collect
 
@@ -117,7 +117,7 @@ object DatasetTest extends DefaultRunnableSpec {
 
         pipeline.run.map(res => assert(res.headOption)(isSome(equalTo("Maria"))))
       },
-      test("ZDataset should implement flatMap correctly") {
+      test("Dataset should implement flatMap correctly") {
         val process: DataFrame => Dataset[String]        = _.as[Person].flatMap(_.name.toList.map(_.toString))
         val write: Dataset[String] => Task[List[String]] = _.collect
 
