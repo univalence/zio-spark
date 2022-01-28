@@ -31,6 +31,14 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
   def map[U: Encoder](f: T => U): Dataset[U] = transformation(_.map(f))
 
   /**
+   * Apply the function f to each record of the dataset and then
+   * flattening the result.
+   *
+   * See [[UnderlyingDataset.flatMap]] for more information.
+   */
+  def flatMap[U: Encoder](f: T => Iterable[U]): Dataset[U] = transformation(_.flatMap(f))
+
+  /**
    * Count the number of rows of a dataset.
    *
    * See [[UnderlyingDataset.count]] for more information.

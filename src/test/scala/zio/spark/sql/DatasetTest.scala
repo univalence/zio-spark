@@ -67,6 +67,14 @@ object DatasetTest extends DefaultRunnableSpec {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res.headOption)(isSome(equalTo("Maria"))))
+      },
+      test("ZDataset should implement flatMap correctly") {
+        val process: DataFrame => Dataset[String]        = _.as[Person].flatMap(_.name.toList.map(_.toString))
+        val write: Dataset[String] => Task[List[String]] = _.collect
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res.headOption)(isSome(equalTo("M"))))
       }
     )
 
