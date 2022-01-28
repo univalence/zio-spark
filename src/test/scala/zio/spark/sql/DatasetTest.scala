@@ -12,11 +12,10 @@ object DatasetTest extends DefaultRunnableSpec {
   Logger.getLogger("org").setLevel(Level.OFF)
 
   val session: ZLayer[Any, Nothing, SparkSession] =
-    SparkSession
-      .builder()
+    SparkSession.builder
       .master(LocalAllNodes)
       .appName("zio-spark")
-      .getOrCreateLayer()
+      .getOrCreateLayer
       .orDie
 
   val read: SparkSession => Task[DataFrame] =
@@ -28,14 +27,14 @@ object DatasetTest extends DefaultRunnableSpec {
   def zDataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("ZDataset Actions")(
       test("ZDataset should implement count correctly") {
-        val write: DataFrame => Task[Long] = _.count()
+        val write: DataFrame => Task[Long] = _.count
 
         val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
         pipeline.run.map(assert(_)(equalTo(4L)))
       },
       test("ZDataset should implement collect correctly") {
-        val write: DataFrame => Task[List[Row]] = _.collect()
+        val write: DataFrame => Task[List[Row]] = _.collect
 
         val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
@@ -47,7 +46,7 @@ object DatasetTest extends DefaultRunnableSpec {
     suite("ZDataset Transformations")(
       test("ZDataset should implement limit correctly") {
         val process: DataFrame => DataFrame = _.limit(2)
-        val write: DataFrame => Task[Long]  = _.count()
+        val write: DataFrame => Task[Long]  = _.count
 
         val pipeline = Pipeline(read, process, write)
 
@@ -55,7 +54,7 @@ object DatasetTest extends DefaultRunnableSpec {
       },
       test("ZDataset should implement as correctly") {
         val process: DataFrame => Dataset[Person]        = _.as[Person]
-        val write: Dataset[Person] => Task[List[Person]] = _.collect()
+        val write: Dataset[Person] => Task[List[Person]] = _.collect
 
         val pipeline = Pipeline(read, process, write)
 
@@ -63,7 +62,7 @@ object DatasetTest extends DefaultRunnableSpec {
       },
       test("ZDataset should implement map correctly") {
         val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
-        val write: Dataset[String] => Task[List[String]] = _.collect()
+        val write: Dataset[String] => Task[List[String]] = _.collect
 
         val pipeline = Pipeline(read, process, write)
 

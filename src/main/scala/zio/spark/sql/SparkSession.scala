@@ -17,7 +17,7 @@ object SparkSession extends Accessible[SparkSession] {
    *
    * See [[UnderlyingSparkSession.builder]] for more information.
    */
-  def builder(): Builder = Builder(UnderlyingSparkSession.builder())
+  def builder: Builder = Builder(UnderlyingSparkSession.builder())
 
   final case class Builder(builder: UnderlyingSparkSession.Builder) {
 
@@ -27,8 +27,7 @@ object SparkSession extends Accessible[SparkSession] {
      * Transform the creation of the SparkSession into a managed layer
      * that will open and close the SparkSession when the job is done.
      */
-    def getOrCreateLayer(): ZLayer[Any, Throwable, SparkSession] =
-      ZLayer.fromAcquireRelease(getOrCreate())(_.close.orDie)
+    def getOrCreateLayer: ZLayer[Any, Throwable, SparkSession] = ZLayer.fromAcquireRelease(getOrCreate)(_.close.orDie)
 
     /**
      * Try to create a spark session.
@@ -36,7 +35,7 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def getOrCreate(): Task[SparkSession] = Task.attemptBlocking(SparkSessionLive(builder.getOrCreate()))
+    def getOrCreate: Task[SparkSession] = Task.attemptBlocking(SparkSessionLive(builder.getOrCreate()))
 
     /** Configure the master using a [[Builder.MasterConfiguration]]. */
     def master(masterConfiguration: MasterConfiguration): Builder =

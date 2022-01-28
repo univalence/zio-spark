@@ -6,8 +6,7 @@ import zio.test._
 import zio.test.Assertion._
 
 object DataFrameReaderTest extends DefaultRunnableSpec {
-  val reader: ZIO[Any, Throwable, DataFrameReader] =
-    SparkSession.builder().master(LocalAllNodes).getOrCreate().map(_.read)
+  val reader: ZIO[Any, Throwable, DataFrameReader] = SparkSession.builder.master(LocalAllNodes).getOrCreate.map(_.read)
 
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
     zDataFrameReaderOptionsSpec + zDataFrameReaderOptionDefinitionsSpec

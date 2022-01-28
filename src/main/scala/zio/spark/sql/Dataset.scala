@@ -35,7 +35,7 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
    *
    * See [[UnderlyingDataset.count]] for more information.
    */
-  def count(): Task[Long] = action(_.count())
+  def count: Task[Long] = action(_.count())
 
   /** Apply an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = Task.attemptBlocking(f(ds))
@@ -45,5 +45,5 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
    *
    * See [[UnderlyingDataset.collect]] for more information.
    */
-  def collect(): Task[List[T]] = action(_.collect().toList)
+  def collect: Task[List[T]] = action(_.collect().toList)
 }
