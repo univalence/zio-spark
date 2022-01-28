@@ -21,6 +21,9 @@ object DatasetTest extends DefaultRunnableSpec {
   val read: SparkSession => Task[DataFrame] =
     _.read.inferSchema.withHeader.withDelimiter(";").csv("src/test/resources/data.csv")
 
+  val readEmpty: SparkSession => Task[DataFrame] =
+    _.read.inferSchema.withHeader.withDelimiter(";").csv("src/test/resources/empty.csv")
+
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
     (zDataFrameActionsSpec + zDataFrameTransformationsSpec).provideShared(session)
 
@@ -39,6 +42,52 @@ object DatasetTest extends DefaultRunnableSpec {
         val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
         pipeline.run.map(assert(_)(hasSize(equalTo(4))))
+      },
+      test("ZDataset should implement head(n)/take(n) correctly") {
+        val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
+        val write: Dataset[String] => Task[List[String]] = _.take(2)
+
+        val pipeline = Pipeline.build(read)(process)(write)
+
+        pipeline.run.map(assert(_)(equalTo(List("Maria", "John"))))
+      },
+      test("ZDataset should implement head/first correctly") {
+        val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
+        val write: Dataset[String] => Task[String] = _.first
+
+        val pipeline = Pipeline.build(read)(process)(write)
+
+        pipeline.run.map(assert(_)(equalTo("Maria")))
+      },
+      test("ZDataset should implement headOption/firstOption correctly") {
+        val write: DataFrame => Task[Option[Row]] = _.firstOption
+
+        val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
+
+        pipeline.run.map(assert(_)(isNone))
+      },
+      test("ZDataset should implement tail(n)/takeRight(n) correctly") {
+        val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
+        val write: Dataset[String] => Task[List[String]] = _.takeRight(2)
+
+        val pipeline = Pipeline.build(read)(process)(write)
+
+        pipeline.run.map(assert(_)(equalTo(List("Peter", "Cassandra"))))
+      },
+      test("ZDataset should implement tail/last correctly") {
+        val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
+        val write: Dataset[String] => Task[String] = _.last
+
+        val pipeline = Pipeline.build(read)(process)(write)
+
+        pipeline.run.map(assert(_)(equalTo("Cassandra")))
+      },
+      test("ZDataset should implement tailOption/lastOption correctly") {
+        val write: DataFrame => Task[Option[Row]] = _.lastOption
+
+        val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
+
+        pipeline.run.map(assert(_)(isNone))
       }
     )
 
