@@ -1,11 +1,11 @@
 package zio.spark.sql
 
-import zio.test.Assertion._
 import zio.test._
+import zio.test.Assertion._
 
-object BuilderTest extends DefaultRunnableSpec {
+object SparkSessionTest extends DefaultRunnableSpec {
 
-  import Builder._
+  import SparkSession.Builder._
 
   val masterConfigurationSpec: Spec[Any, TestFailure[Throwable], TestSuccess] =
     suite("MasterConfiguration")({

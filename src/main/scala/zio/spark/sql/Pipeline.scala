@@ -10,13 +10,31 @@ final case class Pipeline[TIn, TOut, Out](
   def run: RIO[SparkSession, Out] =
     for {
       session <- ZIO.service[SparkSession]
-      df      <- input(session)
-      processedDf = process(df)
-      value <- output(processedDf)
+      dataset <- input(session)
+      processedDataset = process(dataset)
+      value <- output(processedDataset)
     } yield value
 }
 
 object Pipeline {
+
+  /**
+   * Build a pipeline without processing.
+   *
+   * @param input
+   *   The function to create an dataset in input
+   * @param output
+   *   The function to extract a result from the dataset transformation
+   * @tparam TIn
+   *   The input type of the dataset
+   * @tparam Out
+   *   The result type of the pipeline
+   * @return
+   *   The pipeline description
+   */
+  def buildWithoutProcessing[TIn, Out](
+      input: SparkSession => Task[Dataset[TIn]]
+  )(output: Dataset[TIn] => Task[Out]): Pipeline[TIn, TIn, Out] = build(input)(df => df)(output)
 
   /**
    * Build a pipeline using type inference, you can't use Pipeline case

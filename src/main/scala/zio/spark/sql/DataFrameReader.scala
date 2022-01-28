@@ -1,27 +1,39 @@
 package zio.spark.sql
 
+import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameReader => UnderlyingDataFrameReader}
+
 import zio._
 
-trait DataFrameReader {
-  val extraOptions: Map[String, String]
+final case class DataFrameReader(reader: UnderlyingDataFrameReader, extraOptions: Map[String, String] = Map()) {
+  def csv(path: String): Task[DataFrame] = extension(_.csv(path))
 
-  def csv(path: String): Task[DataFrame]
+  def extension(f: UnderlyingDataFrameReader => UnderlyingDataFrame): Task[DataFrame] =
+    Task.attemptBlocking(Dataset(f(reader.options(extraOptions))))
 
-  def option(key: String, value: String): DataFrameReader
+  /** Add multiple options to the DataFrameReader. */
+  def options(options: Map[String, String]): DataFrameReader = copy(reader, extraOptions ++ options)
 
-  def option(key: String, value: Boolean): DataFrameReader
+  /** Add an option to delimit the column from a csv file */
+  def withDelimiter(delimiter: String): DataFrameReader = option("delimiter", delimiter)
 
-  def option(key: String, value: Float): DataFrameReader
+  /** Add an option to say that the file has a header */
+  def withHeader: DataFrameReader = option("header", value = true)
 
-  def option(key: String, value: Int): DataFrameReader
+  /** Add an option to the DataFrameReader */
+  def option(key: String, value: Boolean): DataFrameReader = option(key, value.toString)
 
-  def option(key: String, value: Double): DataFrameReader
+  /** Add an option to say that spark should infer the schema */
+  def inferSchema: DataFrameReader = option("inferSchema", value = true)
 
-  def options(options: Map[String, String]): DataFrameReader
+  /** Add an option to the DataFrameReader (for Int) */
+  def option(key: String, value: Int): DataFrameReader = option(key, value.toString)
 
-  def withDelimiter(delimiter: String): DataFrameReader
+  /** Add an option to the DataFrameReader */
+  def option(key: String, value: String): DataFrameReader = copy(reader, extraOptions + (key -> value))
 
-  def withHeader: DataFrameReader
+  /** Add an option to the DataFrameReader (for Float) */
+  def option(key: String, value: Float): DataFrameReader = option(key, value.toString)
 
-  def inferSchema: DataFrameReader
+  /** Add an option to the DataFrameReader (for Double) */
+  def option(key: String, value: Double): DataFrameReader = option(key, value.toString)
 }

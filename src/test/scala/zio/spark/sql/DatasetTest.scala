@@ -4,16 +4,17 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Encoder, Encoders, Row}
 
 import zio.{Task, ZLayer}
+import zio.spark.sql.SparkSession.Builder.LocalAllNodes
 import zio.test._
 import zio.test.Assertion._
 
-object ZDatasetTest extends DefaultRunnableSpec {
+object DatasetTest extends DefaultRunnableSpec {
   Logger.getLogger("org").setLevel(Level.OFF)
 
   val session: ZLayer[Any, Nothing, SparkSession] =
-    ZSparkSession
+    SparkSession
       .builder()
-      .master(Builder.LocalAllNodes)
+      .master(LocalAllNodes)
       .appName("zio-spark")
       .getOrCreateLayer()
       .orDie
@@ -27,18 +28,16 @@ object ZDatasetTest extends DefaultRunnableSpec {
   def zDataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("ZDataset Actions")(
       test("ZDataset should implement count correctly") {
-        val process: DataFrame => DataFrame = df => df
-        val write: DataFrame => Task[Long]  = _.count()
+        val write: DataFrame => Task[Long] = _.count()
 
-        val pipeline = Pipeline(read, process, write)
+        val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
         pipeline.run.map(assert(_)(equalTo(4L)))
       },
       test("ZDataset should implement collect correctly") {
-        val process: DataFrame => DataFrame     = df => df
         val write: DataFrame => Task[List[Row]] = _.collect()
 
-        val pipeline = Pipeline(read, process, write)
+        val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
         pipeline.run.map(assert(_)(hasSize(equalTo(4))))
       }

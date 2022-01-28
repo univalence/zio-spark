@@ -1,12 +1,13 @@
 package zio.spark.sql
 
 import zio.ZIO
+import zio.spark.sql.SparkSession.Builder.LocalAllNodes
 import zio.test._
 import zio.test.Assertion._
 
-object ZDataFrameReaderTest extends DefaultRunnableSpec {
+object DataFrameReaderTest extends DefaultRunnableSpec {
   val reader: ZIO[Any, Throwable, DataFrameReader] =
-    ZSparkSession.builder().master(Builder.LocalAllNodes).getOrCreate().map(_.read)
+    SparkSession.builder().master(LocalAllNodes).getOrCreate().map(_.read)
 
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
     zDataFrameReaderOptionsSpec + zDataFrameReaderOptionDefinitionsSpec
