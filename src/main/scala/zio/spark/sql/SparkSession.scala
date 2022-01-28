@@ -13,7 +13,7 @@ trait SparkSession {
 object SparkSession extends Accessible[SparkSession] {
 
   /**
-   * Create a [[SparkSession.Builder]].
+   * Creates a [[SparkSession.Builder]].
    *
    * See [[UnderlyingSparkSession.builder]] for more information.
    */
@@ -24,34 +24,36 @@ object SparkSession extends Accessible[SparkSession] {
     import Builder._
 
     /**
-     * Transform the creation of the SparkSession into a managed layer
+     * Transforms the creation of the SparkSession into a managed layer
      * that will open and close the SparkSession when the job is done.
      */
     def getOrCreateLayer: ZLayer[Any, Throwable, SparkSession] = ZLayer.fromAcquireRelease(getOrCreate)(_.close.orDie)
 
     /**
-     * Try to create a spark session.
+     * Tries to create a spark session.
      *
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
     def getOrCreate: Task[SparkSession] = Task.attemptBlocking(SparkSessionLive(builder.getOrCreate()))
 
-    /** Configure the master using a [[Builder.MasterConfiguration]]. */
+    /**
+     * Configures the master using a [[Builder.MasterConfiguration]].
+     */
     def master(masterConfiguration: MasterConfiguration): Builder =
       master(masterConfigurationToMaster(masterConfiguration))
 
-    /** Configure the master using a String. */
+    /** Configures the master using a String. */
     def master(master: String): Builder = Builder(builder.master(master))
 
-    /** Configure the application name. */
+    /** Configures the application name. */
     def appName(name: String): Builder = Builder(builder.appName(name))
   }
 
   object Builder {
 
     /**
-     * Convert the [[Builder.MasterConfiguration]] into its String
+     * Converts the [[Builder.MasterConfiguration]] into its String
      * representation.
      */
     def masterConfigurationToMaster(masterConfiguration: MasterConfiguration): String =
@@ -92,9 +94,9 @@ object SparkSession extends Accessible[SparkSession] {
 
 final case class SparkSessionLive(session: UnderlyingSparkSession) extends SparkSession {
 
-  /** Create the DataFrameReader. */
+  /** Creates the DataFrameReader. */
   def read: DataFrameReader = DataFrameReader(session.read)
 
-  /** Close the current SparkSession. */
+  /** Closes the current SparkSession. */
   def close: Task[Unit] = Task.attemptBlocking(session.close())
 }

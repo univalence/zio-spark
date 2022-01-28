@@ -40,13 +40,13 @@ final case class Pipeline[TIn, TOut, Out](
 
 object Pipeline {
 
-  /** Build a pipeline without processing. */
+  /** Builds a pipeline without processing. */
   def buildWithoutProcessing[TIn, Out](
       input: SparkSession => Task[Dataset[TIn]]
   )(output: Dataset[TIn] => Task[Out]): Pipeline[TIn, TIn, Out] = build(input)(df => df)(output)
 
   /**
-   * Build a pipeline using type inference, you can't use Pipeline case
+   * Builds a pipeline using type inference, you can't use Pipeline case
    * class constructor without specifying each function types since
    * Scala is not capable to find the correct types by itself.
    */
