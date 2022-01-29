@@ -28,7 +28,10 @@ final case class Pipeline[TIn, TOut, Out](
     output:  Dataset[TOut] => Task[Out]
 ) {
 
-  /** Run a pipeline and output the action value */
+  /**
+   * Runs the pipeline computation as a ZIO effect. You must provide a
+   * [[SparkSession]] layer to actually run the effect.
+   */
   def run: RIO[SparkSession, Out] =
     for {
       session <- ZIO.service[SparkSession]
