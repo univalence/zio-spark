@@ -25,9 +25,9 @@ object DatasetTest extends DefaultRunnableSpec {
     _.read.inferSchema.withHeader.withDelimiter(";").csv("src/test/resources/empty.csv")
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
-    (zDataFrameActionsSpec + zDataFrameTransformationsSpec).provideShared(session)
+    (dataFrameActionsSpec + dataFrameTransformationsSpec + fromSparkSpec).provideShared(session)
 
-  def zDataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Actions")(
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
@@ -91,7 +91,7 @@ object DatasetTest extends DefaultRunnableSpec {
       }
     )
 
-  def zDataFrameTransformationsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def dataFrameTransformationsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Transformations")(
       test("Dataset should implement limit correctly") {
         val process: DataFrame => DataFrame = _.limit(2)
@@ -124,6 +124,27 @@ object DatasetTest extends DefaultRunnableSpec {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res.headOption)(isSome(equalTo("M"))))
+      }
+    )
+
+  def fromSparkSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+    suite("fromSpark")(
+      test("Zio-spark can wrap spark code") {
+        val job: Spark[Long] =
+          fromSpark { ss =>
+            val inputDf =
+              ss.read
+                .option("inferSchema", value = true)
+                .option("header", value = true)
+                .option("delimiter", ";")
+                .csv("src/test/resources/data.csv")
+
+            val processedDf = inputDf.limit(2)
+
+            processedDf.count()
+          }
+
+        job.map(assert(_)(equalTo(2L)))
       }
     )
 

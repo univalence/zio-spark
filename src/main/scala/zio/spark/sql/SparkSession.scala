@@ -4,10 +4,13 @@ import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
 
-trait SparkSession {
-  def read: DataFrameReader
+final case class SparkSession(session: UnderlyingSparkSession) {
 
-  def close: Task[Unit]
+  /** Creates the DataFrameReader. */
+  def read: DataFrameReader = DataFrameReader(session.read)
+
+  /** Closes the current SparkSession. */
+  def close: Task[Unit] = Task.attemptBlocking(session.close())
 }
 
 object SparkSession extends Accessible[SparkSession] {
@@ -35,7 +38,7 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def getOrCreate: Task[SparkSession] = Task.attemptBlocking(SparkSessionLive(builder.getOrCreate()))
+    def getOrCreate: Task[SparkSession] = Task.attemptBlocking(SparkSession(builder.getOrCreate()))
 
     /**
      * Configures the master using a [[Builder.MasterConfiguration]].
@@ -90,13 +93,4 @@ object SparkSession extends Accessible[SparkSession] {
     case object Yarn extends MasterConfiguration
   }
 
-}
-
-final case class SparkSessionLive(session: UnderlyingSparkSession) extends SparkSession {
-
-  /** Creates the DataFrameReader. */
-  def read: DataFrameReader = DataFrameReader(session.read)
-
-  /** Closes the current SparkSession. */
-  def close: Task[Unit] = Task.attemptBlocking(session.close())
 }
