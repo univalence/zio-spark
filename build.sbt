@@ -76,6 +76,14 @@ ThisBuild / coverageMinimumBranchPerPackage := 80
 ThisBuild / coverageMinimumStmtPerFile      := 50
 ThisBuild / coverageMinimumBranchPerFile    := 50
 
+addCommandAlias("fmt", "scalafmt")
+addCommandAlias("fmtCheck", "scalafmtCheck")
+addCommandAlias("lint", "scalafix")
+addCommandAlias("lintCheck", "scalafix --check")
+addCommandAlias("fixStyle", "; scalafmt; scalafix;")
+addCommandAlias("testAll", "; clean; test;")
+addCommandAlias("testWithCoverage", "; clean; coverage; test; coverageReport;")
+
 // -- Lib versions
 lazy val libVersion =
   new {

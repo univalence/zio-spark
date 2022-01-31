@@ -12,12 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run formatting
-        run: sbt "project newZioSpark" scalafmtCheck
+        run: sbt "project newZioSpark" fmtCheck
       - name: Run linting
-        run: sbt "project newZioSpark" "scalafix --check"
+        run: sbt "project newZioSpark" lintCheck
       - name: Run tests
-        run: sbt "project newZioSpark" clean coverage test
-      - name: Generate coverage report
-        run: sbt "project newZioSpark" coverageReport
+        run: sbt "project newZioSpark" testWithCoverage
       - name: Publish coverage to codecov
         uses: codecov/codecov-action@v2
