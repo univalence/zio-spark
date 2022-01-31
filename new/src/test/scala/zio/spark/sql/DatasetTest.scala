@@ -19,10 +19,10 @@ object DatasetTest extends DefaultRunnableSpec {
       .orDie
 
   val read: SparkSession => Task[DataFrame] =
-    _.read.inferSchema.withHeader.withDelimiter(";").csv("src/test/resources/data.csv")
+    _.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/data.csv")
 
   val readEmpty: SparkSession => Task[DataFrame] =
-    _.read.inferSchema.withHeader.withDelimiter(";").csv("src/test/resources/empty.csv")
+    _.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/empty.csv")
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
     (dataFrameActionsSpec + dataFrameTransformationsSpec + fromSparkSpec).provideShared(session)
@@ -137,7 +137,7 @@ object DatasetTest extends DefaultRunnableSpec {
                 .option("inferSchema", value = true)
                 .option("header", value = true)
                 .option("delimiter", ";")
-                .csv("src/test/resources/data.csv")
+                .csv("new/src/test/resources/data.csv")
 
             val processedDf = inputDf.limit(2)
 

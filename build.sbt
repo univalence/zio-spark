@@ -31,7 +31,7 @@ lazy val libVersion =
 
 // -- Main project settings
 lazy val root =
-  (project in file("."))
+  (project in file("new"))
     .settings(
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core"   % libVersion.spark,
