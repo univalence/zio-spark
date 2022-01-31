@@ -3,6 +3,7 @@ package zio.spark.sql
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
+import zio.spark.parameter._
 
 final case class SparkSession(session: UnderlyingSparkSession) {
 
@@ -22,9 +23,8 @@ object SparkSession extends Accessible[SparkSession] {
    */
   def builder: Builder = Builder(UnderlyingSparkSession.builder())
 
-  final case class Builder(builder: UnderlyingSparkSession.Builder) {
-
-    import Builder._
+  final case class Builder(builder: UnderlyingSparkSession.Builder, extraConfigs: Map[String, String] = Map()) {
+    self =>
 
     /**
      * Transforms the creation of the SparkSession into a managed layer
@@ -38,59 +38,58 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def getOrCreate: Task[SparkSession] = Task.attemptBlocking(SparkSession(builder.getOrCreate()))
+    def getOrCreate: Task[SparkSession] = {
+      val builderConfigured =
+        extraConfigs.foldLeft(builder) { case (oldBuilder, (configKey, configValue)) =>
+          oldBuilder.config(configKey, configValue)
+        }
 
-    /**
-     * Configures the master using a [[Builder.MasterConfiguration]].
-     */
-    def master(masterConfiguration: MasterConfiguration): Builder =
-      master(masterConfigurationToMaster(masterConfiguration))
-
-    /** Configures the master using a String. */
-    def master(master: String): Builder = Builder(builder.master(master))
-
-    /** Configures the application name. */
-    def appName(name: String): Builder = Builder(builder.appName(name))
-  }
-
-  object Builder {
-
-    /**
-     * Converts the [[Builder.MasterConfiguration]] into its String
-     * representation.
-     */
-    def masterConfigurationToMaster(masterConfiguration: MasterConfiguration): String =
-      masterConfiguration match {
-        case Local(nWorkers)                          => s"local[$nWorkers]"
-        case LocalWithFailures(nWorkers, maxFailures) => s"local[$nWorkers,$maxFailures]"
-        case LocalAllNodes                            => "local[*]"
-        case LocalAllNodesWithFailures(maxFailures)   => s"local[*,$maxFailures]"
-        case Spark(masters) =>
-          val masterUrls = masters.map(_.toSparkString).mkString(",")
-          s"spark://$masterUrls"
-        case Mesos(master) => s"mesos://${master.toSparkString}"
-        case Yarn          => "yarn"
-      }
-
-    sealed trait MasterConfiguration
-
-    final case class MasterNodeConfiguration(host: String, port: Int) {
-      def toSparkString: String = s"$host:$port"
+      Task.attemptBlocking(SparkSession(builderConfigured.getOrCreate()))
     }
 
-    final case class Local(nWorkers: Int) extends MasterConfiguration
+    /** Adds multiple configurations to the Builder. */
+    def configs(configs: Map[String, String]): Builder = copy(builder, extraConfigs ++ configs)
 
-    final case class LocalWithFailures(nWorkers: Int, maxFailures: Int) extends MasterConfiguration
+    /** Configures the master using a [[Master]]. */
+    def master(masterMode: Master): Builder = master(Master.masterToString(masterMode))
 
-    final case class LocalAllNodesWithFailures(maxFailures: Int) extends MasterConfiguration
+    /** Configures the master using a String. */
+    def master(master: String): Builder = config("spark.master", master)
 
-    final case class Spark(masters: List[MasterNodeConfiguration]) extends MasterConfiguration
+    /** Configures the application name. */
+    def appName(name: String): Builder = config("spark.app.name", name)
 
-    final case class Mesos(master: MasterNodeConfiguration) extends MasterConfiguration
+    /** Adds a config to the Builder. */
+    def config(key: String, value: String): Builder = copy(builder, extraConfigs + (key -> value))
 
-    case object LocalAllNodes extends MasterConfiguration
+    /** Adds an option to the Builder (for Int). */
+    def config(key: String, value: Int): Builder = config(key, value.toString)
 
-    case object Yarn extends MasterConfiguration
+    /** Adds an option to the Builder (for Float). */
+    def config(key: String, value: Float): Builder = config(key, value.toString)
+
+    /** Adds an option to the Builder (for Double). */
+    def config(key: String, value: Double): Builder = config(key, value.toString)
+
+    /** Adds an option to the Builder (for Boolean). */
+    def config(key: String, value: Boolean): Builder = config(key, value.toString)
+
+    /**
+     * Configure the amount of memory to use for the driver process
+     * using a String.
+     *
+     * Note: In client mode, set this through the --driver-memory
+     * command line option or in your default properties file.
+     */
+    def driverMemory(size: Size): Builder = driverMemory(Size.sizeToString(size))
+
+    /**
+     * Configure the amount of memory to use for the driver process
+     * using a String.
+     *
+     * Note: In client mode, set this through the --driver-memory
+     * command line option or in your default properties file.
+     */
+    def driverMemory(size: String): Builder = config("spark.driver.memory", size)
   }
-
 }

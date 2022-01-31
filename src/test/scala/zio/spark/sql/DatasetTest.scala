@@ -4,7 +4,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Encoder, Encoders, Row}
 
 import zio.{Task, ZLayer}
-import zio.spark.sql.SparkSession.Builder.LocalAllNodes
+import zio.spark.parameter._
 import zio.test._
 import zio.test.Assertion._
 
@@ -13,7 +13,7 @@ object DatasetTest extends DefaultRunnableSpec {
 
   val session: ZLayer[Any, Nothing, SparkSession] =
     SparkSession.builder
-      .master(LocalAllNodes)
+      .master(localAllNodes)
       .appName("zio-spark")
       .getOrCreateLayer
       .orDie
