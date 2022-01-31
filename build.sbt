@@ -96,7 +96,7 @@ lazy val libVersion =
 lazy val newZioSpark =
   (project in file("new"))
     .settings(
-      name := "zio-spark",
+      name := "zio-spark-new",
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core"   % libVersion.spark,
         "org.apache.spark" %% "spark-sql"    % libVersion.spark % "provided",
@@ -110,6 +110,7 @@ lazy val newZioSpark =
 lazy val zioSpark =
   (project in file("."))
     .settings(
+      name := "zio-spark",
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core"   % libVersion.spark,
         "org.apache.spark" %% "spark-sql"    % libVersion.spark % "provided",
