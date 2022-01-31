@@ -3,7 +3,6 @@ ThisBuild / organization         := "io.univalence"
 ThisBuild / organizationName     := "Univalence"
 ThisBuild / organizationHomepage := Some(url("https://univalence.io/"))
 
-ThisBuild / name                     := "zio-spark"
 ThisBuild / version                  := "0.1.0"
 ThisBuild / description              := "Imagine if ZIO and Spark made a baby !"
 ThisBuild / startYear                := Some(2022)
@@ -55,20 +54,6 @@ ThisBuild / developers := List(
     url   = url("https://github.com/dylandoamaral")
   )
 )
-
-ThisBuild / onLoadMessage := {
-  def header(text: String): String = s"${scala.Console.GREEN}$text${scala.Console.RESET}"
-
-  s"""|${header(raw"  ___________ ____     _____                  _     ")}
-      |${header(raw" |___  /_   _/ __ \   / ____|                | |    ")}
-      |${header(raw"    / /  | || |  | | | (___  _ __   __ _ _ __| | __ ")}
-      |${header(raw"   / /   | || |  | |  \___ \| '_ \ / _` | '__| |/ / ")}
-      |${header(raw"  / /__ _| || |__| |  ____) | |_) | (_| | |  |   <  ")}
-      |${header(raw" /_____|_____\____/  |_____/| .__/ \__,_|_|  |_|\_\ ")}
-      |${header(raw"                            | |                     ")}
-      |${header(raw"                            |_|                     ")}
-      |${header(s"version: ${Keys.version.value}")}""".stripMargin
-}
 
 // Scala configuration
 ThisBuild / crossScalaVersions         := Seq("2.13.8")
