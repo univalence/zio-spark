@@ -55,11 +55,6 @@ ThisBuild / developers := List(
   )
 )
 
-// Scala configuration
-ThisBuild / crossScalaVersions         := Seq("2.13.8")
-ThisBuild / scalaVersion               := crossScalaVersions.value.head
-ThisBuild / scalafixScalaBinaryVersion := "2.13"
-
 // Scalafix configuration
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
@@ -81,42 +76,76 @@ addCommandAlias("fmtCheck", "scalafmtCheck")
 addCommandAlias("lint", "scalafix")
 addCommandAlias("lintCheck", "scalafix --check")
 addCommandAlias("fixStyle", "; scalafmt; scalafix;")
-addCommandAlias("testAll", "; clean; test;")
-addCommandAlias("testWithCoverage", "; clean; coverage; test; coverageReport;")
+addCommandAlias("testAll", "; clean;+ test;")
+addCommandAlias("testWithCoverage", "; clean; coverage;+ test; coverageReport;")
 
 // -- Lib versions
 lazy val libVersion =
   new {
-    val zio1  = "1.0.13"
-    val zio2  = "2.0.0-RC2"
-    val spark = "3.2.0"
+    val zio1 = "1.0.13"
+    val zio2 = "2.0.0-RC2"
   }
 
-// -- Main project settings
+lazy val scala =
+  new {
+    val v211 = "2.11.12"
+    val v212 = "2.12.15"
+    val v213 = "2.13.8"
+  }
+
+lazy val supportedScalaVersions =
+  List(
+    // TODO: Fine a good way to handle version conflict features
+    // maybe https://www.scala-sbt.org/1.x/docs/Cross-Build.html#Scala-version+specific+source+directory
+    // scala.v211,
+    // scala.v212,
+    scala.v213
+  )
+
 lazy val newZioSpark =
   (project in file("new"))
     .settings(
-      name := "zio-spark-new",
-      libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core"   % libVersion.spark,
-        "org.apache.spark" %% "spark-sql"    % libVersion.spark % "provided",
-        "dev.zio"          %% "zio-test"     % libVersion.zio2  % Test,
-        "dev.zio"          %% "zio-test-sbt" % libVersion.zio2  % Test,
-        "dev.zio"          %% "zio"          % libVersion.zio2
+      name               := "zio-spark-new",
+      crossScalaVersions := supportedScalaVersions,
+      libraryDependencies ++= generateLibraryDependencies(
+        libVersion.zio2,
+        CrossVersion.partialVersion(scalaVersion.value).get._2
+      ),
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+    )
+lazy val zioSpark =
+  (project in file("."))
+    .settings(
+      name               := "zio-spark",
+      crossScalaVersions := supportedScalaVersions,
+      libraryDependencies ++= generateLibraryDependencies(
+        libVersion.zio1,
+        CrossVersion.partialVersion(scalaVersion.value).get._2
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
     )
 
-lazy val zioSpark =
-  (project in file("."))
-    .settings(
-      name := "zio-spark",
-      libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core"   % libVersion.spark,
-        "org.apache.spark" %% "spark-sql"    % libVersion.spark % "provided",
-        "dev.zio"          %% "zio-test"     % libVersion.zio1  % Test,
-        "dev.zio"          %% "zio-test-sbt" % libVersion.zio1  % Test,
-        "dev.zio"          %% "zio"          % libVersion.zio1
-      ),
-      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
-    )
+/** Generates required libraries for a particular project. */
+def generateLibraryDependencies(zioVersion: String, scalaMinor: Long): Seq[ModuleID] = {
+  val sparkVersion = sparkScalaVersionMapping(scalaMinor)
+
+  Seq(
+    "org.apache.spark" %% "spark-core"   % sparkVersion,
+    "org.apache.spark" %% "spark-sql"    % sparkVersion % "provided",
+    "dev.zio"          %% "zio-test"     % zioVersion   % Test,
+    "dev.zio"          %% "zio-test-sbt" % zioVersion   % Test,
+    "dev.zio"          %% "zio"          % zioVersion
+  )
+}
+
+/**
+ * Returns the correct spark version depending of the current scala
+ * minor.
+ */
+def sparkScalaVersionMapping(scalaMinor: Long): String =
+  scalaMinor match {
+    case 11 => "2.1.3"
+    case 12 => "2.4.8"
+    case 13 => "3.2.1"
+    case _  => throw new Exception("It should be unreachable.")
+  }
