@@ -11,12 +11,19 @@ object SizeTest extends DefaultRunnableSpec {
 
       val conftests =
         List(
-          Conftest("bytes", 1.byte, "1b"),
-          Conftest("kibibytes", 2.kibibytes, "2kb"),
-          Conftest("mebibytes", 3.mebibytes, "3mb"),
-          Conftest("gibibytes", 4.gibibytes, "4gb"),
-          Conftest("tebibytes", 5.tebibytes, "5tb"),
-          Conftest("pebibytes", 6.pebibytes, "6pb")
+          Conftest("unlimited", unlimitedSize, "0"),
+          Conftest("bytes", 2.bytes, "2b"),
+          Conftest("bytes (alias)", 2.b, "2b"),
+          Conftest("kibibytes", 3.kibibytes, "3kb"),
+          Conftest("kibibytes (alias)", 3.kb, "3kb"),
+          Conftest("mebibytes", 4.mebibytes, "4mb"),
+          Conftest("mebibytes (alias)", 4.mb, "4mb"),
+          Conftest("gibibytes", 5.gibibytes, "5gb"),
+          Conftest("gibibytes (alias)", 5.gb, "5gb"),
+          Conftest("tebibytes", 6.tebibytes, "6tb"),
+          Conftest("tebibytes (alias)", 6.tb, "6tb"),
+          Conftest("pebibytes", 7.pebibytes, "7pb"),
+          Conftest("pebibytes (alias)", 7.pb, "7pb")
         )
 
       val tests =

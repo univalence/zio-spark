@@ -14,9 +14,9 @@ package object parameter {
   implicit class IntSize(val i: Int) {
     def bytes: Size = i.byte
 
-    def b: Size = i.byte
-
     def byte: Size = Size.Byte(i)
+
+    def b: Size = i.byte
 
     def kibibytes: Size = i.kibibyte
 
@@ -32,9 +32,9 @@ package object parameter {
 
     def gibibytes: Size = i.gibibyte
 
-    def gibibyte: Size = Size.GibiByte(i)
-
     def gb: Size = i.gibibyte
+
+    def gibibyte: Size = Size.GibiByte(i)
 
     def tebibytes: Size = i.tebibyte
 
@@ -44,10 +44,12 @@ package object parameter {
 
     def pebibytes: Size = i.pebibyte
 
-    def pb: Size = i.pebibyte
-
     def pebibyte: Size = Size.PebiByte(i)
+
+    def pb: Size = i.pebibyte
   }
+
+  val unlimitedSize: Size = Size.Unlimited
 
   val url: (String, Int) => Master.MasterNodeConfiguration =
     (host: String, port: Int) => Master.MasterNodeConfiguration(host, port)
