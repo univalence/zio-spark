@@ -1,39 +1,59 @@
-# zio-spark
+<h1 align="center">zio-spark</h1>
 
-[![Circle CI](https://circleci.com/gh/univalence/zio-spark.svg?style=svg)](https://app.circleci.com/pipelines/github/univalence/zio-spark)
-[![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-blue.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
+<p align="center">
+  <a href="https://github.com/univalence/zio-spark/actions">
+    <img src="https://github.com/univalence/zio-spark/actions/workflows/ci.yml/badge.svg" />
+  </a>
+  <a href="https://codecov.io/gh/univalence/zio-spark">
+    <img src="https://codecov.io/gh/univalence/zio-spark/branch/master/graph/badge.svg" />
+  </a>
+  <a href="https://scala-steward.org">
+    <img src="https://img.shields.io/badge/Scala_Steward-helping-blue.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=" />
+  </a>
+</p>
 
-Spark-ZIO allows access to Spark using ZIO's environment.
+<p align="center">
+   Spark-ZIO allows access to Spark using ZIO's environment.
+</p>
+
+:warning: The repository is currently under construction, a new version of zio-spark will be out soon !
 
 ## WHY ?
 
-There are 2 main reasons to use this kind of technique of library : 
-* making better code, pure FP, more composable, more readable (by some degree) and stopping the propagation of ```implicit SparkSessions```.
+There are 2 main reasons to use this kind of technique of library :
+
+* making better code, pure FP, more composable, more readable (by some degree) and stopping the propagation
+  of ```implicit SparkSessions```.
 * improving some performances.
 
 ### About the performance
+
 There are usual ways to improve the performances of spark jobs, in order of priority:
+
 * less join
 * less data (=> active location, streaming, ...)
 * less udf/rdd
 * better configuration
 * **better resource allocation** <-
 
-What zio-spark can do is to launch different spark jobs in the same `SparkSession`, allowing to use more of the executors capacity. Eg. if you have 5 workers, and only 1 is working to finish the current job, and you wait before starting another job, that's not what's best efficiency, and at the end not the best for the lead time.
+What zio-spark can do is to launch different spark jobs in the same `SparkSession`, allowing to use more of the
+executors capacity. Eg. if you have 5 workers, and only 1 is working to finish the current job, and you wait before
+starting another job, that's not what's best efficiency, and at the end not the best for the lead time.
 
-On some pipeline, concurrent job launch speed up the pipeline by 2-10 times.
-It's not "faster", it's just the overall lead time (wall clock time) is better.
+On some pipeline, concurrent job launch speed up the pipeline by 2-10 times. It's not "faster", it's just the overall
+lead time (wall clock time) is better.
 
-Spark is very good at optimizing the work on a single job, there is no issue with spark, but the imperative nature of the API don't allow Spark to know for remaining jobs.
-
+Spark is very good at optimizing the work on a single job, there is no issue with spark, but the imperative nature of
+the API don't allow Spark to know for remaining jobs.
 
 More about that in this blog article (French):
-* [Amélioration du lead time des chaines en spark](https://univalence.io/blog/articles/amelioration-du-lead-time-des-chaines-en-spark-avec-un-peu-de-monix/)
 
+* [Amélioration du lead time des chaines en spark](https://univalence.io/blog/articles/amelioration-du-lead-time-des-chaines-en-spark-avec-un-peu-de-monix/)
 
 ## Latest version
 
-If you want to get the very last version of this library you can still download it using bintray here : https://bintray.com/univalence/univalence-jvm/spark-zio
+If you want to get the very last version of this library you can still download it using bintray
+here : https://bintray.com/univalence/univalence-jvm/spark-zio
 
 ```scala
 libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
@@ -41,8 +61,8 @@ libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
 
 ### Spark Version
 
-zio-spark is built against spark 2.4.x and scala 2.12.
-Spark is provided, you should your Spark version (as you would usually).
+zio-spark is built against spark 2.4.x and scala 2.12. Spark is provided, you should your Spark version (as you would
+usually).
 
 ```scala
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.7" % Provided
@@ -68,7 +88,7 @@ import zio.spark._
 val job1: RIO[SparkEnv, Unit] = retroCompat(ss => {
   //OLD CODE
   val df = ss.read.json("examples/src/main/resources/people.json")
-  
+
   df.show()
   import ss.implicits._
   df.printSchema()
@@ -77,17 +97,18 @@ val job1: RIO[SparkEnv, Unit] = retroCompat(ss => {
   df.filter($"age" > 21).show()
   df.groupBy("age").count().show()
   df.createOrReplaceTempView("people")
-  
+
   val sqlDF = ss.sql("SELECT * FROM people")
   sqlDF.show()
   df.createGlobalTempView("people")
-  
+
   ss.sql("SELECT * FROM global_temp.people").show()
-  ss.newSession().sql("SELECT * FROM global_temp.people").show()                    
+  ss.newSession().sql("SELECT * FROM global_temp.people").show()
 })
 ```
 
 You can use `retroCompat` to get the new datatypes:
+
 ```scala
 import zio._
 import zio.spark._
@@ -102,23 +123,27 @@ val job2: RIO[SparkEnv, Unit] = ds1 >>= (_.printSchema)
 ## Syntax
 
 zio-spark uses the syntax from ZIO + a new wrapping of Spark existing types to make them pure.
+
 ```scala
 class ZRDD[T](private val rdd: RDD) extends ZWrap(rdd) {
-  def count:Task[Long] = execute(_.count())
+  def count: Task[Long] = execute(_.count())
 
   /* ... */
 }
 ```
 
-The provided type use the "execute pattern", which allow to tap into Spark types, and compose using new definition that are more type safe.
+The provided type use the "execute pattern", which allow to tap into Spark types, and compose using new definition that
+are more type safe.
 
 For the RDD, we have a ZRDD:
+
 ```scala
 
 class ZRDD[T](rdd: RDD[T]) {
 
   //To access directly spark API
   def execute[B, Pure](f: RDD[T] => B)(implicit C: Clean.Aux[B, Pure]): Task[Pure]
+
   def executeM[R, B, Pure](f: RDD[T] => RIO[R, B])(implicit C: Clean.Aux[B, Pure]): RIO[R, Pure]
 
 
@@ -160,11 +185,11 @@ object RunPar extends zio.App {
   import zio.spark.syntax._
 
   val prg: RIO[Console with SparkEnv, Unit] = for {
-    df   <- zio.spark.sql("select * from person")
-    _    <- df.cache
-    df2  <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
+    df <- zio.spark.sql("select * from person")
+    _ <- df.cache
+    df2 <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
     pair <- df.count zipPar df2.count
-    _    <- zio.console.putStr(s"${pair._1} persons (${pair._2} adults)")
+    _ <- zio.console.putStr(s"${pair._1} persons (${pair._2} adults)")
   } yield {}
 
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =
@@ -173,16 +198,16 @@ object RunPar extends zio.App {
   //would work with anything with Par, like collectPar, ... and fibers
   {
     val prg: RIO[Console with SparkEnv, Unit] = for {
-      df         <- zio.spark.sql("select * from person")
-      _          <- df.cache
-      df2        <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
-      
+      df <- zio.spark.sql("select * from person")
+      _ <- df.cache
+      df2 <- df.filter("age >= 18").toTask //filter return a Try[ZDataFrame]
+
       personsJob <- df.count.forkAs("persons")
-      adultsJob  <- df2.count.forkAs("adults")
-      persons    <- personsJob.join
-      adults     <- adultsJob.join
-      
-      _          <- zio.console.putStr(s"$persons persons ($adults adults)")
+      adultsJob <- df2.count.forkAs("adults")
+      persons <- personsJob.join
+      adults <- adultsJob.join
+
+      _ <- zio.console.putStr(s"$persons persons ($adults adults)")
     } yield {}
   }
 }
@@ -190,22 +215,22 @@ object RunPar extends zio.App {
 
 ## Contributions
 
-Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements.
-If you want to add new things in `zio-spark`, don't hesitate to open an issue!
-
+Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements. If you want to add
+new things in `zio-spark`, don't hesitate to open an issue!
 
 ## Roadmap
 
- * Tests : recode / integrate [spark-test](https://github.com/univalence/spark-tools/tree/master/spark-test) on:
-   * [zio-test](https://zio.dev/docs/usecases/usecases_testing)
-   * [Probably](https://github.com/propensive/probably)
- * Cancellable computations: find an non invasive way to cancel jobs as you would cancel ZIO computations
- * Externalize purity Auxs: the purity mechanism is not exclusive to zio-spark. It should be externalized and reworked
+* Tests : recode / integrate [spark-test](https://github.com/univalence/spark-tools/tree/master/spark-test) on:
+    * [zio-test](https://zio.dev/docs/usecases/usecases_testing)
+    * [Probably](https://github.com/propensive/probably)
+* Cancellable computations: find an non invasive way to cancel jobs as you would cancel ZIO computations
+* Externalize purity Auxs: the purity mechanism is not exclusive to zio-spark. It should be externalized and reworked
 
 ## Alternatives
 
- *  (Deprecated) [spark-zio 0.3](https://github.com/univalence/spark-tools/tree/master/spark-zio), our first experiment to combine ZIO and Spark, if you use it, we can work with you to update to `zio-spark`
- *  [ZparkIO](https://github.com/leobenkel/ZparkIO) a framework for Spark, ZIO
+* (Deprecated) [spark-zio 0.3](https://github.com/univalence/spark-tools/tree/master/spark-zio), our first experiment to
+  combine ZIO and Spark, if you use it, we can work with you to update to `zio-spark`
+* [ZparkIO](https://github.com/leobenkel/ZparkIO) a framework for Spark, ZIO
 
 ## License
 
