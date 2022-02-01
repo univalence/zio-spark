@@ -101,7 +101,7 @@ lazy val newZioSpark =
     .settings(
       name               := "zio-spark-new",
       crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala.v211,
+      scalaVersion       := scala.v213,
       libraryDependencies ++= generateLibraryDependencies(
         libVersion.zio2,
         CrossVersion.partialVersion(scalaVersion.value).get._2
