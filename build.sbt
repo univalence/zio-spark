@@ -76,6 +76,7 @@ addCommandAlias("fmtCheck", "scalafmtCheck")
 addCommandAlias("lint", "scalafix")
 addCommandAlias("lintCheck", "scalafix --check")
 addCommandAlias("fixStyle", "; scalafmt; scalafix;")
+addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testAll", "; clean;+ test;")
 addCommandAlias("testWithCoverage", "; clean; coverage;+ test; coverageReport;")
 
@@ -93,20 +94,14 @@ lazy val scala =
     val v213 = "2.13.8"
   }
 
-lazy val supportedScalaVersions =
-  List(
-    // TODO: Fine a good way to handle version conflict features
-    // maybe https://www.scala-sbt.org/1.x/docs/Cross-Build.html#Scala-version+specific+source+directory
-    // scala.v211,
-    // scala.v212,
-    scala.v213
-  )
+lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 
 lazy val newZioSpark =
   (project in file("new"))
     .settings(
       name               := "zio-spark-new",
       crossScalaVersions := supportedScalaVersions,
+      scalaVersion       := scala.v211,
       libraryDependencies ++= generateLibraryDependencies(
         libVersion.zio2,
         CrossVersion.partialVersion(scalaVersion.value).get._2
@@ -116,8 +111,8 @@ lazy val newZioSpark =
 lazy val zioSpark =
   (project in file("."))
     .settings(
-      name               := "zio-spark",
-      crossScalaVersions := supportedScalaVersions,
+      name         := "zio-spark",
+      scalaVersion := scala.v212,
       libraryDependencies ++= generateLibraryDependencies(
         libVersion.zio1,
         CrossVersion.partialVersion(scalaVersion.value).get._2

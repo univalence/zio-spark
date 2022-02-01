@@ -62,13 +62,6 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
    */
   def head: Task[T] = head(1).map(_.head)
 
-  /**
-   * Takes the n elements of a dataset.
-   *
-   * See [[UnderlyingDataset.head]] for more information.
-   */
-  def head(n: Int): Task[List[T]] = action(_.head(n).toList)
-
   /** Alias for [[head]]. */
   def take(n: Int): Task[List[T]] = head(n)
 
@@ -77,6 +70,13 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
 
   /** Takes the first element of a dataset or None. */
   def headOption: Task[Option[T]] = head(1).map(_.headOption)
+
+  /**
+   * Takes the n elements of a dataset.
+   *
+   * See [[UnderlyingDataset.head]] for more information.
+   */
+  def head(n: Int): Task[List[T]] = action(_.head(n).toList)
 
   /** Alias for [[tail]]. */
   def last: Task[T] = tail
@@ -102,7 +102,7 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
    *
    * See [[UnderlyingDataset.tail]] for more information.
    */
-  def tail(n: Int): Task[List[T]] = action(_.tail(n).toList)
+  def tail(n: Int): Task[List[T]] = action(DatasetCompat.tail(_, n))
 
   /** Applies an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = Task.attemptBlocking(f(ds))
