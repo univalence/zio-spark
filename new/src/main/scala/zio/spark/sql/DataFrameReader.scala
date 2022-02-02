@@ -23,12 +23,16 @@ final case class DataFrameReader(options: Map[String, String]) {
 
   /** Adds an option to the DataFrameReader. */
   def option(key: String, value: String): DataFrameReader = addOption(key, value)
+
   /** Adds an option to the DataFrameReader. */
   def option(key: String, value: Boolean): DataFrameReader = addOption(key, value)
+
   /** Adds an option to the DataFrameReader. */
   def option(key: String, value: Int): DataFrameReader = addOption(key, value)
+
   /** Adds an option to the DataFrameReader. */
   def option(key: String, value: Float): DataFrameReader = addOption(key, value)
+
   /** Adds an option to the DataFrameReader. */
   def option(key: String, value: Double): DataFrameReader = addOption(key, value)
 
