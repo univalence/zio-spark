@@ -9,8 +9,5 @@ trait Impure[+T] {
   protected def impure: T
 
   /** Apply a function to the type T in an impure way. */
-  final def execute[B](f: T => B): Task[B] = Task(f(impure))
-
-  /** Apply a function to the type T in an impure way. */
   final def executeBlocking[B](f: T => B): Task[B] = Task.attemptBlocking(f(impure))
 }
