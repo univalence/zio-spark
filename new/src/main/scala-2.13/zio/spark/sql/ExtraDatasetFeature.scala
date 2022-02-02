@@ -5,7 +5,7 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 import zio.Task
 import zio.spark.impure.Impure
 
-trait ExtraDatatasetFeature[T] extends Impure[UnderlyingDataset[T]] {
+trait ExtraDatasetFeature[T] extends Impure[UnderlyingDataset[T]] {
 
   /**
    * Takes the n last elements of a dataset.

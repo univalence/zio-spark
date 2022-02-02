@@ -5,9 +5,7 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 import zio.Task
 import zio.spark.impure.Impure
 
-final case class Dataset[T](ds: UnderlyingDataset[T])
-    extends Impure[UnderlyingDataset[T]]
-    with ExtraDatatasetFeature[T] {
+final case class Dataset[T](ds: UnderlyingDataset[T]) extends Impure[UnderlyingDataset[T]] with ExtraDatasetFeature[T] {
 
   protected def impure: UnderlyingDataset[T] = ds
 
