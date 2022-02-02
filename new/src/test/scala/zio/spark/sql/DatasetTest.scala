@@ -1,10 +1,8 @@
 package zio.spark.sql
 
-import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.Row
 
-import zio.{Task, ZIO, ZLayer}
-import zio.spark.parameter._
+import zio.{Task, ZIO}
 import zio.test._
 import zio.test.Assertion._
 
