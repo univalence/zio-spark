@@ -23,7 +23,7 @@ import zio._
  *   The result type of the pipeline
  */
 final case class Pipeline[TIn, TOut, Out](
-    input:   SparkSession => Task[Dataset[TIn]],
+    input:   Spark[Dataset[TIn]],
     process: Dataset[TIn] => Dataset[TOut],
     output:  Dataset[TOut] => Task[Out]
 ) {
@@ -34,8 +34,7 @@ final case class Pipeline[TIn, TOut, Out](
    */
   def run: Spark[Out] =
     for {
-      session <- ZIO.service[SparkSession]
-      dataset <- input(session)
+      dataset <- input
       processedDataset = process(dataset)
       value <- output(processedDataset)
     } yield value
@@ -45,7 +44,7 @@ object Pipeline {
 
   /** Builds a pipeline without processing. */
   def buildWithoutProcessing[TIn, Out](
-      input: SparkSession => Task[Dataset[TIn]]
+      input: Spark[Dataset[TIn]]
   )(output: Dataset[TIn] => Task[Out]): Pipeline[TIn, TIn, Out] = build(input)(df => df)(output)
 
   /**
@@ -54,7 +53,7 @@ object Pipeline {
    * Scala is not capable to find the correct types by itself.
    */
   def build[TIn, TOut, Out](
-      input: SparkSession => Task[Dataset[TIn]]
+      input: Spark[Dataset[TIn]]
   )(process: Dataset[TIn] => Dataset[TOut])(output: Dataset[TOut] => Task[Out]): Pipeline[TIn, TOut, Out] =
     Pipeline(
       input   = input,
