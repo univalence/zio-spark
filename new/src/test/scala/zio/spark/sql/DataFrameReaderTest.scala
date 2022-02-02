@@ -17,7 +17,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
         val options           = Map("a" -> "x", "b" -> "y")
         val readerWithOptions = reader.map(_.options(options))
 
-        readerWithOptions.map(r => assert(r.extraOptions)(equalTo(options)))
+        readerWithOptions.map(r => assert(r.options)(equalTo(options)))
       }
     )
 
@@ -47,7 +47,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
             val readerWithOptions = reader.map(conftest.f(_))
             val options           = Map(conftest.keyOutput -> conftest.valueOutput)
 
-            readerWithOptions.map(r => assert(r.extraOptions)(equalTo(options)))
+            readerWithOptions.map(r => assert(r.options)(equalTo(options)))
           }
         )
 

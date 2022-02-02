@@ -1,8 +1,10 @@
 package zio.spark
 
-import zio.{ Task, ZIO }
+import org.apache.spark.sql.{ColumnName, Encoder, Encoders}
+
+import zio.{Task, ZIO}
 import zio.spark.wrap.Impure
-import org.apache.spark.sql.{ ColumnName, Encoder, Encoders }
+
 import scala.util.Try
 
 //FROM SparkSession.implicits
@@ -134,11 +136,11 @@ object implicits {
   implicit def newStringArrayEncoder: Encoder[Array[String]] = ExpressionEncoder()
 
   /** @since 1.6.1 */
-  implicit def newProductArrayEncoder[A <: Product: TypeTag]: Encoder[Array[A]] =
-    ExpressionEncoder()
+  implicit def newProductArrayEncoder[A <: Product: TypeTag]: Encoder[Array[A]] = ExpressionEncoder()
 
   /**
-   * An implicit conversion that turns a Scala `Symbol` into a [[org.apache.spark.sql.Column]].
+   * An implicit conversion that turns a Scala `Symbol` into a
+   * [[org.apache.spark.sql.Column]].
    *
    * @since 1.3.0
    */

@@ -1,6 +1,7 @@
 package zio
 
 import org.apache.spark.sql.SparkSession
+
 import zio.spark.wrap.Clean
 
 package object spark extends PackageSyntax {

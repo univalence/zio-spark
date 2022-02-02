@@ -1,11 +1,12 @@
 package zio.spark
 
-import org.apache.spark.sql.{ Column, Dataset, Row }
+import org.apache.spark.sql.{Column, Dataset, Row}
+
+import zio.{IO, RIO, Task, ZIO}
+import zio.spark.{Spark, ZDataFrame, ZRelationalGroupedDataset}
+import zio.spark.wrap.{Impure, ImpureF}
 
 import scala.util.Try
-import zio.spark.wrap.{ Impure, ImpureF }
-import zio.spark.{ Spark, ZDataFrame, ZRelationalGroupedDataset }
-import zio.{ IO, RIO, Task, ZIO }
 
 package object syntax {
 
@@ -43,7 +44,7 @@ package object syntax {
     def toTask: Task[A] = Task.fromTry(_value)
   }
 
-  protected abstract class ZRelationalGroupedDatasetOps[R](get: RIO[R, ZRelationalGroupedDataset]) {
+  abstract protected class ZRelationalGroupedDatasetOps[R](get: RIO[R, ZRelationalGroupedDataset]) {
     @inline final def exec[X](f: ZRelationalGroupedDataset => X): RIO[R, X]          = get map f
     @inline final def execM[X](f: ZRelationalGroupedDataset => RIO[R, X]): RIO[R, X] = get >>= f
 
@@ -55,7 +56,7 @@ package object syntax {
   implicit final class ZRelationalGroupedDatasetOpsTry(_value: Try[ZRelationalGroupedDataset])
       extends ZRelationalGroupedDatasetOps[Any](_value)
 
-  protected abstract class ZDataframeOps[R](get: RIO[R, ZDataFrame]) extends ImpureF(get) {
+  abstract protected class ZDataframeOps[R](get: RIO[R, ZDataFrame]) extends ImpureF(get) {
 
     override protected def copy(f: Dataset[Row] => Dataset[Row]): ZDataframeOps[R] = execute(f)
 
