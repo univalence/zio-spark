@@ -1,7 +1,7 @@
 package zio.spark.sql
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.sql.{Encoder, Encoders, Row}
+import org.apache.spark.sql.Row
 
 import zio.{Task, ZIO, ZLayer}
 import zio.spark.parameter._
@@ -41,19 +41,19 @@ object DatasetTest extends DefaultRunnableSpec {
         pipeline.run.map(assert(_)(equalTo(4L)))
       },
       test("Dataset should implement collect correctly") {
-        val write: DataFrame => Task[List[Row]] = _.collect
+        val write: DataFrame => Task[Seq[Row]] = _.collect
 
         val pipeline = Pipeline.buildWithoutProcessing(read)(write)
 
         pipeline.run.map(assert(_)(hasSize(equalTo(4))))
       },
       test("Dataset should implement head(n)/take(n) correctly") {
-        val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
-        val write: Dataset[String] => Task[List[String]] = _.take(2)
+        val process: DataFrame => Dataset[String]       = _.as[Person].map(_.name)
+        val write: Dataset[String] => Task[Seq[String]] = _.take(2)
 
         val pipeline = Pipeline.build(read)(process)(write)
 
-        pipeline.run.map(assert(_)(equalTo(List("Maria", "John"))))
+        pipeline.run.map(assert(_)(equalTo(Seq("Maria", "John"))))
       },
       test("Dataset should implement head/first correctly") {
         val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
@@ -65,29 +65,6 @@ object DatasetTest extends DefaultRunnableSpec {
       },
       test("Dataset should implement headOption/firstOption correctly") {
         val write: DataFrame => Task[Option[Row]] = _.firstOption
-
-        val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
-
-        pipeline.run.map(assert(_)(isNone))
-      },
-      test("Dataset should implement tail(n)/takeRight(n) correctly") {
-        val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
-        val write: Dataset[String] => Task[List[String]] = _.takeRight(2)
-
-        val pipeline = Pipeline.build(read)(process)(write)
-
-        pipeline.run.map(assert(_)(equalTo(List("Peter", "Cassandra"))))
-      },
-      test("Dataset should implement tail/last correctly") {
-        val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
-        val write: Dataset[String] => Task[String] = _.last
-
-        val pipeline = Pipeline.build(read)(process)(write)
-
-        pipeline.run.map(assert(_)(equalTo("Cassandra")))
-      },
-      test("Dataset should implement tailOption/lastOption correctly") {
-        val write: DataFrame => Task[Option[Row]] = _.lastOption
 
         val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
 
@@ -106,28 +83,28 @@ object DatasetTest extends DefaultRunnableSpec {
         pipeline.run.map(assert(_)(equalTo(2L)))
       },
       test("Dataset should implement as correctly") {
-        val process: DataFrame => Dataset[Person]        = _.as[Person]
-        val write: Dataset[Person] => Task[List[Person]] = _.collect
+        val process: DataFrame => Dataset[Person]  = _.as[Person]
+        val write: Dataset[Person] => Task[Person] = _.head
 
         val pipeline = Pipeline(read, process, write)
 
-        pipeline.run.map(res => assert(res.headOption)(isSome(equalTo(Person("Maria", 93)))))
+        pipeline.run.map(res => assert(res)(equalTo(Person("Maria", 93))))
       },
       test("Dataset should implement map correctly") {
-        val process: DataFrame => Dataset[String]        = _.as[Person].map(_.name)
-        val write: Dataset[String] => Task[List[String]] = _.collect
+        val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
+        val write: Dataset[String] => Task[String] = _.head
 
         val pipeline = Pipeline(read, process, write)
 
-        pipeline.run.map(res => assert(res.headOption)(isSome(equalTo("Maria"))))
+        pipeline.run.map(res => assert(res)(equalTo("Maria")))
       },
       test("Dataset should implement flatMap correctly") {
-        val process: DataFrame => Dataset[String]        = _.as[Person].flatMap(_.name.toList.map(_.toString))
-        val write: Dataset[String] => Task[List[String]] = _.collect
+        val process: DataFrame => Dataset[String]  = _.as[Person].flatMap(_.name.toSeq.map(_.toString))
+        val write: Dataset[String] => Task[String] = _.head
 
         val pipeline = Pipeline(read, process, write)
 
-        pipeline.run.map(res => assert(res.headOption)(isSome(equalTo("M"))))
+        pipeline.run.map(res => assert(res)(equalTo("M")))
       }
     )
 
@@ -151,9 +128,6 @@ object DatasetTest extends DefaultRunnableSpec {
         job.map(assert(_)(equalTo(2L)))
       }
     )
-
-  implicit val personEncoder: Encoder[Person] = Encoders.product[Person]
-  implicit val stringEncoder: Encoder[String] = Encoders.STRING
 
   case class Person(name: String, age: Int)
 }

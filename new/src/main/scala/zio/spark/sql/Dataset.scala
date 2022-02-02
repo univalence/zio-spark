@@ -3,14 +3,20 @@ package zio.spark.sql
 import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 
 import zio.Task
+import zio.spark.impure.Impure
 
-final case class Dataset[T](ds: UnderlyingDataset[T]) {
+final case class Dataset[T](ds: UnderlyingDataset[T])
+    extends Impure[UnderlyingDataset[T]]
+    with ExtraDatatasetFeature[T] {
+
+  protected def impure: UnderlyingDataset[T] = ds
 
   /**
    * Maps each record to the specified type.
    *
    * See [[UnderlyingDataset.as]] for more information.
    */
+  // TODO : Modelise Schema Errors + Spec in TU
   def as[U: Encoder]: Dataset[U] = transformation(_.as[U])
 
   /** Applies a transformation to the underlying dataset. */
@@ -50,7 +56,7 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
    *
    * See [[UnderlyingDataset.collect]] for more information.
    */
-  def collect: Task[List[T]] = action(_.collect().toList)
+  def collect: Task[Seq[T]] = action(_.collect().toSeq)
 
   /** Alias for [[head]]. */
   def first: Task[T] = head
@@ -78,33 +84,6 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) {
    */
   def head(n: Int): Task[List[T]] = action(_.head(n).toList)
 
-  /** Alias for [[tail]]. */
-  def last: Task[T] = tail
-
-  /**
-   * Takes the last element of a dataset or throws an exception.
-   *
-   * See [[UnderlyingDataset.tail]] for more information.
-   */
-  def tail: Task[T] = tail(1).map(_.head)
-
-  /** Alias for [[tailOption]]. */
-  def lastOption: Task[Option[T]] = tailOption
-
-  /** Takes the last element of a dataset or None. */
-  def tailOption: Task[Option[T]] = tail(1).map(_.headOption)
-
-  /** Alias for [[tail]]. */
-  def takeRight(n: Int): Task[List[T]] = tail(n)
-
-  /**
-   * Takes the n last elements of a dataset.
-   *
-   * See [[UnderlyingDataset.tail]] for more information.
-   */
-  def tail(n: Int): Task[List[T]] = action(DatasetCompat.tail(_, n))
-
   /** Applies an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = Task.attemptBlocking(f(ds))
-
 }
