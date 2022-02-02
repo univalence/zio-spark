@@ -32,12 +32,7 @@ final case class Pipeline[TIn, TOut, Out](
    * Runs the pipeline computation as a ZIO effect. You must provide a
    * [[SparkSession]] layer to actually run the effect.
    */
-  def run: Spark[Out] =
-    for {
-      dataset <- input
-      processedDataset = process(dataset)
-      value <- output(processedDataset)
-    } yield value
+  def run: Spark[Out] = input.map(process).flatMap(output)
 }
 
 object Pipeline {

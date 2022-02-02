@@ -72,15 +72,17 @@ ThisBuild / coverageMinimumStmtPerPackage   := 80
 ThisBuild / coverageMinimumBranchPerPackage := 80
 ThisBuild / coverageMinimumStmtPerFile      := 50
 ThisBuild / coverageMinimumBranchPerFile    := 50
+ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*"
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheck")
 addCommandAlias("lint", "scalafix")
-addCommandAlias("lintCheck", "scalafix --check")
+addCommandAlias("lintCheck", "; fmtCheck; lintCheck;")
+addCommandAlias("check", "scalafix --check")
 addCommandAlias("fixStyle", "; scalafmt; scalafix;")
-addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testAll", "; clean;+ test;")
-addCommandAlias("testWithCoverage", "; clean; coverage;+ test; coverageReport;")
+addCommandAlias("testSpecific", "; clean; test;")
+addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
 
 // -- Lib versions
 lazy val libVersion =
