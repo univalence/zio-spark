@@ -10,7 +10,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout current branch
+        uses: actions/checkout@v2.4.0
+      - name: Setup Scala and Java
+        uses: olafurpg/setup-scala@v13
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
       - name: Check formatting and linting
         run: sbt "project newZioSpark" check
   test:
