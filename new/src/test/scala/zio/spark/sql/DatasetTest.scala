@@ -29,7 +29,8 @@ object DatasetTest extends DefaultRunnableSpec {
       .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/empty.csv"))
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
-    (dataFrameActionsSpec + dataFrameTransformationsSpec + fromSparkSpec).provideShared(session)
+    (dataFrameActionsSpec + dataFrameTransformationsSpec + fromSparkSpec + ExtraDatatasetFeatureTest.spec)
+      .provideShared(session)
 
   def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Actions")(

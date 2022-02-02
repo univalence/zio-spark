@@ -1,6 +1,5 @@
 package zio.spark.sql
 
-import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.Row
 
 import zio.{Task, ZIO, ZLayer}
@@ -8,9 +7,7 @@ import zio.spark.parameter._
 import zio.test._
 import zio.test.Assertion._
 
-object ExtraDatatasetFeatureTest extends DefaultRunnableSpec {
-  Logger.getLogger("org").setLevel(Level.OFF)
-
+object ExtraDatatasetFeatureTest {
   val session: ZLayer[Any, Nothing, SparkSession] =
     SparkSession.builder
       .master(localAllNodes)
