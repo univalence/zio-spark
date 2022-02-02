@@ -72,6 +72,7 @@ ThisBuild / coverageMinimumStmtPerPackage   := 80
 ThisBuild / coverageMinimumBranchPerPackage := 80
 ThisBuild / coverageMinimumStmtPerFile      := 50
 ThisBuild / coverageMinimumBranchPerFile    := 50
+ThisBuild / coverageExcludedPackages        := "*SqlImplicitsCompat.scala"
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheck")
