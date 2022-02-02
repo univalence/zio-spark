@@ -2,6 +2,6 @@ package zio.spark.sql
 
 import zio.test._
 
-object ExtraDatatasetFeatureTest {
+object ExtraDatasetFeatureTest {
   def spec: Spec[Any, Nothing, Nothing] = Spec.empty
 }

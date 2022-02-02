@@ -2,12 +2,11 @@ package zio.spark.sql
 
 import org.apache.spark.sql.Row
 
-import zio.{Task, ZIO, ZLayer}
-import zio.spark.parameter._
+import zio.{Task, ZIO}
 import zio.test._
 import zio.test.Assertion._
 
-object ExtraDatatasetFeatureTest {
+object ExtraDatasetFeatureTest {
   val read: Spark[DataFrame] =
     ZIO
       .service[SparkSession]
