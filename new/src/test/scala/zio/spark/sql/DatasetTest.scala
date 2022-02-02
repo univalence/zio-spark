@@ -3,7 +3,7 @@ package zio.spark.sql
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Encoder, Encoders, Row}
 
-import zio.{Task, ZLayer}
+import zio.{Task, ZIO, ZLayer}
 import zio.spark.parameter._
 import zio.test._
 import zio.test.Assertion._
@@ -18,11 +18,15 @@ object DatasetTest extends DefaultRunnableSpec {
       .getOrCreateLayer
       .orDie
 
-  val read: SparkSession => Task[DataFrame] =
-    _.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/data.csv")
+  val read: Spark[DataFrame] =
+    ZIO
+      .service[SparkSession]
+      .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/data.csv"))
 
-  val readEmpty: SparkSession => Task[DataFrame] =
-    _.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/empty.csv")
+  val readEmpty: Spark[DataFrame] =
+    ZIO
+      .service[SparkSession]
+      .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/empty.csv"))
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
     (dataFrameActionsSpec + dataFrameTransformationsSpec + fromSparkSpec).provideShared(session)

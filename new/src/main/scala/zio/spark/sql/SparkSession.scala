@@ -8,7 +8,7 @@ import zio.spark.parameter._
 final case class SparkSession(session: UnderlyingSparkSession) {
 
   /** Creates the DataFrameReader. */
-  def read: DataFrameReader = DataFrameReader(session.read)
+  def read: DataFrameReader = DataFrameReader()
 
   /** Closes the current SparkSession. */
   def close: Task[Unit] = Task.attemptBlocking(session.close())
