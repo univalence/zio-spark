@@ -8,13 +8,6 @@ import zio.test._
 import zio.test.Assertion._
 
 object ExtraDatatasetFeatureTest {
-  val session: ZLayer[Any, Nothing, SparkSession] =
-    SparkSession.builder
-      .master(localAllNodes)
-      .appName("zio-spark")
-      .getOrCreateLayer
-      .orDie
-
   val read: Spark[DataFrame] =
     ZIO
       .service[SparkSession]
@@ -25,7 +18,7 @@ object ExtraDatatasetFeatureTest {
       .service[SparkSession]
       .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/empty.csv"))
 
-  def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = dataFrameActionsSpec.provideShared(session)
+  def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
 
   def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("ExtraDatatasetFeature Actions")(
