@@ -112,6 +112,7 @@ lazy val newZioSpark =
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
     )
+
 lazy val zioSpark =
   (project in file("."))
     .settings(
@@ -123,6 +124,17 @@ lazy val zioSpark =
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
     )
+
+lazy val examples =
+  (project in file("examples"))
+    .settings(
+      scalaVersion := scala.v213,
+      libraryDependencies ++= Seq(
+        "org.apache.spark" %% "spark-core" % "3.2.1",
+        "org.apache.spark" %% "spark-sql"  % "3.2.1"
+      )
+    )
+    .dependsOn(newZioSpark)
 
 /** Generates required libraries for a particular project. */
 def generateLibraryDependencies(zioVersion: String, scalaMinor: Long): Seq[ModuleID] = {
