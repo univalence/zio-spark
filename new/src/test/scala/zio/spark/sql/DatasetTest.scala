@@ -2,23 +2,14 @@ package zio.spark.sql
 
 import org.apache.spark.sql.Row
 
-import zio.{Task, ZIO}
+import zio.Task
+import zio.spark.sql.Fixture._
 import zio.test._
 import zio.test.Assertion._
 
 object DatasetTest {
 
-  val read: Spark[DataFrame] =
-    ZIO
-      .service[SparkSession]
-      .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/data.csv"))
-
-  val readEmpty: Spark[DataFrame] =
-    ZIO
-      .service[SparkSession]
-      .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/empty.csv"))
-
-  def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def datasetActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Actions")(
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
@@ -59,7 +50,7 @@ object DatasetTest {
       }
     )
 
-  def dataFrameTransformationsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def datasetTransformationsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Transformations")(
       test("Dataset should implement limit correctly") {
         val process: DataFrame => DataFrame = _.limit(2)

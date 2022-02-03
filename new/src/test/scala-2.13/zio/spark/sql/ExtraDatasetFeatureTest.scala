@@ -2,21 +2,12 @@ package zio.spark.sql
 
 import org.apache.spark.sql.Row
 
-import zio.{Task, ZIO}
+import zio.Task
+import zio.spark.sql.Fixture._
 import zio.test._
 import zio.test.Assertion._
 
 object ExtraDatasetFeatureTest {
-  val read: Spark[DataFrame] =
-    ZIO
-      .service[SparkSession]
-      .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/data.csv"))
-
-  val readEmpty: Spark[DataFrame] =
-    ZIO
-      .service[SparkSession]
-      .flatMap(_.read.inferSchema.withHeader.withDelimiter(";").csv("new/src/test/resources/empty.csv"))
-
   def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
 
   def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =

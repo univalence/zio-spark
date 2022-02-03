@@ -19,6 +19,6 @@ object SparkSessionRunner extends DefaultRunnableSpec {
       .orDie
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
-    (DatasetTest.dataFrameActionsSpec + DatasetTest.dataFrameTransformationsSpec + DatasetTest.fromSparkSpec + ExtraDatasetFeatureTest.spec)
+    (DatasetTest.datasetActionsSpec + DatasetTest.datasetTransformationsSpec + DatasetTest.fromSparkSpec + ExtraDatasetFeatureTest.spec)
       .provideShared(session)
 }
