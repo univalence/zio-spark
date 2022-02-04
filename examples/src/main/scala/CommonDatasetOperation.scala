@@ -5,9 +5,9 @@ import zio.spark.parameter._
 import zio.spark.sql._
 
 object CommonDatasetOperation extends ZIOAppDefault {
-  case class Person(name: String, age: Int)
+  final case class Person(name: String, age: Int)
 
-  val filePath = "examples/src/main/resources/data.csv"
+  val filePath: String = "examples/src/main/resources/data.csv"
 
   def read: Spark[DataFrame] = SparkSession.use(_.read.inferSchema.withHeader.withDelimiter(";").csv(filePath))
 

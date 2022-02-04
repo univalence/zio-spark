@@ -96,7 +96,7 @@ object DatasetTest {
                 .option("inferSchema", value = true)
                 .option("header", value = true)
                 .option("delimiter", ";")
-                .csv("new/src/test/resources/data.csv")
+                .csv("core/src/test/resources/data.csv")
 
             val processedDf = inputDf.limit(2)
 

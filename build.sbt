@@ -6,7 +6,7 @@ ThisBuild / organizationHomepage := Some(url("https://univalence.io/"))
 ThisBuild / version                  := "0.1.0"
 ThisBuild / description              := "Imagine if ZIO and Spark made a baby !"
 ThisBuild / startYear                := Some(2022)
-ThisBuild / licenses += ("Apache-2.0" → new URL("https://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / licenses += ("Apache-2.0" → new URL("https://github.com/univalence/zio-spark/blob/master/LICENSE"))
 ThisBuild / homepage                 := Some(url("https://github.com/univalence/zio-spark"))
 
 ThisBuild / scalafixScalaBinaryVersion := "2.13"
@@ -87,8 +87,7 @@ addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageRe
 // -- Lib versions
 lazy val libVersion =
   new {
-    val zio1 = "1.0.13"
-    val zio2 = "2.0.0-RC2"
+    val zio = "2.0.0-RC2"
   }
 
 lazy val scala =
@@ -100,26 +99,13 @@ lazy val scala =
 
 lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 
-lazy val newZioSpark =
-  (project in file("new"))
+lazy val core =
+  (project in file("core"))
     .settings(
-      name               := "zio-spark-new",
+      name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
       scalaVersion       := scala.v213,
       libraryDependencies ++= generateLibraryDependencies(
-        libVersion.zio2,
-        CrossVersion.partialVersion(scalaVersion.value).get._2
-      ),
-      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
-    )
-
-lazy val zioSpark =
-  (project in file("."))
-    .settings(
-      name         := "zio-spark",
-      scalaVersion := scala.v212,
-      libraryDependencies ++= generateLibraryDependencies(
-        libVersion.zio1,
         CrossVersion.partialVersion(scalaVersion.value).get._2
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
@@ -134,18 +120,18 @@ lazy val examples =
         "org.apache.spark" %% "spark-sql"  % "3.2.1"
       )
     )
-    .dependsOn(newZioSpark)
+    .dependsOn(core)
 
 /** Generates required libraries for a particular project. */
-def generateLibraryDependencies(zioVersion: String, scalaMinor: Long): Seq[ModuleID] = {
+def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core"   % sparkVersion,
-    "org.apache.spark" %% "spark-sql"    % sparkVersion % "provided",
-    "dev.zio"          %% "zio-test"     % zioVersion   % Test,
-    "dev.zio"          %% "zio-test-sbt" % zioVersion   % Test,
-    "dev.zio"          %% "zio"          % zioVersion
+    "org.apache.spark" %% "spark-core"   % sparkVersion   % Provided,
+    "org.apache.spark" %% "spark-sql"    % sparkVersion   % Provided,
+    "dev.zio"          %% "zio-test"     % libVersion.zio % Test,
+    "dev.zio"          %% "zio-test-sbt" % libVersion.zio % Test,
+    "dev.zio"          %% "zio"          % libVersion.zio
   )
 }
 

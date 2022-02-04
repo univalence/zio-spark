@@ -1,6 +1,7 @@
 .bsp
 target
 .idea
+.DS_Store
 
 project/metals.sbt
 project/project

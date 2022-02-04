@@ -5,7 +5,7 @@ import zio.spark.sql._
 
 object WordCount extends ZIOAppDefault {
 
-  val filePath = "build.sbt"
+  val filePath: String = "build.sbt"
 
   def read: Spark[Dataset[String]] = SparkSession.use(_.read.textFile(filePath))
 
