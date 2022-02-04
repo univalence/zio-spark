@@ -4,9 +4,11 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 
 import zio.Task
 import zio.spark.impure.Impure
+import zio.spark.rdd.RDD
 
 final case class Dataset[T](ds: UnderlyingDataset[T]) extends Impure[UnderlyingDataset[T]] with ExtraDatasetFeature[T] {
 
+  /** The underlying instance of type UnderlyingDataset. */
   protected def impure: UnderlyingDataset[T] = ds
 
   /**
@@ -84,4 +86,7 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) extends Impure[UnderlyingD
 
   /** Applies an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = Task.attemptBlocking(f(ds))
+
+  /** Transform the dataset into a [[RDD]]. */
+  def rdd: RDD[T] = RDD(ds.rdd)
 }
