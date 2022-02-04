@@ -5,10 +5,7 @@ import org.apache.spark.rdd.{RDD => UnderlyingRDD}
 import zio.Task
 import zio.spark.impure.Impure
 
-final case class RDD[T](rdd: UnderlyingRDD[T]) extends Impure[UnderlyingRDD[T]] {
-
-  /** The underlying instance of type UnderlyingRDD. */
-  override protected def impure: UnderlyingRDD[T] = rdd
+final case class RDD[T](rdd: UnderlyingRDD[T]) extends Impure[UnderlyingRDD[T]](rdd) {
 
   /** Applies an action to the underlying RDD. */
   def action[A](f: UnderlyingRDD[T] => A): Task[A] = Task.attemptBlocking(f(rdd))

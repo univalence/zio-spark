@@ -72,7 +72,7 @@ ThisBuild / coverageMinimumStmtPerPackage   := 80
 ThisBuild / coverageMinimumBranchPerPackage := 80
 ThisBuild / coverageMinimumStmtPerFile      := 50
 ThisBuild / coverageMinimumBranchPerFile    := 50
-ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*"
+ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*"
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheck")
