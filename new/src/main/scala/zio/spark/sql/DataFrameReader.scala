@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameReader => UnderlyingDataFrameReader}
+import org.apache.spark.sql.{DataFrameReader => UnderlyingDataFrameReader, Dataset => UnderlyingDataset}
 
 final case class DataFrameReader(options: Map[String, String]) {
 
@@ -11,8 +11,15 @@ final case class DataFrameReader(options: Map[String, String]) {
    */
   def csv(path: String): Spark[DataFrame] = loadUsing(_.csv(path))
 
+  /**
+   * Loads a dataframe from a text file.
+   *
+   * See [[UnderlyingDataFrameReader.textFile]] for more information.
+   */
+  def textFile(path: String): Spark[Dataset[String]] = loadUsing(_.textFile(path))
+
   /** Loads a dataframe using one of the dataframe loader. */
-  private def loadUsing(f: UnderlyingDataFrameReader => UnderlyingDataFrame): Spark[DataFrame] =
+  private def loadUsing[T](f: UnderlyingDataFrameReader => UnderlyingDataset[T]): Spark[Dataset[T]] =
     fromSpark(ss => Dataset(f(ss.read.options(options))))
 
   /** Adds multiple options to the DataFrameReader. */

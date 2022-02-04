@@ -4,6 +4,7 @@ import org.apache.log4j.{Level, Logger}
 
 import zio.ZLayer
 import zio.spark.parameter.localAllNodes
+import zio.spark.rdd.{PairRDDFunctionsTest, RDDTest}
 import zio.spark.sql.{DatasetTest, ExtraDatasetFeatureTest, SparkSession}
 import zio.test.{DefaultRunnableSpec, Spec, TestEnvironment, TestFailure, TestSuccess}
 
@@ -18,7 +19,17 @@ object SparkSessionRunner extends DefaultRunnableSpec {
       .getOrCreateLayer
       .orDie
 
-  def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
-    (DatasetTest.datasetActionsSpec + DatasetTest.datasetTransformationsSpec + DatasetTest.fromSparkSpec + ExtraDatasetFeatureTest.spec)
-      .provideShared(session)
+  def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {
+    val specs =
+      Seq(
+        DatasetTest.datasetActionsSpec,
+        DatasetTest.datasetTransformationsSpec,
+        DatasetTest.fromSparkSpec,
+        ExtraDatasetFeatureTest.spec,
+        RDDTest.rddActionsSpec,
+        PairRDDFunctionsTest.spec
+      )
+
+    specs.reduceLeft(_ + _).provideShared(session)
+  }
 }
