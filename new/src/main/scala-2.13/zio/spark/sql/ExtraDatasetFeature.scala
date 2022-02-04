@@ -5,14 +5,14 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 import zio.Task
 import zio.spark.impure.Impure
 
-trait ExtraDatasetFeature[T] extends Impure[UnderlyingDataset[T]] {
+abstract class ExtraDatasetFeature[T](ds: UnderlyingDataset[T]) extends Impure[UnderlyingDataset[T]](ds) {
 
   /**
    * Takes the n last elements of a dataset.
    *
    * See [[UnderlyingDataset.tail]] for more information.
    */
-  final def tail(n: Int): Task[Seq[T]] = executeBlocking(_.tail(n).toSeq)
+  final def tail(n: Int): Task[Seq[T]] = attemptBlocking(_.tail(n).toSeq)
 
   /** Alias for [[tail]]. */
   def last: Task[T] = tail

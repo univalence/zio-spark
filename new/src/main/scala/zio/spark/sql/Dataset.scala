@@ -3,13 +3,9 @@ package zio.spark.sql
 import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 
 import zio.Task
-import zio.spark.impure.Impure
 import zio.spark.rdd.RDD
 
-final case class Dataset[T](ds: UnderlyingDataset[T]) extends Impure[UnderlyingDataset[T]] with ExtraDatasetFeature[T] {
-
-  /** The underlying instance of type UnderlyingDataset. */
-  protected def impure: UnderlyingDataset[T] = ds
+final case class Dataset[T](ds: UnderlyingDataset[T]) extends ExtraDatasetFeature[T](ds) {
 
   /**
    * Maps each record to the specified type.
