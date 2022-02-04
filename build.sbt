@@ -100,26 +100,14 @@ lazy val scala =
 
 lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 
-lazy val newZioSpark =
-  (project in file("new"))
+lazy val core =
+  (project in file("core"))
     .settings(
-      name               := "zio-spark-new",
+      name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
       scalaVersion       := scala.v213,
       libraryDependencies ++= generateLibraryDependencies(
         libVersion.zio2,
-        CrossVersion.partialVersion(scalaVersion.value).get._2
-      ),
-      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
-    )
-
-lazy val zioSpark =
-  (project in file("."))
-    .settings(
-      name         := "zio-spark",
-      scalaVersion := scala.v212,
-      libraryDependencies ++= generateLibraryDependencies(
-        libVersion.zio1,
         CrossVersion.partialVersion(scalaVersion.value).get._2
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
@@ -134,7 +122,7 @@ lazy val examples =
         "org.apache.spark" %% "spark-sql"  % "3.2.1"
       )
     )
-    .dependsOn(newZioSpark)
+    .dependsOn(core)
 
 /** Generates required libraries for a particular project. */
 def generateLibraryDependencies(zioVersion: String, scalaMinor: Long): Seq[ModuleID] = {
