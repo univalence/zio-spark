@@ -115,13 +115,7 @@ lazy val core =
 
 lazy val examples =
   (project in file("examples"))
-    .settings(
-      scalaVersion := scala.v213,
-      libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % "3.2.1",
-        "org.apache.spark" %% "spark-sql"  % "3.2.1"
-      )
-    )
+    .settings(scalaVersion := scala.v213)
     .dependsOn(core)
 
 /** Generates required libraries for a particular project. */
@@ -130,9 +124,9 @@ def generateLibraryDependencies(zioVersion: String, scalaMinor: Long): Seq[Modul
 
   Seq(
     "org.apache.spark" %% "spark-core"   % sparkVersion,
-    "org.apache.spark" %% "spark-sql"    % sparkVersion % "provided",
-    "dev.zio"          %% "zio-test"     % zioVersion   % Test,
-    "dev.zio"          %% "zio-test-sbt" % zioVersion   % Test,
+    "org.apache.spark" %% "spark-sql"    % sparkVersion,
+    "dev.zio"          %% "zio-test"     % zioVersion % Test,
+    "dev.zio"          %% "zio-test-sbt" % zioVersion % Test,
     "dev.zio"          %% "zio"          % zioVersion
   )
 }
