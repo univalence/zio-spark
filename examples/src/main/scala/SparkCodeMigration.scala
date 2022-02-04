@@ -3,7 +3,7 @@ import zio.spark.parameter._
 import zio.spark.sql._
 
 object SparkCodeMigration extends ZIOAppDefault {
-  val NUM_SAMPLES = 100000
+  val NUM_SAMPLES: Int = 100000
 
   val computePiJob: Spark[Long] =
     fromSpark { ss =>
