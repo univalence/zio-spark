@@ -17,7 +17,7 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Check formatting and linting
-        run: sbt "project newZioSpark" check
+        run: sbt check
   test:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
@@ -34,9 +34,9 @@ jobs:
         uses: coursier/cache-action@v6
       - name: Run tests 2.11.X and 2.12.X
         if: ${{ !startsWith(matrix.scala, '2.13.') }}
-        run: sbt ++${{ matrix.scala }}! "project newZioSpark" testSpecific
+        run: sbt ++${{ matrix.scala }}! testSpecific
       - name: Run tests 2.13.X
         if: ${{ startsWith(matrix.scala, '2.13.') }}
-        run: sbt ++${{ matrix.scala }}! "project newZioSpark" testSpecificWithCoverage
+        run: sbt ++${{ matrix.scala }}! testSpecificWithCoverage
       - name: Publish coverage to codecov
         uses: codecov/codecov-action@v2
