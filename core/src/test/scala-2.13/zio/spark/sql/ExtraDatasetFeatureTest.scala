@@ -31,7 +31,7 @@ object ExtraDatasetFeatureTest {
       test("ExtraDatatasetFeature should implement tailOption/lastOption correctly") {
         val write: DataFrame => Task[Option[Row]] = _.lastOption
 
-        val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
+        val pipeline = Pipeline.buildWithoutTransformation(readEmpty)(write)
 
         pipeline.run.map(assert(_)(isNone))
       }

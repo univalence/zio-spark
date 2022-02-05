@@ -10,8 +10,6 @@ package object sql extends SqlImplicits {
 
   /** Wrap an effecful spark job into zio-spark. */
   def fromSpark[Out](f: UnderlyingSparkSession => Out): Spark[Out] =
-    for {
-      ss     <- ZIO.service[SparkSession]
-      output <- Task.attemptBlocking(f(ss.session))
-    } yield output
+    ZIO.serviceWithZIO[SparkSession](_.attemptBlocking(f))
+
 }

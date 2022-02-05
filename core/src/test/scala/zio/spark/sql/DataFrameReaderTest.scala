@@ -1,12 +1,9 @@
 package zio.spark.sql
 
-import zio.ZIO
-import zio.spark.parameter._
 import zio.test._
-import zio.test.Assertion._
 
 object DataFrameReaderTest extends DefaultRunnableSpec {
-  val reader: ZIO[Any, Throwable, DataFrameReader] = SparkSession.builder.master(localAllNodes).getOrCreate.map(_.read)
+  val reader: DataFrameReader = SparkSession.read
 
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
     dataFrameReaderOptionsSpec + dataFrameReaderOptionDefinitionsSpec
@@ -15,42 +12,75 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
     suite("DataFrameReader Options")(
       test("DataFrameReader should apply options correctly") {
         val options           = Map("a" -> "x", "b" -> "y")
-        val readerWithOptions = reader.map(_.options(options))
+        val readerWithOptions = reader.options(options)
 
-        readerWithOptions.map(r => assert(r.options)(equalTo(options)))
+        assertTrue(readerWithOptions.options == options)
       }
     )
 
-  def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
-    suite("DataFrameReader Option Definitions")({
-      case class Conftest(
-          text:        String,
-          f:           DataFrameReader => DataFrameReader,
-          keyOutput:   String,
-          valueOutput: String
+  def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] = {
+    case class ReaderTest(
+        testName:      String,
+        endo:          DataFrameReader => DataFrameReader,
+        expectedKey:   String,
+        expectedValue: String
+    ) {
+
+      def build: ZSpec[Any, Nothing] =
+        test(s"DataFrameReader can add the option (${testName})") {
+          val readerWithOptions = endo(reader)
+          val options           = Map(expectedKey -> expectedValue)
+
+          assertTrue(readerWithOptions.options == options)
+        }
+    }
+
+    val tests =
+      List(
+        ReaderTest(
+          testName      = "Any option with a boolean value",
+          endo          = _.option("a", value = true),
+          expectedKey   = "a",
+          expectedValue = "true"
+        ),
+        ReaderTest(
+          testName      = "Any option with a int value",
+          endo          = _.option("a", 1),
+          expectedKey   = "a",
+          expectedValue = "1"
+        ),
+        ReaderTest(
+          testName      = "Any option with a float value",
+          endo          = _.option("a", 1f),
+          expectedKey   = "a",
+          expectedValue = "1.0"
+        ),
+        ReaderTest(
+          testName      = "Any option with a double value",
+          endo          = _.option("a", 1d),
+          expectedKey   = "a",
+          expectedValue = "1.0"
+        ),
+        ReaderTest(
+          testName      = "Option that infer schema",
+          endo          = _.inferSchema,
+          expectedKey   = "inferSchema",
+          expectedValue = "true"
+        ),
+        ReaderTest(
+          testName      = "Option that read header",
+          endo          = _.withHeader,
+          expectedKey   = "header",
+          expectedValue = "true"
+        ),
+        ReaderTest(
+          testName      = "Option that setup delimiter",
+          endo          = _.withDelimiter(";"),
+          expectedKey   = "delimiter",
+          expectedValue = ";"
+        )
       )
 
-      val conftests =
-        List(
-          Conftest("Any option with a boolean value", _.option("a", value = true), "a", "true"),
-          Conftest("Any option with a int value", _.option("a", 1), "a", "1"),
-          Conftest("Any option with a float value", _.option("a", 1f), "a", "1.0"),
-          Conftest("Any option with a double value", _.option("a", 1d), "a", "1.0"),
-          Conftest("Option that infer schema", _.inferSchema, "inferSchema", "true"),
-          Conftest("Option that read header", _.withHeader, "header", "true"),
-          Conftest("Option that setup delimiter", _.withDelimiter(";"), "delimiter", ";")
-        )
-
-      val tests =
-        conftests.map(conftest =>
-          test(s"DataFrameReader can add the option (${conftest.text})") {
-            val readerWithOptions = reader.map(conftest.f(_))
-            val options           = Map(conftest.keyOutput -> conftest.valueOutput)
-
-            readerWithOptions.map(r => assert(r.options)(equalTo(options)))
-          }
-        )
-
-      tests
-    }: _*)
+    suite("DataFrameReader Option Definitions")(tests.map(_.build): _*)
+  }
 }

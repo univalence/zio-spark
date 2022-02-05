@@ -5,7 +5,9 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 import zio.Task
 import zio.spark.rdd.RDD
 
-final case class Dataset[T](ds: UnderlyingDataset[T]) extends ExtraDatasetFeature[T](ds) {
+final case class Dataset[T](private var ds: UnderlyingDataset[T]) extends ExtraDatasetFeature[T](ds) {
+  // TODO : find a better way
+  ds = null
 
   /**
    * Maps each record to the specified type.
@@ -16,7 +18,10 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) extends ExtraDatasetFeatur
   def as[U: Encoder]: Dataset[U] = transformation(_.as[U])
 
   /** Applies a transformation to the underlying dataset. */
-  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(f(ds))
+  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(succeedNow(f))
+
+  /** Applies an action to the underlying dataset. */
+  def action[A](f: UnderlyingDataset[T] => A): Task[A] = attemptBlocking(f)
 
   /**
    * Limits the number of rows of a dataset.
@@ -80,9 +85,6 @@ final case class Dataset[T](ds: UnderlyingDataset[T]) extends ExtraDatasetFeatur
    */
   def head(n: Int): Task[List[T]] = action(_.head(n).toList)
 
-  /** Applies an action to the underlying dataset. */
-  def action[A](f: UnderlyingDataset[T] => A): Task[A] = Task.attemptBlocking(f(ds))
-
   /** Transform the dataset into a [[RDD]]. */
-  def rdd: RDD[T] = RDD(ds.rdd)
+  def rdd: RDD[T] = RDD(succeedNow(_.rdd))
 }

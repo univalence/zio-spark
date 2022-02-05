@@ -14,14 +14,14 @@ object DatasetTest {
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
 
-        val pipeline = Pipeline.buildWithoutProcessing(read)(write)
+        val pipeline = Pipeline.buildWithoutTransformation(read)(write)
 
         pipeline.run.map(assert(_)(equalTo(4L)))
       },
       test("Dataset should implement collect correctly") {
         val write: DataFrame => Task[Seq[Row]] = _.collect
 
-        val pipeline = Pipeline.buildWithoutProcessing(read)(write)
+        val pipeline = Pipeline.buildWithoutTransformation(read)(write)
 
         pipeline.run.map(assert(_)(hasSize(equalTo(4))))
       },
@@ -44,7 +44,7 @@ object DatasetTest {
       test("Dataset should implement headOption/firstOption correctly") {
         val write: DataFrame => Task[Option[Row]] = _.firstOption
 
-        val pipeline = Pipeline.buildWithoutProcessing(readEmpty)(write)
+        val pipeline = Pipeline.buildWithoutTransformation(readEmpty)(write)
 
         pipeline.run.map(assert(_)(isNone))
       }

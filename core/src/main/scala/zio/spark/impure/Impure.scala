@@ -14,7 +14,7 @@ abstract class Impure[+A](private val value: A) {
 
   final protected def attemptNow[B](f: A => B): Try[B] = Try(f(value))
 
-  final protected def succeed[B, C](f: A => B): UIO[B] = UIO(f(value))
+  final protected def succeed[B, C](f: A => B): UIO[B] = ZIO.succeed(f(value))
 
   final protected def succeedWithZIO[R, E, B](f: A => ZIO[R, E, B]): ZIO[R, E, B] = f(value)
 

@@ -3,30 +3,33 @@ package zio.spark.sql
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
+import zio.spark.impure.Impure
 import zio.spark.parameter._
 
-final case class SparkSession(session: UnderlyingSparkSession) {
-
-  /** Creates the DataFrameReader. */
-  def read: DataFrameReader = DataFrameReader(Map())
+final case class SparkSession(private var session: UnderlyingSparkSession) extends Impure(session) {
+  // TODO : find a better way to trash the local variable
+  session = null
 
   /** Closes the current SparkSession. */
-  def close: Task[Unit] = Task.attemptBlocking(session.close())
+  def close: Task[Unit] = attemptBlocking(_.close())
 }
 
 object SparkSession extends Accessible[SparkSession] {
+
+  /** Creates the DataFrameReader. */
+  def read: DataFrameReader = DataFrameReader(Map.empty)
 
   /**
    * Creates a [[SparkSession.Builder]].
    *
    * See [[UnderlyingSparkSession.builder]] for more information.
    */
-  def builder: Builder = Builder(UnderlyingSparkSession.builder())
+  def builder: Builder = Builder(UnderlyingSparkSession.builder(), Map.empty)
 
   /** Use the SparkSession to generate a [[Dataset]]. */
   def use[T](f: SparkSession => Spark[Dataset[T]]): Spark[Dataset[T]] = ZIO.service[SparkSession].flatMap(f)
 
-  final case class Builder(builder: UnderlyingSparkSession.Builder, extraConfigs: Map[String, String] = Map()) {
+  final case class Builder(builder: UnderlyingSparkSession.Builder, extraConfigs: Map[String, String]) {
     self =>
 
     /**
