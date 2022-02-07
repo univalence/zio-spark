@@ -4,18 +4,18 @@ import org.apache.spark.rdd.{RDD => UnderlyingRDD}
 
 import zio.Task
 import zio.spark.impure.Impure
+import zio.spark.impure.Impure.ImpureBox
 
 import scala.reflect.ClassTag
 
-final case class RDD[T](private var rdd: UnderlyingRDD[T]) extends Impure[UnderlyingRDD[T]](rdd) {
-  // TODO : find another way by creating an impureWrapper to hold the element and use secondary constructors
-  rdd = null // trash the rdd in the local scope, force the use of Impure
+final case class RDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impure[UnderlyingRDD[T]](underlyingRDD) {
+  import underlyingRDD._
 
   /** Applies an action to the underlying RDD. */
   def action[U](f: UnderlyingRDD[T] => U): Task[U] = attemptBlocking(f)
 
   /** Applies a transformation to the underlying RDD. */
-  def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = succeedNow(f.andThen(RDD.apply))
+  def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = succeedNow(f.andThen(x => RDD(x)))
 
   /**
    * Counts the number of elements of a RDD.
@@ -34,6 +34,12 @@ final case class RDD[T](private var rdd: UnderlyingRDD[T]) extends Impure[Underl
   /**
    * Return a new RDD by applying a function to all elements of this
    * RDD.
+   *
+   * See [[UnderlyingRDD.map]] for more information.
    */
   def map[U: ClassTag](f: T => U): RDD[U] = transformation(_.map(f))
+}
+
+object RDD {
+  // def apply[T](rdd:UnderlyingRDD[T]) = new RDD[T](rdd)
 }

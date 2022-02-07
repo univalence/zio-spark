@@ -3,11 +3,12 @@ package zio.spark.sql
 import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 
 import zio.Task
+import zio.spark.impure.Impure.ImpureBox
 import zio.spark.rdd.RDD
 
-final case class Dataset[T](private var ds: UnderlyingDataset[T]) extends ExtraDatasetFeature[T](ds) {
-  // TODO : find a better way
-  ds = null
+final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
+    extends ExtraDatasetFeature[T](underlyingDataset) {
+  import underlyingDataset._
 
   /**
    * Maps each record to the specified type.
@@ -18,7 +19,7 @@ final case class Dataset[T](private var ds: UnderlyingDataset[T]) extends ExtraD
   def as[U: Encoder]: Dataset[U] = transformation(_.as[U])
 
   /** Applies a transformation to the underlying dataset. */
-  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(succeedNow(f))
+  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(ImpureBox(succeedNow(f)))
 
   /** Applies an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = attemptBlocking(f)
@@ -87,4 +88,8 @@ final case class Dataset[T](private var ds: UnderlyingDataset[T]) extends ExtraD
 
   /** Transform the dataset into a [[RDD]]. */
   def rdd: RDD[T] = RDD(succeedNow(_.rdd))
+}
+
+object Dataset {
+  // def apply[T](dataset: UnderlyingDataset[T]):Dataset[T] = new Dataset[T](dataset)
 }

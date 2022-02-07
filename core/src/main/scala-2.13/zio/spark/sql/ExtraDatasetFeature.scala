@@ -1,12 +1,16 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{Dataset => UnderlyingDataset}
+import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 
 import zio.Task
 import zio.spark.impure.Impure
+import zio.spark.impure.Impure.ImpureBox
 
-abstract class ExtraDatasetFeature[T](private var ds: UnderlyingDataset[T]) extends Impure[UnderlyingDataset[T]](ds) {
-  ds = null
+abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
+    extends Impure[UnderlyingDataset[T]](underlyingDataset) {
+  import underlyingDataset._
+
+  final def encoder: Encoder[T] = succeedNow(_.encoder)
 
   /**
    * Takes the n last elements of a dataset.

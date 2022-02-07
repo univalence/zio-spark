@@ -1,17 +1,21 @@
 package zio.spark.sql
 
+import org.apache.spark.sql
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
 import zio.spark.impure.Impure
+import zio.spark.impure.Impure.ImpureBox
 import zio.spark.parameter._
 
-final case class SparkSession(private var session: UnderlyingSparkSession) extends Impure(session) {
-  // TODO : find a better way to trash the local variable
-  session = null
+final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkSession])
+    extends Impure(underlyingSparkSession) {
+  import underlyingSparkSession._
 
   /** Closes the current SparkSession. */
   def close: Task[Unit] = attemptBlocking(_.close())
+
+  def conf: ImpureBox[sql.RuntimeConfig] = ImpureBox(succeedNow(_.conf))
 }
 
 object SparkSession extends Accessible[SparkSession] {
