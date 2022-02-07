@@ -7,6 +7,7 @@ import zio._
 import zio.spark.impure.Impure
 import zio.spark.impure.Impure.ImpureBox
 import zio.spark.parameter._
+import zio.spark.sql.SparkSession.Conf
 
 final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkSession])
     extends Impure(underlyingSparkSession) {
@@ -15,10 +16,18 @@ final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkS
   /** Closes the current SparkSession. */
   def close: Task[Unit] = attemptBlocking(_.close())
 
-  def conf: ImpureBox[sql.RuntimeConfig] = ImpureBox(succeedNow(_.conf))
+  def conf: Conf =
+    new Conf {
+      override def getAll: UIO[Map[String, String]] = succeed(_.conf.getAll)
+    }
+
 }
 
 object SparkSession extends Accessible[SparkSession] {
+
+  trait Conf {
+    def getAll: UIO[Map[String, String]]
+  }
 
   /** Creates the DataFrameReader. */
   def read: DataFrameReader = DataFrameReader(Map.empty)
