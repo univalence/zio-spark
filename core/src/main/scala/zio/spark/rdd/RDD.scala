@@ -39,7 +39,3 @@ final case class RDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impu
    */
   def map[U: ClassTag](f: T => U): RDD[U] = transformation(_.map(f))
 }
-
-object RDD {
-  // def apply[T](rdd:UnderlyingRDD[T]) = new RDD[T](rdd)
-}
