@@ -19,7 +19,8 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
   def as[U: Encoder]: Dataset[U] = transformation(_.as[U])
 
   /** Applies a transformation to the underlying dataset. */
-  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(ImpureBox(succeedNow(f)))
+  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] =
+    succeedNow(f.andThen(x => Dataset(x)))
 
   /** Applies an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = attemptBlocking(f)
@@ -88,8 +89,4 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
 
   /** Transform the dataset into a [[RDD]]. */
   def rdd: RDD[T] = RDD(succeedNow(_.rdd))
-}
-
-object Dataset {
-  // def apply[T](dataset: UnderlyingDataset[T]):Dataset[T] = new Dataset[T](dataset)
 }
