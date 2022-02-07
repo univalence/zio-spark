@@ -4,6 +4,6 @@ import zio.spark.CompatibilityTestBetween
 
 object DataFrameReaderCompatibilityTest
     extends CompatibilityTestBetween[org.apache.spark.sql.DataFrameReader, zio.spark.sql.DataFrameReader](
-      Seq("withHeader", "withDelimiter", "inferSchema"),
-      false
+      allowedNewMethods = Seq("withHeader", "withDelimiter", "inferSchema"),
+      isImpure          = false
     )

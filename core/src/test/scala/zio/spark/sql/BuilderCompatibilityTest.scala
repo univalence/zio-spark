@@ -4,6 +4,6 @@ import zio.spark.CompatibilityTestBetween
 
 object BuilderCompatibilityTest
     extends CompatibilityTestBetween[org.apache.spark.sql.SparkSession.Builder, zio.spark.sql.SparkSession.Builder](
-      Seq("extraConfigs", "getOrCreateLayer", "driverMemory", "builder", "configs"),
-      false
+      allowedNewMethods = Seq("extraConfigs", "getOrCreateLayer", "driverMemory", "builder", "configs"),
+      isImpure          = false
     )

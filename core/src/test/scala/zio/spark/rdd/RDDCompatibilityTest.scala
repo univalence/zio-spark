@@ -4,6 +4,6 @@ import zio.spark.CompatibilityTestBetween
 
 object RDDCompatibilityTest
     extends CompatibilityTestBetween[org.apache.spark.rdd.RDD[Any], zio.spark.rdd.RDD[Any]](
-      Seq("underlyingRDD", "transformation", "action"),
-      true
+      allowedNewMethods = Seq("underlyingRDD", "transformation", "action"),
+      isImpure          = true
     )
