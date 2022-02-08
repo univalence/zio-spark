@@ -87,6 +87,17 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    */
   def head(n: Int): Task[List[T]] = action(_.head(n).toList)
 
-  /** Transform the dataset into a [[RDD]]. */
+  /**
+   * Transform the dataset into a [[RDD]].
+   *
+   * See [[UnderlyingDataset.rdd]] for more information.
+   */
   def rdd: RDD[T] = RDD(succeedNow(_.rdd))
+
+  /**
+   * Chains custom transformations.
+   *
+   * See [[UnderlyingDataset.transform]] for more information.
+   */
+  def transform[U](t: Dataset[T] => Dataset[U]): Dataset[U] = t(this)
 }

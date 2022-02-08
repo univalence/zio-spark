@@ -83,6 +83,15 @@ object DatasetTest {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res)(equalTo("M")))
+      },
+      test("Dataset should implement transform correctly") {
+        val subprocess: DataFrame => Dataset[String] = _.as[Person].map(_.name.drop(1))
+        val process: DataFrame => Dataset[String]    = _.transform(subprocess)
+        val write: Dataset[String] => Task[String]   = _.head
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res)(equalTo("aria")))
       }
     )
 
