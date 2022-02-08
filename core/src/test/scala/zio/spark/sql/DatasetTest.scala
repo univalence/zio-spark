@@ -83,6 +83,14 @@ object DatasetTest {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res)(equalTo("M")))
+      },
+      test("Dataset should implement summary correctly") {
+        val process: DataFrame => DataFrame    = _.summary(Statistics.Count, Statistics.Max)
+        val write: DataFrame => Task[Seq[Row]] = _.collect
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res)(hasSize(equalTo(2))))
       }
     )
 
