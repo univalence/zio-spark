@@ -92,6 +92,22 @@ object DatasetTest {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res)(equalTo("aria")))
+      },
+      test("Dataset should implement dropDuplicates with colnames correctly") {
+        val process: DataFrame => Dataset[Person] = _.as[Person].flatMap(r => List(r, r)).dropDuplicates(Seq("name"))
+        val write: Dataset[Person] => Task[Long]  = _.count
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res)(equalTo(4L)))
+      },
+      test("Dataset should implement distinct/dropDuplicates correctly") {
+        val process: DataFrame => Dataset[Person] = _.as[Person].flatMap(r => List(r, r)).distinct
+        val write: Dataset[Person] => Task[Long]  = _.count
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res)(equalTo(4L)))
       }
     )
 
