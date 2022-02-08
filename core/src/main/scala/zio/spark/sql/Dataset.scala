@@ -33,6 +33,14 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
   def limit(n: Int): Dataset[T] = transformation(_.limit(n))
 
   /**
+   * Returns a new Dataset that only contains elements respecting the
+   * predicate.
+   *
+   * See [[UnderlyingDataset.filter]] for more information.
+   */
+  def filter(f: T => Boolean): Dataset[T] = transformation(_.filter(f))
+
+  /**
    * Applies the function f to each record of the dataset.
    *
    * See [[UnderlyingDataset.map]] for more information.

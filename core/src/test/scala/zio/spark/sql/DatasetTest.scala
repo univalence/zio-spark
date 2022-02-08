@@ -108,6 +108,14 @@ object DatasetTest {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res)(equalTo(4L)))
+      },
+      test("Dataset should implement filter correctly") {
+        val process: DataFrame => Dataset[Person]  = _.as[Person].filter(_.name == "Peter")
+        val write: Dataset[Person] => Task[Person] = _.head
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
       }
     )
 
