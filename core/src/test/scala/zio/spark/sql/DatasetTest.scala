@@ -150,9 +150,9 @@ object DatasetTest {
         val job =
           for {
             df           <- read
-            _            <- df.persist
-            _            <- df.count
-            storageLevel <- df.storageLevel
+            persistedDf  <- df.persist
+            _            <- persistedDf.count
+            storageLevel <- persistedDf.storageLevel
           } yield storageLevel
 
         job.map(assert(_)(equalTo(StorageLevel.MEMORY_AND_DISK)))
@@ -160,11 +160,11 @@ object DatasetTest {
       test("We can unpersist a DataFrame") {
         val job =
           for {
-            df           <- read
-            _            <- df.persist
-            _            <- df.unpersist
-            _            <- df.count
-            storageLevel <- df.storageLevel
+            df            <- read
+            persistedDf   <- df.persist
+            unpersistedDf <- persistedDf.unpersist
+            _             <- unpersistedDf.count
+            storageLevel  <- unpersistedDf.storageLevel
           } yield storageLevel
 
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
@@ -172,11 +172,11 @@ object DatasetTest {
       test("We can unpersist a DataFrame in a blocking way") {
         val job =
           for {
-            df           <- read
-            _            <- df.persist
-            _            <- df.unpersistBlocking
-            _            <- df.count
-            storageLevel <- df.storageLevel
+            df            <- read
+            persistedDf   <- df.persist
+            unpersistedDf <- persistedDf.unpersistBlocking
+            _             <- unpersistedDf.count
+            storageLevel  <- unpersistedDf.storageLevel
           } yield storageLevel
 
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
