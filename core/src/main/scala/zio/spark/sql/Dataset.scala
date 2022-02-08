@@ -100,4 +100,23 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    * See [[UnderlyingDataset.transform]] for more information.
    */
   def transform[U](t: Dataset[T] => Dataset[U]): Dataset[U] = t(this)
+
+  /**
+   * Returns a new Dataset that contains only the unique rows from this
+   * Dataset, considering only the subset of columns.
+   *
+   * See [[UnderlyingDataset.dropDuplicates]] for more information.
+   */
+  def dropDuplicates(colNames: Seq[String]): Dataset[T] = transformation(_.dropDuplicates(colNames))
+
+  /**
+   * Returns a new Dataset that contains only the unique rows from this
+   * Dataset, considering all columns.
+   *
+   * See [[UnderlyingDataset.dropDuplicates]] for more information.
+   */
+  def dropDuplicates: Dataset[T] = transformation(_.dropDuplicates())
+
+  /** Alias for [[dropDuplicates]]. */
+  def distinct: Dataset[T] = dropDuplicates
 }
