@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import zio.spark.CompatibilityTestBetween
+import zio.spark.helper.CompatibilityTestBetween
 
 object BuilderCompatibilityTest
     extends CompatibilityTestBetween[org.apache.spark.sql.SparkSession.Builder, zio.spark.sql.SparkSession.Builder](

@@ -1,6 +1,6 @@
-package zio.spark
+package zio.spark.helper
 
-import zio.spark.sql._
+import zio.spark.sql.{DataFrame, Dataset, Spark, SparkSession}
 
 object Fixture {
   def readCsv(path: String): Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(path)

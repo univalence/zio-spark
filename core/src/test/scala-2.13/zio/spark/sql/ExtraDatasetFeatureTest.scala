@@ -3,7 +3,7 @@ package zio.spark.sql
 import org.apache.spark.sql.Row
 
 import zio.Task
-import zio.spark.Fixture._
+import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
 

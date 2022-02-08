@@ -1,4 +1,4 @@
-package zio.spark
+package zio.spark.helper
 
 import zio.test._
 import zio.test.Assertion._

@@ -1,12 +1,11 @@
 package zio.spark.parameter
 
-sealed trait Size
+sealed trait Size {
+  self =>
+  import Size._
 
-object Size {
-
-  /** Converts the Size into its String representation. */
-  def sizeToString(size: Size): String =
-    size match {
+  override def toString: String =
+    self match {
       case Unlimited   => "0"
       case Byte(v)     => s"${v}b"
       case KibiByte(v) => s"${v}kb"
@@ -15,7 +14,9 @@ object Size {
       case TebiByte(v) => s"${v}tb"
       case PebiByte(v) => s"${v}pb"
     }
+}
 
+object Size {
   final case class Byte(amount: Int) extends Size
 
   final case class KibiByte(amount: Int) extends Size

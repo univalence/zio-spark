@@ -22,6 +22,5 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
    *
    * See [[UnderlyingDataset.summary]] for more information.
    */
-  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
-    summary(statistics.map(statisticsToString): _*)
+  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame = summary(statistics.map(_.toString): _*)
 }

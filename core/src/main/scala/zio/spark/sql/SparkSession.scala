@@ -69,7 +69,7 @@ object SparkSession extends Accessible[SparkSession] {
     def configs(configs: Map[String, String]): Builder = copy(builder, extraConfigs ++ configs)
 
     /** Configures the master using a [[Master]]. */
-    def master(masterMode: Master): Builder = master(Master.masterToString(masterMode))
+    def master(masterMode: Master): Builder = master(masterMode.toString)
 
     /** Configures the master using a String. */
     def master(master: String): Builder = config("spark.master", master)
@@ -99,7 +99,7 @@ object SparkSession extends Accessible[SparkSession] {
      * Note: In client mode, set this through the --driver-memory
      * command line option or in your default properties file.
      */
-    def driverMemory(size: Size): Builder = driverMemory(Size.sizeToString(size))
+    def driverMemory(size: Size): Builder = driverMemory(size.toString)
 
     /**
      * Configure the amount of memory to use for the driver process

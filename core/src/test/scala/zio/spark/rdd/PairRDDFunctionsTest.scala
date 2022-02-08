@@ -1,6 +1,6 @@
 package zio.spark.rdd
 
-import zio.spark.Fixture.readLorem
+import zio.spark.helper.Fixture.readLorem
 import zio.spark.sql._
 import zio.test._
 import zio.test.Assertion._
