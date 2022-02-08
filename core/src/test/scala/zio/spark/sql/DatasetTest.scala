@@ -145,11 +145,11 @@ object DatasetTest {
 
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
       },
-      test("We can persist a DataFrame") {
+      test("We can cache a DataFrame") {
         val job =
           for {
             df           <- read
-            _            <- df.persist
+            _            <- df.cache
             storageLevel <- df.storageLevel
           } yield storageLevel
 
