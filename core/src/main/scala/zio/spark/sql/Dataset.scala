@@ -5,7 +5,6 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 import zio.Task
 import zio.spark.impure.Impure.ImpureBox
 import zio.spark.rdd.RDD
-import zio.spark.sql.Statistics.statisticsToString
 
 final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     extends ExtraDatasetFeature[T](underlyingDataset) {
@@ -90,19 +89,4 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
 
   /** Transform the dataset into a [[RDD]]. */
   def rdd: RDD[T] = RDD(succeedNow(_.rdd))
-
-  /**
-   * Computes specified statistics for numeric and string columns.
-   *
-   * See [[UnderlyingDataset.summary]] for more information.
-   */
-  def summary(statistics: String*): DataFrame = transformation(_.summary(statistics: _*))
-
-  /**
-   * Computes specified statistics for numeric and string columns.
-   *
-   * See [[UnderlyingDataset.summary]] for more information.
-   */
-  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
-    summary(statistics.map(statisticsToString): _*)
 }

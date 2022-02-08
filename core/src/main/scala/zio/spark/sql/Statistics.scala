@@ -5,14 +5,14 @@ sealed trait Statistics
 object Statistics {
   self =>
 
-  case object Count                              extends Statistics
-  case object Mean                               extends Statistics
-  case object Stddev                             extends Statistics
-  case object Min                                extends Statistics
-  case object Max                                extends Statistics
-  case class ApproximatePercentile(percent: Int) extends Statistics
-  case object CountDistinct                      extends Statistics
-  case object ApproximateCountDistinct           extends Statistics
+  case object Count                                    extends Statistics
+  case object Mean                                     extends Statistics
+  case object Stddev                                   extends Statistics
+  case object Min                                      extends Statistics
+  case object Max                                      extends Statistics
+  final case class ApproximatePercentile(percent: Int) extends Statistics
+  case object CountDistinct                            extends Statistics
+  case object ApproximateCountDistinct                 extends Statistics
 
   def statisticsToString(statistics: Statistics): String =
     statistics match {
