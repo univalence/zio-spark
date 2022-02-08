@@ -15,6 +15,9 @@ final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkS
   /** Closes the current SparkSession. */
   def close: Task[Unit] = attemptBlocking(_.close())
 
+  /** Executes a SQL query using Spark. */
+  def sql(sqlText: String): Task[DataFrame] = attemptBlocking(ss => Dataset(ss.sql(sqlText)))
+
   def conf: Conf =
     new Conf {
       override def getAll: UIO[Map[String, String]] = succeed(_.conf.getAll)

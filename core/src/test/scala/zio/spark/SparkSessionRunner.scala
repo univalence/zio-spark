@@ -24,6 +24,7 @@ object SparkSessionRunner extends DefaultRunnableSpec {
       Seq(
         DatasetTest.datasetActionsSpec,
         DatasetTest.datasetTransformationsSpec,
+        DatasetTest.sqlSpec,
         DatasetTest.fromSparkSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,
