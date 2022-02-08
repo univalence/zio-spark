@@ -136,7 +136,7 @@ object DatasetTest {
 
   def persistencySpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Persistency Tests")(
-      test("By default a dataset as no persistency") {
+      test("By default a dataset has no persistency") {
         val job =
           for {
             df           <- read
