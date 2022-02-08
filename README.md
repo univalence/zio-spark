@@ -16,8 +16,6 @@
    Spark-ZIO allows access to Spark using ZIO's environment.
 </p>
 
-:warning: The repository is currently under construction, a new version of zio-spark will be out soon !
-
 ## WHY ?
 
 There are 2 main reasons to use this kind of technique of library :

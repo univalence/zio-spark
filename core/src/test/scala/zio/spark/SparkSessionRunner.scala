@@ -30,6 +30,6 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         PairRDDFunctionsTest.spec
       )
 
-    specs.reduceLeft(_ + _).provideShared(session)
+    suite("Spark tests")(specs: _*).provideShared(session)
   }
 }
