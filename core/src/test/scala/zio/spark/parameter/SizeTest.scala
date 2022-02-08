@@ -1,15 +1,10 @@
 package zio.spark.parameter
 
-import zio.test.{assert, Annotations, DefaultRunnableSpec, Live, Spec, TestFailure, TestSuccess}
-import zio.test.Assertion.equalTo
+import zio.spark.helper._
 
-object SizeTest extends DefaultRunnableSpec {
-
-  val sizeSpec: Spec[Any, TestFailure[Throwable], TestSuccess] =
-    suite("To string representation")({
-      case class Conftest(text: String, input: Size, output: String)
-
-      val conftests =
+object SizeTest
+    extends ADTTestFor[Size](
+      conftests =
         List(
           Conftest("unlimited", unlimitedSize, "0"),
           Conftest("bytes", 2.bytes, "2b"),
@@ -25,17 +20,4 @@ object SizeTest extends DefaultRunnableSpec {
           Conftest("pebibytes", 7.pebibytes, "7pb"),
           Conftest("pebibytes (alias)", 7.pb, "7pb")
         )
-
-      val tests =
-        conftests.map(conftest =>
-          test(s"Size is converted into its string representation correctly (${conftest.text})") {
-            assert(Size.sizeToString(conftest.input))(equalTo(conftest.output))
-          }
-        )
-
-      tests
-    }: _*)
-
-  def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] = sizeSpec
-
-}
+    )

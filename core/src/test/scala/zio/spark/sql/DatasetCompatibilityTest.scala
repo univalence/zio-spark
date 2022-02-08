@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import zio.spark.CompatibilityTestBetween
+import zio.spark.helper.CompatibilityTestBetween
 import zio.spark.sql.ExtraDatasetCompatibilityMethods._
 
 object DatasetCompatibilityTest

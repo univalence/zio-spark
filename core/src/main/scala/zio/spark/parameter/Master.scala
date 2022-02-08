@@ -1,12 +1,12 @@
 package zio.spark.parameter
 
-sealed trait Master
+sealed trait Master {
+  self =>
 
-object Master {
+  import Master._
 
-  /** Converts the Master into its String representation. */
-  def masterToString(master: Master): String =
-    master match {
+  override def toString: String =
+    self match {
       case Local(nWorkers)                          => s"local[$nWorkers]"
       case LocalWithFailures(nWorkers, maxFailures) => s"local[$nWorkers,$maxFailures]"
       case LocalAllNodes                            => "local[*]"
@@ -17,7 +17,9 @@ object Master {
       case Mesos(master) => s"mesos://${master.toSparkString}"
       case Yarn          => "yarn"
     }
+}
 
+object Master {
   final case class MasterNodeConfiguration(host: String, port: Int) {
     def toSparkString: String = s"$host:$port"
   }

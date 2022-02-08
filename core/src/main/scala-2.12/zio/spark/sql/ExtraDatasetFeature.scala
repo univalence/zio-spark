@@ -4,7 +4,6 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 
 import zio.spark.impure.Impure
 import zio.spark.impure.Impure.ImpureBox
-import zio.spark.sql.Statistics.statisticsToString
 
 abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
   extends Impure[UnderlyingDataset[T]](underlyingDataset) {
@@ -22,6 +21,5 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
    *
    * See [[UnderlyingDataset.summary]] for more information.
    */
-  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
-    summary(statistics.map(statisticsToString): _*)
+  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame = summary(statistics.map(_.toString): _*)
 }
