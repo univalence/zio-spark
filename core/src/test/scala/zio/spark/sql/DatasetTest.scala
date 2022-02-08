@@ -134,18 +134,51 @@ object DatasetTest {
       }
     )
 
-  def persistencySpec: Spec[SparkSession, TestFailure[Throwable], TestSuccess] =
+  def persistencySpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Persistency Tests")(
       test("By default a dataset as no persistency") {
-        val job = read.map(_.storageLevel)
+        val job =
+          for {
+            df           <- read
+            storageLevel <- df.storageLevel
+            _            <- df.count
+          } yield storageLevel
+
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
       },
-      test("We can cache a DataFrame") {
-        val job = read.map(_.cache.storageLevel)
+      test("We can persist a DataFrame") {
+        val job =
+          for {
+            df           <- read
+            _            <- df.persist
+            _            <- df.count
+            storageLevel <- df.storageLevel
+          } yield storageLevel
+
         job.map(assert(_)(equalTo(StorageLevel.MEMORY_AND_DISK)))
       },
       test("We can unpersist a DataFrame") {
-        val job = read.map(_.persist.unpersist.storageLevel)
+        val job =
+          for {
+            df           <- read
+            _            <- df.persist
+            _            <- df.unpersist
+            _            <- df.count
+            storageLevel <- df.storageLevel
+          } yield storageLevel
+
+        job.map(assert(_)(equalTo(StorageLevel.NONE)))
+      },
+      test("We can unpersist a DataFrame in a blocking way") {
+        val job =
+          for {
+            df           <- read
+            _            <- df.persist
+            _            <- df.unpersistBlocking
+            _            <- df.count
+            storageLevel <- df.storageLevel
+          } yield storageLevel
+
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
       }
     )

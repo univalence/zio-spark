@@ -134,17 +134,25 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.persist]] for more information.
    */
-  def persist(storageLevel: StorageLevel): Dataset[T] = transformation(_.persist(storageLevel))
+  def persist(storageLevel: StorageLevel): Task[Unit] = attemptBlocking(_.persist(storageLevel))
 
   /**
    * Persist this Dataset with the default storage level.
    *
    * See [[UnderlyingDataset.persist]] for more information.
    */
-  def persist: Dataset[T] = persist(StorageLevel.MEMORY_AND_DISK)
+  def persist: Task[Unit] = persist(StorageLevel.MEMORY_AND_DISK)
 
   /** Alias for [[persist]]. */
-  def cache: Dataset[T] = persist
+  def cache: Task[Unit] = persist
+
+  /**
+   * Mark the Dataset as non-persistent, and remove all blocks for it
+   * from memory and disk in a blocking way.
+   *
+   * See [[UnderlyingDataset.unpersist]] for more information.
+   */
+  def unpersistBlocking: Task[Unit] = attemptBlocking(_.unpersist(blocking = true))
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
@@ -152,15 +160,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersist(blocking: Boolean): Dataset[T] = transformation(_.unpersist(blocking))
-
-  /**
-   * Mark the Dataset as non-persistent, and remove all blocks for it
-   * from memory and disk.
-   *
-   * See [[UnderlyingDataset.unpersist]] for more information.
-   */
-  def unpersist: Dataset[T] = unpersist(blocking = false)
+  def unpersist: Task[Unit] = attempt(_.unpersist(blocking = false))
 
   /**
    * Get the Dataset's current storage level, or StorageLevel.NONE if
@@ -168,5 +168,5 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.storageLevel]] for more information.
    */
-  def storageLevel: StorageLevel = succeedNow(_.storageLevel)
+  def storageLevel: Task[StorageLevel] = attemptBlocking(_.storageLevel)
 }
