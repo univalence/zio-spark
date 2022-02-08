@@ -7,6 +7,7 @@ import zio.{Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
+import zio.test.TestAspect._
 
 object DatasetTest {
 
@@ -134,7 +135,8 @@ object DatasetTest {
       }
     )
 
-  def persistencySpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def persistencySpec
+      : Spec[Annotations with TestConfig with ZTestEnv with SparkSession, TestFailure[Throwable], TestSuccess] =
     suite("Persistency Tests")(
       test("By default a dataset as no persistency") {
         val job =
@@ -144,7 +146,7 @@ object DatasetTest {
           } yield storageLevel
 
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
-      },
+      } @@ flaky,
       test("We can cache a DataFrame") {
         val job =
           for {
@@ -154,7 +156,7 @@ object DatasetTest {
           } yield storageLevel
 
         job.map(assert(_)(equalTo(StorageLevel.MEMORY_AND_DISK)))
-      },
+      } @@ flaky,
       test("We can unpersist a DataFrame") {
         val job =
           for {
@@ -165,7 +167,7 @@ object DatasetTest {
           } yield storageLevel
 
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
-      },
+      } @@ flaky,
       test("We can unpersist a DataFrame in a blocking way") {
         val job =
           for {
@@ -176,7 +178,7 @@ object DatasetTest {
           } yield storageLevel
 
         job.map(assert(_)(equalTo(StorageLevel.NONE)))
-      }
+      } @@ flaky
     )
 
   def fromSparkSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
