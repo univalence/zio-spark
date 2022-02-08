@@ -2,7 +2,7 @@ package zio.spark.sql
 
 import org.apache.spark.sql.Row
 
-import zio.Task
+import zio.{Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
@@ -108,6 +108,28 @@ object DatasetTest {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res)(equalTo(4L)))
+      }
+    )
+
+  def sqlSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+    suite("SQL Tests")(
+      test("We can use sql in zio-spark") {
+        val job =
+          for {
+            ss    <- ZIO.service[SparkSession]
+            input <- read
+            _     <- input.createOrReplaceTempView("people")
+            df <-
+              ss.sql(
+                """
+                  |SELECT * FROM people
+                  |WHERE age BETWEEN 15 AND 30
+                  |""".stripMargin
+              )
+            output <- df.count
+          } yield output
+
+        job.map(assert(_)(equalTo(2L)))
       }
     )
 

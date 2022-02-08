@@ -119,4 +119,12 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
 
   /** Alias for [[dropDuplicates]]. */
   def distinct: Dataset[T] = dropDuplicates
+
+  /**
+   * Creates a local temporary view using the given name.
+   *
+   * See [[UnderlyingDataset.createOrReplaceTempView]] for more
+   * information.
+   */
+  def createOrReplaceTempView(viewName: String): Task[Unit] = attemptBlocking(_.createOrReplaceTempView(viewName))
 }
