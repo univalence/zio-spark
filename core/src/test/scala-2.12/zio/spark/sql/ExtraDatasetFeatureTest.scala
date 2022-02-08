@@ -1,5 +1,7 @@
 package zio.spark.sql
 
+import org.apache.spark.sql.Row
+
 import zio.Task
 import zio.spark.Fixture._
 import zio.test._
