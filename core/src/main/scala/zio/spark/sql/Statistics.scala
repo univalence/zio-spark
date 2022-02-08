@@ -3,8 +3,6 @@ package zio.spark.sql
 sealed trait Statistics
 
 object Statistics {
-  self =>
-
   case object Count                                    extends Statistics
   case object Mean                                     extends Statistics
   case object Stddev                                   extends Statistics
