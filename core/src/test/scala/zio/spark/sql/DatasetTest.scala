@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.{AnalysisException, Row}
 
 import zio.{Task, ZIO}
 import zio.spark.helper.Fixture._
@@ -47,6 +47,36 @@ object DatasetTest {
         val pipeline = Pipeline.buildWithoutTransformation(readEmpty)(write)
 
         pipeline.run.map(assert(_)(isNone))
+      }
+    )
+
+  def errorSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+    suite("Dataset error handling")(
+      test("Dataset still can dies with AnalysisException using 'throwAnalysisException' implicit") {
+        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
+        val process: DataFrame => DataFrame = _.selectExpr("yolo")
+        val job                             = read.map(process)
+
+        job.exit.map(assert(_)(dies(isSubtype[AnalysisException](anything))))
+      },
+      test("Dataset can recover from one Analysis error") {
+        val process: DataFrame => DataFrame = x => x.selectExpr("yolo").recover(_ => x)
+        val write: DataFrame => Task[Long]  = _.count
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(assert(_)(equalTo(4L)))
+      },
+      test("Dataset can recover from multiple Analysis error") {
+        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
+        val process: DataFrame => DataFrame = x => x.selectExpr("yolo").filter("tata = titi").recover(_ => x)
+        val write: DataFrame => Task[Long]  = _.count
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(assert(_)(equalTo(4L)))
       }
     )
 
@@ -116,6 +146,26 @@ object DatasetTest {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
+      },
+      test("Dataset should implement filter correctly using expressions") {
+        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
+        val process: DataFrame => Dataset[Person]  = _.as[Person].filter("name == 'Peter'")
+        val write: Dataset[Person] => Task[Person] = _.head
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
+      },
+      test("Dataset should implement selectExpr correctly") {
+        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
+        val process: DataFrame => Dataset[String]  = _.selectExpr("name").as[String]
+        val write: Dataset[String] => Task[String] = _.head
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res)(equalTo("Maria")))
       }
     )
 
