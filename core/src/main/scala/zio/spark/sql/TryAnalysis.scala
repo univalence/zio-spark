@@ -43,8 +43,8 @@ object TryAnalysis {
     def recover[U >: T](failure: AnalysisException => U): U = eval.fold(failure, identity)
   }
 
-  case class Failure(analysisException: AnalysisException) extends TryAnalysis[Nothing]
-  case class Success[T](value: T)                          extends TryAnalysis[T]
+  final case class Failure(analysisException: AnalysisException) extends TryAnalysis[Nothing]
+  final case class Success[T](value: T)                          extends TryAnalysis[T]
 
   def apply[T](t: => T): TryAnalysis[T] =
     try Success(t)
