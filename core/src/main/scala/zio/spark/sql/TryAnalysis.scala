@@ -11,18 +11,20 @@ import scala.util.Try
  * throws an AnalysisException, these transformations are wrapped into a
  * TryAnalysis.
  *
- * You can ignore the TryAnalysis wrapper (and make Spark fails as usual when a
- * impossible transformation is being build (like selecting a column that don't exist)) using:
+ * You can ignore the TryAnalysis wrapper (and make Spark fails as usual
+ * when a impossible transformation is being build (like selecting a
+ * column that don't exist)) using:
  * {{{
  * scala> import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
  * }}}
  */
 sealed trait TryAnalysis[+T] {
   @throws[AnalysisException]
-  final def getOrThrow: T = this match {
-    case TryAnalysis.Failure(e) => throw e
-    case TryAnalysis.Success(v) => v
-  }
+  final def getOrThrow: T =
+    this match {
+      case TryAnalysis.Failure(e) => throw e
+      case TryAnalysis.Success(v) => v
+    }
 }
 
 object TryAnalysis {
@@ -35,14 +37,12 @@ object TryAnalysis {
       case analysisException: AnalysisException => Failure(analysisException)
     }
 
-
   implicit final class Ops[+T](tryAnalysis: => TryAnalysis[T]) {
-    //only eval once if needed
+    // only eval once if needed
     private lazy val eval: TryAnalysis[T] = TryAnalysis(tryAnalysis.getOrThrow)
 
     /** Recovers from an Analysis Exception. */
     def recover[U >: T](failure: AnalysisException => U): U = fold(failure, identity)
-
 
     /** Folds a TryAnalysis into a type B. */
     def fold[B](failure: AnalysisException => B, success: T => B): B =
@@ -57,7 +57,6 @@ object TryAnalysis {
     /** Converts a TryAnalysis into a Try. */
     def toTry: Try[T] = fold(scala.util.Failure.apply, scala.util.Success.apply)
   }
-
 
   object syntax {
     @throws[AnalysisException]
