@@ -32,7 +32,7 @@ sealed trait TryAnalysis[+T] {
   def toEither: Either[AnalysisException, T] = fold(Left.apply, Right.apply)
 
   /** Converts a TryAnalysis into a Try. */
-  def toTry: Try[T] = toEither.toTry
+  def toTry: Try[T] = fold(scala.util.Failure.apply, scala.util.Success.apply)
 }
 
 object TryAnalysis {
