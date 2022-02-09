@@ -15,8 +15,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.as]] for more information.
    */
-  // TODO : Modelise Schema Errors + Spec in TU
-  def as[U: Encoder]: Dataset[U] = transformation(_.as[U])
+  def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as[U])
 
   /** Applies a transformation to the underlying dataset. */
   def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] =

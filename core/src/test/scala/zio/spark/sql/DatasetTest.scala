@@ -1,7 +1,7 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{AnalysisException, Row}
-import zio.{RIO, Task, ZIO}
+import zio.{Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
@@ -9,6 +9,8 @@ import zio.test.Assertion._
 import scala.util.Try
 
 object DatasetTest {
+
+  import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
   def datasetActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Actions")(
@@ -61,7 +63,6 @@ object DatasetTest {
   def errorSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset error handling")(
       test("Dataset still can dies with AnalysisException using 'throwAnalysisException' implicit") {
-        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
         val process: DataFrame => DataFrame = _.selectExpr("yolo")
         val job: Spark[DataFrame] = read.map(process)
@@ -74,8 +75,6 @@ object DatasetTest {
         expectedCount = 4),
 
       test("Dataset can recover from the first Analysis error") {
-        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
-
         val process: DataFrame => DataFrame = x => x.selectExpr("yolo").filter("tata = titi").recover(_ => x)
         val write: DataFrame => Task[Long] = _.count
 
@@ -84,7 +83,6 @@ object DatasetTest {
         pipeline.check(x => assertTrue(x == 4L))
       },
       test("Dataset can be converted from the first Analysis error") {
-        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
         val process: DataFrame => Try[DataFrame] = x => x.selectExpr("yolo").filter("tata = titi").toTry
 

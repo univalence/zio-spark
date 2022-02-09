@@ -5,6 +5,9 @@ import zio.spark.parameter._
 import zio.spark.sql._
 
 object CommonDatasetOperation extends ZIOAppDefault {
+
+  import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
   final case class Person(name: String, age: Int)
 
   val filePath: String = "examples/src/main/resources/data.csv"
