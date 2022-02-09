@@ -68,7 +68,7 @@ object DatasetTest {
 
         pipeline.run.map(assert(_)(equalTo(4L)))
       },
-      test("Dataset can recover from multiple Analysis error") {
+      test("Dataset can recover from the first Analysis error") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
         val process: DataFrame => DataFrame = x => x.selectExpr("yolo").filter("tata = titi").recover(_ => x)

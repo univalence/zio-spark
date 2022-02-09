@@ -11,38 +11,21 @@ import scala.util.Try
  * throws an AnalysisException, these transformations are wrapped into a
  * TryAnalysis.
  *
- * You can ignore the TryAnalysis wrapper (and make Spark fails when a
- * bad transformation happens) using:
+ * You can ignore the TryAnalysis wrapper (and make Spark fails as usual when a
+ * impossible transformation is being build (like selecting a column that don't exist)) using:
  * {{{
  * scala> import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
  * }}}
  */
 sealed trait TryAnalysis[+T] {
   @throws[AnalysisException]
-  final def getOrThrowAnalysisException: T = this.fold(x => throw x, identity)
-
-  /** Folds a TryAnalysis into a type B. */
-  def fold[B](failure: AnalysisException => B, success: T => B): B =
-    this match {
-      case TryAnalysis.Failure(e) => failure(e)
-      case TryAnalysis.Success(v) => success(v)
-    }
-
-  /** Converts a TryAnalysis into an Either. */
-  def toEither: Either[AnalysisException, T] = fold(Left.apply, Right.apply)
-
-  /** Converts a TryAnalysis into a Try. */
-  def toTry: Try[T] = fold(scala.util.Failure.apply, scala.util.Success.apply)
+  final def getOrThrow: T = this match {
+    case TryAnalysis.Failure(e) => throw e
+    case TryAnalysis.Success(v) => v
+  }
 }
 
 object TryAnalysis {
-  implicit final class Ops[+T](tryAnalysis: => TryAnalysis[T]) {
-    private lazy val eval = TryAnalysis(tryAnalysis.getOrThrowAnalysisException)
-
-    /** Recovers from an Analysis Exception. */
-    def recover[U >: T](failure: AnalysisException => U): U = eval.fold(failure, identity)
-  }
-
   final case class Failure(analysisException: AnalysisException) extends TryAnalysis[Nothing]
   final case class Success[T](value: T)                          extends TryAnalysis[T]
 
@@ -52,8 +35,32 @@ object TryAnalysis {
       case analysisException: AnalysisException => Failure(analysisException)
     }
 
+
+  implicit final class Ops[+T](tryAnalysis: => TryAnalysis[T]) {
+    //only eval once if needed
+    private lazy val eval: TryAnalysis[T] = TryAnalysis(tryAnalysis.getOrThrow)
+
+    /** Recovers from an Analysis Exception. */
+    def recover[U >: T](failure: AnalysisException => U): U = fold(failure, identity)
+
+
+    /** Folds a TryAnalysis into a type B. */
+    def fold[B](failure: AnalysisException => B, success: T => B): B =
+      eval match {
+        case TryAnalysis.Failure(e) => failure(e)
+        case TryAnalysis.Success(v) => success(v)
+      }
+
+    /** Converts a TryAnalysis into an Either. */
+    def toEither: Either[AnalysisException, T] = fold(Left.apply, Right.apply)
+
+    /** Converts a TryAnalysis into a Try. */
+    def toTry: Try[T] = fold(scala.util.Failure.apply, scala.util.Success.apply)
+  }
+
+
   object syntax {
     @throws[AnalysisException]
-    implicit def throwAnalysisException[T](analysis: TryAnalysis[T]): T = analysis.getOrThrowAnalysisException
+    implicit def throwAnalysisException[T](analysis: TryAnalysis[T]): T = analysis.getOrThrow
   }
 }
