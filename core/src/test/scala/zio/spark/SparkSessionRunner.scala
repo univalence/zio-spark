@@ -25,6 +25,7 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         DatasetTest.datasetActionsSpec,
         DatasetTest.datasetTransformationsSpec,
         DatasetTest.sqlSpec,
+        DatasetTest.errorSpec,
         DatasetTest.fromSparkSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,

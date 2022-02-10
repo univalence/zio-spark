@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
+import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder, Row}
 
 import zio.Task
 import zio.spark.impure.Impure.ImpureBox
@@ -15,15 +15,28 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.as]] for more information.
    */
-  // TODO : Modelise Schema Errors + Spec in TU
-  def as[U: Encoder]: Dataset[U] = transformation(_.as[U])
+  def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as[U])
 
   /** Applies a transformation to the underlying dataset. */
   def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] =
     succeedNow(f.andThen(x => Dataset(x)))
 
+  /**
+   * Applies a transformation to the underlying dataset, it is used for
+   * transformations that can fail due to an AnalysisException.
+   */
+  def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
+    TryAnalysis(transformation(f))
+
   /** Applies an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = attemptBlocking(f)
+
+  /**
+   * A variant of select that accepts SQL expressions.
+   *
+   * See [[UnderlyingDataset.selectExpr]] for more information.
+   */
+  def selectExpr(exprs: String*): TryAnalysis[Dataset[Row]] = transformationWithAnalysis(_.selectExpr(exprs: _*))
 
   /**
    * Limits the number of rows of a dataset.
@@ -39,6 +52,8 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    * See [[UnderlyingDataset.filter]] for more information.
    */
   def filter(f: T => Boolean): Dataset[T] = transformation(_.filter(f))
+
+  def filter(expr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(expr))
 
   /**
    * Applies the function f to each record of the dataset.
