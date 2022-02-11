@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder, Row}
+import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row}
 import org.apache.spark.storage.StorageLevel
 
 import zio.{Task, UIO}
@@ -10,6 +10,13 @@ import zio.spark.rdd.RDD
 final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     extends ExtraDatasetFeature[T](underlyingDataset) {
   import underlyingDataset._
+
+  /**
+   * Returns the columns of the Dataset.
+   *
+   * See [[UnderlyingDataset.columns]] for more information.
+   */
+  def columns: Seq[String] = underlyingDataset.succeedNow(_.columns.toSeq)
 
   /**
    * Maps each record to the specified type.
@@ -135,11 +142,40 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
 
   /**
    * Returns a new Dataset that contains only the unique rows from this
+   * Dataset, considering only the subset of columns.
+   *
+   * See [[UnderlyingDataset.dropDuplicates]] for more information.
+   */
+  def dropDuplicates(colNames: String*)(implicit d: DummyImplicit): Dataset[T] = dropDuplicates(colNames)
+
+  /**
+   * Returns a new Dataset with a column dropped if it exists.
+   *
+   * See [[UnderlyingDataset.drop]] for more information.
+   */
+  def drop(colName: String): DataFrame = drop(Seq(colName): _*)
+
+  /**
+   * Returns a new Dataset with a column dropped if it exists.
+   *
+   * See [[UnderlyingDataset.drop]] for more information.
+   */
+  def drop(col: Column): DataFrame = transformation(_.drop(col))
+
+  /**
+   * Returns a new Dataset with columns dropped if they exist.
+   *
+   * See [[UnderlyingDataset.drop]] for more information.
+   */
+  def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
+
+  /**
+   * Returns a new Dataset that contains only the unique rows from this
    * Dataset, considering all columns.
    *
    * See [[UnderlyingDataset.dropDuplicates]] for more information.
    */
-  def dropDuplicates: Dataset[T] = transformation(_.dropDuplicates())
+  def dropDuplicates: Dataset[T] = dropDuplicates(this.columns)
 
   /** Alias for [[dropDuplicates]]. */
   def distinct: Dataset[T] = dropDuplicates

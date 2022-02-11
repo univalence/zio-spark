@@ -138,14 +138,14 @@ object DatasetTest {
         pipeline.run.map(res => assertTrue(res == "aria"))
       },
       test("Dataset should implement dropDuplicates with colnames correctly") {
-        val process: DataFrame => Dataset[Person] = _.as[Person].flatMap(r => List(r, r)).dropDuplicates(Seq("name"))
+        val process: DataFrame => Dataset[Person] = _.as[Person].flatMap(r => List(r, r)).dropDuplicates("name")
         val write: Dataset[Person] => Task[Long]  = _.count
 
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assertTrue(res == 4L))
       },
-      test("Dataset should implement distinct/dropDuplicates correctly") {
+      test("Dataset should implement distinct/dropDuplicates all correctly") {
         val process: DataFrame => Dataset[Person] = _.as[Person].flatMap(r => List(r, r)).distinct
         val write: Dataset[Person] => Task[Long]  = _.count
 
@@ -180,6 +180,20 @@ object DatasetTest {
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res)(equalTo("Maria")))
+      },
+      test("Dataset should implement drop using colname correctly") {
+        for {
+          df <- read
+          dfWithName = df.drop("age").as[String]
+          output <- dfWithName.head
+        } yield assertTrue(output == "Maria")
+      },
+      test("Dataset should implement drop using column correctly") {
+        for {
+          df <- read
+          dfWithName = df.drop($"age").as[String]
+          output <- dfWithName.head
+        } yield assertTrue(output == "Maria")
       }
     )
 
