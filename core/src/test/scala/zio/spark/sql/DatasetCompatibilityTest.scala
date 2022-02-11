@@ -9,10 +9,11 @@ object DatasetCompatibilityTest
         Seq(
           "underlyingDataset",
           "transformation",
+          "unpersistBlocking",
+          "transformationWithAnalysis",
           "action",
           "headOption",
-          "firstOption",
-          "unpersistBlocking"
+          "firstOption"
         ) ++ extraAllowedMethods,
       isImpure = true
     )

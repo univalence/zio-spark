@@ -8,6 +8,8 @@ import zio.test._
 import zio.test.Assertion._
 
 object ExtraDatasetFeatureTest {
+  import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
   def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
 
   def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =

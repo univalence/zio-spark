@@ -1,25 +1,23 @@
 package zio.spark
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark
 
-import zio.{UIO, ZIO, ZLayer}
+import zio._
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsTest, RDDTest}
 import zio.spark.sql.{DatasetTest, ExtraDatasetFeatureTest, SparkSession}
-import zio.test.{DefaultRunnableSpec, Spec, TestEnvironment, TestFailure, TestSuccess, ZSpec}
-import zio.test.TestAspect.sequential
-
-private object TestLocalSparkSession {
-  lazy val session: spark.sql.SparkSession =
-    org.apache.spark.sql.SparkSession.builder().master(localAllNodes.toString).appName("zio-spark-test").getOrCreate()
-}
+import zio.test._
 
 /** Runs all spark specific tests in the same spark session. */
 object SparkSessionRunner extends DefaultRunnableSpec {
   Logger.getLogger("org").setLevel(Level.OFF)
 
-  val session: ZLayer[Any, Nothing, SparkSession] = ZLayer(UIO(SparkSession(TestLocalSparkSession.session)))
+  val session: ZLayer[Any, Nothing, SparkSession] =
+    SparkSession.builder
+      .master(localAllNodes)
+      .appName("zio-spark")
+      .getOrCreateLayer
+      .orDie
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {
     val specs =
@@ -28,6 +26,7 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         DatasetTest.datasetTransformationsSpec,
         DatasetTest.sqlSpec,
         DatasetTest.persistencySpec,
+        DatasetTest.errorSpec,
         DatasetTest.fromSparkSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,
