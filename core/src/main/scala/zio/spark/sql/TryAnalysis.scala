@@ -19,6 +19,7 @@ import scala.util.Try
  * }}}
  */
 sealed trait TryAnalysis[+T] {
+  @SuppressWarnings(Array("scalafix:DisableSyntax.throw"))
   @throws[AnalysisException]
   final def getOrThrow: T =
     this match {
@@ -59,6 +60,7 @@ object TryAnalysis {
   }
 
   object syntax {
+    @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
     @throws[AnalysisException]
     implicit def throwAnalysisException[T](analysis: TryAnalysis[T]): T = analysis.getOrThrow
   }
