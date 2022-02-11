@@ -75,11 +75,12 @@ ThisBuild / coverageMinimumBranchPerFile    := 50
 ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*"
 
 addCommandAlias("fmt", "scalafmt")
-addCommandAlias("fmtCheck", "scalafmtCheck")
+addCommandAlias("fmtCheck", "scalafmtCheckAll")
 addCommandAlias("lint", "scalafix")
-addCommandAlias("lintCheck", "scalafix --check")
+addCommandAlias("lintCheck", "scalafixAll --check")
 addCommandAlias("check", "; fmtCheck; lintCheck;")
-addCommandAlias("fixStyle", "; scalafmt; scalafix;")
+addCommandAlias("fixStyle", "; scalafmtAll; scalafixAll;")
+addCommandAlias("prepare", "fixStyle")
 addCommandAlias("testAll", "; clean;+ test;")
 addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
@@ -99,6 +100,7 @@ lazy val scala =
 
 lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 
+
 lazy val core =
   (project in file("core"))
     .settings(
@@ -108,7 +110,11 @@ lazy val core =
       libraryDependencies ++= generateLibraryDependencies(
         CrossVersion.partialVersion(scalaVersion.value).get._2
       ),
-      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      //TODO don't filter the options on CI
+      //TODO add warnings in dev mode for the filtered options
+      scalacOptions ~= filterConsoleScalacOptions
+
     )
 
 lazy val examples =

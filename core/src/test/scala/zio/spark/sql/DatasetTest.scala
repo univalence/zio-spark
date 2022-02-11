@@ -1,11 +1,13 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{AnalysisException, Row}
+import org.apache.spark.storage.StorageLevel
 
 import zio.{Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
+import zio.test.TestAspect.sequential
 
 import scala.util.Try
 
@@ -202,6 +204,46 @@ object DatasetTest {
         job.map(assert(_)(equalTo(2L)))
       }
     )
+
+  def persistencySpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+    suite("Persistency Tests")(
+      test("By default a dataset has no persistency") {
+        for {
+          df           <- read
+          storageLevel <- df.storageLevel
+          _            <- df.count
+        } yield assertTrue(storageLevel == StorageLevel.NONE)
+      },
+      test("We can persist a DataFrame") {
+        for {
+          df           <- read
+          persistedDf  <- df.persist
+          _            <- persistedDf.count
+          storageLevel <- persistedDf.storageLevel
+        } yield assertTrue(storageLevel == StorageLevel.MEMORY_AND_DISK)
+      },
+      test("We can unpersist a DataFrame") {
+        for {
+          df            <- read
+          persistedDf   <- df.persist
+          unpersistedDf <- persistedDf.unpersist
+          _             <- unpersistedDf.count
+          storageLevel  <- unpersistedDf.storageLevel
+        } yield assertTrue(storageLevel == StorageLevel.NONE)
+
+      },
+      test("We can unpersist a DataFrame in a blocking way") {
+        for {
+          df            <- read
+          persistedDf   <- df.persist
+          unpersistedDf <- persistedDf.unpersistBlocking
+          _             <- unpersistedDf.count
+          storageLevel  <- unpersistedDf.storageLevel
+        } yield assertTrue(storageLevel == StorageLevel.NONE)
+      }
+      // The spec is using the same dataframe definition, with a mutable cache state in sparkSession.sharedState,
+      // we can not run those test in parallel.
+    ) @@ sequential
 
   def fromSparkSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("fromSpark")(

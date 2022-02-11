@@ -20,7 +20,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
       }
     )
 
-  def dataFrameReaderReadingSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def dataFrameReaderReadingSpec: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] =
     suite("DataFrameReader reading files")(
       test("DataFrameReader can read a CSV file") {
         for {
@@ -33,7 +33,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
           df     <- SparkSession.read.option("multiline", "true").json(s"$resourcesPath/data.json")
           output <- df.count
         } yield assertTrue(output == 4)
-      } @@ scala212 @@ scala213,
+      } @@ scala211(ignore),
       test("DataFrameReader can read a Parquet file") {
         for {
           df     <- SparkSession.read.parquet(s"$resourcesPath/data.parquet")
@@ -43,7 +43,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
     )
 
   def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] = {
-    case class ReaderTest(
+    final case class ReaderTest(
         testName:      String,
         endo:          DataFrameReader => DataFrameReader,
         expectedKey:   String,
