@@ -70,6 +70,23 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
   def filter(expr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(expr))
 
   /**
+   * Returns a new Dataset that only contains elements respecting the
+   * predicate using a column expression.
+   *
+   * See [[UnderlyingDataset.filter]] for more information.
+   */
+  def filter(condition: Column): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(condition))
+
+  /** Alias for [[filter]]. */
+  def where(f: T => Boolean): Dataset[T] = filter(f)
+
+  /** Alias for [[filter]]. */
+  def where(expr: String): TryAnalysis[Dataset[T]] = filter(expr)
+
+  /** Alias for [[filter]]. */
+  def where(condition: Column): TryAnalysis[Dataset[T]] = filter(condition)
+
+  /**
    * Applies the function f to each record of the dataset.
    *
    * See [[UnderlyingDataset.map]] for more information.

@@ -153,18 +153,28 @@ object DatasetTest {
 
         pipeline.run.map(res => assertTrue(res == 4L))
       },
-      test("Dataset should implement filter correctly") {
-        val process: DataFrame => Dataset[Person]  = _.as[Person].filter(_.name == "Peter")
+      test("Dataset should implement filter/where correctly") {
+        val process: DataFrame => Dataset[Person]  = _.as[Person].where(_.name == "Peter")
         val write: Dataset[Person] => Task[Person] = _.head
 
         val pipeline = Pipeline(read, process, write)
 
         pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
       },
-      test("Dataset should implement filter correctly using expressions") {
+      test("Dataset should implement filter/where correctly using sql") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
-        val process: DataFrame => Dataset[Person]  = _.as[Person].filter("name == 'Peter'")
+        val process: DataFrame => Dataset[Person]  = _.as[Person].where("name == 'Peter'")
+        val write: Dataset[Person] => Task[Person] = _.head
+
+        val pipeline = Pipeline(read, process, write)
+
+        pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
+      },
+      test("Dataset should implement filter/where correctly using column expression") {
+        import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
+        val process: DataFrame => Dataset[Person]  = _.as[Person].where($"name" === "Peter")
         val write: Dataset[Person] => Task[Person] = _.head
 
         val pipeline = Pipeline(read, process, write)
