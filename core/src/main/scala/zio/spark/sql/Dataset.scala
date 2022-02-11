@@ -61,6 +61,12 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    */
   def filter(f: T => Boolean): Dataset[T] = transformation(_.filter(f))
 
+  /**
+   * Returns a new Dataset that only contains elements respecting the
+   * predicate using a SQL expression.
+   *
+   * See [[UnderlyingDataset.filter]] for more information.
+   */
   def filter(expr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(expr))
 
   /**
