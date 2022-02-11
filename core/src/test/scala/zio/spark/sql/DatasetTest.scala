@@ -72,6 +72,25 @@ object DatasetTest {
           output <- TestConsole.output
           representation = output.mkString("\n")
         } yield assertTrue(representation == result)
+      } @@ silent,
+      test("Dataset should implement show with truncate correctly") {
+        val result =
+          """+---------+---+
+            >|     name|age|
+            >+---------+---+
+            >|    Maria| 93|
+            >|     John| 24|
+            >|    Peter| 19|
+            >|Cassandra| 46|
+            >+---------+---+
+            >
+            >""".stripMargin('>')
+        for {
+          df     <- read
+          _      <- df.show(truncate = false)
+          output <- TestConsole.output
+          representation = output.mkString("\n")
+        } yield assertTrue(representation == result)
       } @@ silent
     )
 
