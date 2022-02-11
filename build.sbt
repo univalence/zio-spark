@@ -100,7 +100,6 @@ lazy val scala =
 
 lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 
-
 lazy val core =
   (project in file("core"))
     .settings(
@@ -111,10 +110,7 @@ lazy val core =
         CrossVersion.partialVersion(scalaVersion.value).get._2
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
-      //TODO don't filter the options on CI
-      //TODO add warnings in dev mode for the filtered options
-      scalacOptions ~= filterConsoleScalacOptions
-
+      scalacOptions ~= fatalWarningsAsProperties
     )
 
 lazy val examples =
@@ -152,3 +148,12 @@ def sparkScalaVersionMapping(scalaMinor: Long): String =
     case 13 => "3.2.1"
     case _  => throw new Exception("It should be unreachable.")
   }
+
+/**
+ * Don't fail the compilation for warnings by default, you can still
+ * activate it using system properties (It should always be activated in
+ * the CI).
+ */
+def fatalWarningsAsProperties(options: Seq[String]): Seq[String] =
+  if (sys.props.getOrElse("fatal-warnings", "false") == "true") options
+  else options.filterNot(Set("-Xfatal-warnings"))
