@@ -1,7 +1,6 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row}
-import org.apache.spark.sql.types.Metadata
 import org.apache.spark.storage.StorageLevel
 
 import zio.{Task, UIO}
