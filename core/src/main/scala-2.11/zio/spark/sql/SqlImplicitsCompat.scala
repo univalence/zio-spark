@@ -1,7 +1,5 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{ColumnName, Encoder, Encoders}
-
 import scala.reflect.runtime.universe.TypeTag
 
 trait SqlImplicits extends LowPrioritySQLImplicits {
