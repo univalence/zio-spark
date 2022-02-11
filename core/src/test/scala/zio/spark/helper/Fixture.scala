@@ -3,11 +3,15 @@ package zio.spark.helper
 import zio.spark.sql.{DataFrame, Dataset, Spark, SparkSession}
 
 object Fixture {
+  final case class Person(name: String, age: Int)
+
   def readCsv(path: String): Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(path)
 
-  val read: Spark[DataFrame] = readCsv("core/src/test/resources/data.csv")
+  val resourcesPath = "core/src/test/resources"
 
-  val readEmpty: Spark[DataFrame] = readCsv("core/src/test/resources/empty.csv")
+  val read: Spark[DataFrame] = readCsv(s"$resourcesPath/data.csv")
 
-  val readLorem: Spark[Dataset[String]] = SparkSession.read.textFile("core/src/test/resources/lorem.txt")
+  val readEmpty: Spark[DataFrame] = readCsv(s"$resourcesPath/empty.csv")
+
+  val readLorem: Spark[Dataset[String]] = SparkSession.read.textFile(s"$resourcesPath/lorem.txt")
 }

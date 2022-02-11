@@ -9,7 +9,42 @@ final case class DataFrameReader(options: Map[String, String]) {
    *
    * See [[UnderlyingDataFrameReader.csv]] for more information.
    */
-  def csv(path: String): Spark[DataFrame] = loadUsing(_.csv(path))
+  def csv(path: String): Spark[DataFrame] = csv(Seq(path): _*)
+
+  /**
+   * Loads a dataframe from CSV files.
+   *
+   * See [[UnderlyingDataFrameReader.csv]] for more information.
+   */
+  def csv(paths: String*): Spark[DataFrame] = loadUsing(_.csv(paths: _*))
+
+  /**
+   * Loads a dataframe from a JSON file.
+   *
+   * See [[UnderlyingDataFrameReader.json]] for more information.
+   */
+  def json(path: String): Spark[DataFrame] = json(Seq(path): _*)
+
+  /**
+   * Loads a dataframe from JSON files.
+   *
+   * See [[UnderlyingDataFrameReader.parquet]] for more information.
+   */
+  def json(paths: String*): Spark[DataFrame] = loadUsing(_.json(paths: _*))
+
+  /**
+   * Loads a dataframe from a PARQUET file.
+   *
+   * See [[UnderlyingDataFrameReader.parquet]] for more information.
+   */
+  def parquet(path: String): Spark[DataFrame] = parquet(Seq(path): _*)
+
+  /**
+   * Loads a dataframe from PARQUET files.
+   *
+   * See [[UnderlyingDataFrameReader.parquet]] for more information.
+   */
+  def parquet(paths: String*): Spark[DataFrame] = loadUsing(_.parquet(paths: _*))
 
   /**
    * Loads a dataframe from a text file.
