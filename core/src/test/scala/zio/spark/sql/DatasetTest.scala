@@ -3,10 +3,11 @@ package zio.spark.sql
 import org.apache.spark.sql.Row
 import org.apache.spark.storage.StorageLevel
 
-import zio.{Task, ZIO}
+import zio.{Clock, Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
+import zio.test.TestAspect.sequential
 
 object DatasetTest {
 
@@ -137,51 +138,42 @@ object DatasetTest {
   def persistencySpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("Persistency Tests")(
       test("By default a dataset has no persistency") {
-        val job =
-          for {
-            df           <- read
-            storageLevel <- df.storageLevel
-            _            <- df.count
-          } yield storageLevel
-
-        job.map(assert(_)(equalTo(StorageLevel.NONE)))
+        for {
+          df           <- read
+          storageLevel <- df.storageLevel
+          _            <- df.count
+        } yield assertTrue(storageLevel == StorageLevel.NONE)
       },
       test("We can persist a DataFrame") {
-        val job =
-          for {
-            df           <- read
-            persistedDf  <- df.persist
-            _            <- persistedDf.count
-            storageLevel <- persistedDf.storageLevel
-          } yield storageLevel
-
-        job.map(assert(_)(equalTo(StorageLevel.MEMORY_AND_DISK)))
+        for {
+          df           <- read
+          persistedDf  <- df.persist
+          _            <- persistedDf.count
+          storageLevel <- persistedDf.storageLevel
+        } yield assertTrue(storageLevel == StorageLevel.MEMORY_AND_DISK)
       },
       test("We can unpersist a DataFrame") {
-        val job =
-          for {
-            df            <- read
-            persistedDf   <- df.persist
-            unpersistedDf <- persistedDf.unpersist
-            _             <- unpersistedDf.count
-            storageLevel  <- unpersistedDf.storageLevel
-          } yield storageLevel
+        for {
+          df            <- read
+          persistedDf   <- df.persist
+          unpersistedDf <- persistedDf.unpersist
+          _             <- unpersistedDf.count
+          storageLevel  <- unpersistedDf.storageLevel
+        } yield assertTrue(storageLevel == StorageLevel.NONE)
 
-        job.map(assert(_)(equalTo(StorageLevel.NONE)))
       },
       test("We can unpersist a DataFrame in a blocking way") {
-        val job =
-          for {
-            df            <- read
-            persistedDf   <- df.persist
-            unpersistedDf <- persistedDf.unpersistBlocking
-            _             <- unpersistedDf.count
-            storageLevel  <- unpersistedDf.storageLevel
-          } yield storageLevel
-
-        job.map(assert(_)(equalTo(StorageLevel.NONE)))
+        for {
+          df            <- read
+          persistedDf   <- df.persist
+          unpersistedDf <- persistedDf.unpersistBlocking
+          _             <- unpersistedDf.count
+          storageLevel  <- unpersistedDf.storageLevel
+        } yield assertTrue(storageLevel == StorageLevel.NONE)
       }
-    )
+      // The spec is using the same dataframe definition, with a mutable cache state in sparkSession.sharedState,
+      // we can not run those test in parallel.
+    ) @@ sequential
 
   def fromSparkSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("fromSpark")(
@@ -204,5 +196,5 @@ object DatasetTest {
       }
     )
 
-  case class Person(name: String, age: Int)
+  final case class Person(name: String, age: Int)
 }

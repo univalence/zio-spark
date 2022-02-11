@@ -45,5 +45,5 @@ object ExtraDatasetFeatureTest {
       }
     )
 
-  case class Person(name: String, age: Int)
+  final case class Person(name: String, age: Int)
 }

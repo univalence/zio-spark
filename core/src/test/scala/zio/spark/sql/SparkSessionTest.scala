@@ -20,7 +20,7 @@ object SparkSessionTest extends DefaultRunnableSpec {
 
   def sparkSessionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
     suite("DataFrameReader Option Definitions")({
-      case class Conftest(
+      final case class Conftest(
           text:        String,
           f:           SparkSession.Builder => SparkSession.Builder,
           keyOutput:   String,

@@ -3,7 +3,7 @@ package zio.spark.sql
 import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder}
 import org.apache.spark.storage.StorageLevel
 
-import zio.Task
+import zio.{Task, UIO}
 import zio.spark.impure.Impure.ImpureBox
 import zio.spark.rdd.RDD
 
@@ -126,6 +126,8 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.createOrReplaceTempView]] for more
    * information.
+   *
+   * TODO : Change to IO[AnalysisError, Unit]
    */
   def createOrReplaceTempView(viewName: String): Task[Unit] = attemptBlocking(_.createOrReplaceTempView(viewName))
 
@@ -134,17 +136,17 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.persist]] for more information.
    */
-  def persist(storageLevel: StorageLevel): Task[Dataset[T]] = attemptBlocking(ds => Dataset(ds.persist(storageLevel)))
+  def persist(storageLevel: StorageLevel): UIO[Dataset[T]] = succeed(ds => Dataset(ds.persist(storageLevel)))
 
   /**
    * Persist this Dataset with the default storage level.
    *
    * See [[UnderlyingDataset.persist]] for more information.
    */
-  def persist: Task[Dataset[T]] = persist(StorageLevel.MEMORY_AND_DISK)
+  def persist: UIO[Dataset[T]] = persist(StorageLevel.MEMORY_AND_DISK)
 
   /** Alias for [[persist]]. */
-  def cache: Task[Dataset[T]] = persist
+  def cache: UIO[Dataset[T]] = persist
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
@@ -152,7 +154,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking: Task[Dataset[T]] = attemptBlocking(ds => Dataset(ds.unpersist(blocking = true)))
+  def unpersistBlocking: UIO[Dataset[T]] = succeed(ds => Dataset(ds.unpersist(blocking = true)))
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
@@ -160,7 +162,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersist: Task[Dataset[T]] = attemptBlocking(ds => Dataset(ds.unpersist(blocking = false)))
+  def unpersist: UIO[Dataset[T]] = succeed(ds => Dataset(ds.unpersist(blocking = false)))
 
   /**
    * Get the Dataset's current storage level, or StorageLevel.NONE if
@@ -168,5 +170,5 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.storageLevel]] for more information.
    */
-  def storageLevel: Task[StorageLevel] = attemptBlocking(_.storageLevel)
+  def storageLevel: UIO[StorageLevel] = succeed(_.storageLevel)
 }
