@@ -2,6 +2,7 @@ package zio.spark.sql
 
 import zio.spark.helper.Fixture._
 import zio.test._
+import zio.test.TestAspect._
 
 object DataFrameReaderTest extends DefaultRunnableSpec {
   val reader: DataFrameReader = SparkSession.read
@@ -32,7 +33,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
           df     <- SparkSession.read.option("multiline", "true").json(s"$resourcesPath/data.json")
           output <- df.count
         } yield assertTrue(output == 4)
-      },
+      } @@ scala212 @@ scala213,
       test("DataFrameReader can read a Parquet file") {
         for {
           df     <- SparkSession.read.parquet(s"$resourcesPath/data.parquet")
