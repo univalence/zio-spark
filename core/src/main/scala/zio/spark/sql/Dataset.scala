@@ -137,8 +137,11 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    * See [[UnderlyingDataset.show]] for more information.
    */
   def show(numRows: Int, truncate: Boolean): ZIO[Console, Throwable, Unit] = {
-    val trunc         = if (truncate) 20 else 0
-    val stringifiedDf = underlyingDataset.succeedNow(d => Sniffer.datasetShowString(d, numRows, truncate = trunc))
+    val truncateValue = if (truncate) 20 else 0
+    val stringifiedDf =
+      underlyingDataset.succeedNow(d =>
+        Sniffer.datasetShowString(d, numRows, truncate = truncateValue, vertical = false)
+      )
     Console.printLine(stringifiedDf)
   }
 

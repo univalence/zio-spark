@@ -1,3 +1,5 @@
+import org.apache.spark.sql.Row
+
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql._

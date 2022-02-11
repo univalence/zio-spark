@@ -10,7 +10,7 @@ object Sniffer {
   def datasetShowString[T](
       dataset: Dataset[T],
       _numRows: Int,
-      truncate: Int = 20,
-      vertical: Boolean = false
+      truncate: Int,
+      vertical: Boolean
   ): String = dataset.showString(_numRows, truncate, vertical)
 }
