@@ -14,8 +14,11 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
     allowedNewMethods: Seq[String],
     isImpure:          Boolean
 ) extends DefaultRunnableSpec {
-  val sparkStructurePath: String    = classTag[SparkStructure].runtimeClass.getName
-  val zioSparkStructurePath: String = classTag[ZioSparkStructure].runtimeClass.getName
+
+  // scalafix:off
+  lazy val sparkStructurePath: String    = classTag[SparkStructure].runtimeClass.getName
+  lazy val zioSparkStructurePath: String = classTag[ZioSparkStructure].runtimeClass.getName
+  // scalafix:on
 
   /** Get all methods of a particular class. */
   def getAllMethods[A: ClassTag]: Seq[String] =
@@ -27,7 +30,7 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
       .distinct
 
   /** The default methods of any case class. */
-  val scalaDefaultMethods: Seq[String] =
+  def scalaDefaultMethods: Seq[String] =
     Seq(
       "apply",
       "copy",
@@ -44,7 +47,7 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
     )
 
   /** Methods provided by the Impure class. */
-  val impureMethods: Seq[String] =
+  def impureMethods: Seq[String] =
     Seq(
       "ImpureBox",
       "attemptWithZIO",

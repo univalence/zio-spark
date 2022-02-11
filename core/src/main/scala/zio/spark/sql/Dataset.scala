@@ -1,8 +1,9 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{Dataset => UnderlyingDataset, Encoder, Row}
+import org.apache.spark.storage.StorageLevel
 
-import zio.Task
+import zio.{Task, UIO}
 import zio.spark.impure.Impure.ImpureBox
 import zio.spark.rdd.RDD
 
@@ -148,6 +149,49 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.createOrReplaceTempView]] for more
    * information.
+   *
+   * TODO : Change to IO[AnalysisError, Unit]
    */
   def createOrReplaceTempView(viewName: String): Task[Unit] = attemptBlocking(_.createOrReplaceTempView(viewName))
+
+  /**
+   * Persist this Dataset with the given storage level.
+   *
+   * See [[UnderlyingDataset.persist]] for more information.
+   */
+  def persist(storageLevel: StorageLevel): UIO[Dataset[T]] = succeed(ds => Dataset(ds.persist(storageLevel)))
+
+  /**
+   * Persist this Dataset with the default storage level.
+   *
+   * See [[UnderlyingDataset.persist]] for more information.
+   */
+  def persist: UIO[Dataset[T]] = persist(StorageLevel.MEMORY_AND_DISK)
+
+  /** Alias for [[persist]]. */
+  def cache: UIO[Dataset[T]] = persist
+
+  /**
+   * Mark the Dataset as non-persistent, and remove all blocks for it
+   * from memory and disk in a blocking way.
+   *
+   * See [[UnderlyingDataset.unpersist]] for more information.
+   */
+  def unpersistBlocking: UIO[Dataset[T]] = succeed(ds => Dataset(ds.unpersist(blocking = true)))
+
+  /**
+   * Mark the Dataset as non-persistent, and remove all blocks for it
+   * from memory and disk.
+   *
+   * See [[UnderlyingDataset.unpersist]] for more information.
+   */
+  def unpersist: UIO[Dataset[T]] = succeed(ds => Dataset(ds.unpersist(blocking = false)))
+
+  /**
+   * Get the Dataset's current storage level, or StorageLevel.NONE if
+   * not persisted.
+   *
+   * See [[UnderlyingDataset.storageLevel]] for more information.
+   */
+  def storageLevel: UIO[StorageLevel] = succeed(_.storageLevel)
 }

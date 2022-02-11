@@ -19,7 +19,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
     )
 
   def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] = {
-    case class ReaderTest(
+    final case class ReaderTest(
         testName:      String,
         endo:          DataFrameReader => DataFrameReader,
         expectedKey:   String,

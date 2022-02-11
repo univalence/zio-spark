@@ -3,7 +3,7 @@ package zio.spark.helper
 import zio.test._
 import zio.test.Assertion._
 
-case class Conftest[T](text: String, input: T, output: String)
+final case class Conftest[T](text: String, input: T, output: String)
 
 abstract class ADTTestFor[T](conftests: List[Conftest[T]]) extends DefaultRunnableSpec {
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
