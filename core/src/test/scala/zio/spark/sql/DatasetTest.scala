@@ -78,10 +78,10 @@ object DatasetTest {
           """+---------+---+
             >|name     |age|
             >+---------+---+
-            >|Maria    | 93|
-            >|John     | 24|
-            >|Peter    | 19|
-            >|Cassandra| 46|
+            >|Maria    |93 |
+            >|John     |24 |
+            >|Peter    |19 |
+            >|Cassandra|46 |
             >+---------+---+
             >
             >""".stripMargin('>')
