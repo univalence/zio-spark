@@ -1,6 +1,7 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row}
+import org.apache.spark.sql.types.Metadata
 import org.apache.spark.storage.StorageLevel
 
 import zio.{Task, UIO}
@@ -131,6 +132,14 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    * See [[UnderlyingDataset.transform]] for more information.
    */
   def transform[U](t: Dataset[T] => Dataset[U]): Dataset[U] = t(this)
+
+  /**
+   * Returns a new DataFrame adding or replacing a column.
+   *
+   * See [[UnderlyingDataset.withColumn]] for more information.
+   */
+  def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.withColumn(colName, col))
 
   /**
    * Returns a new Dataset that contains only the unique rows from this
