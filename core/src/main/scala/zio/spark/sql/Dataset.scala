@@ -170,6 +170,14 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
   def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
 
   /**
+   * Returns a new Dataset with a column renamed if it exists.
+   *
+   * See [[UnderlyingDataset.withColumnRenamed]] for more information.
+   */
+  def withColumnRenamed(existingName: String, newName: String): DataFrame =
+    transformation(_.withColumnRenamed(existingName, newName))
+
+  /**
    * Returns a new Dataset that contains only the unique rows from this
    * Dataset, considering all columns.
    *
