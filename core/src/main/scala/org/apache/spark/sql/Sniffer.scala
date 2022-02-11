@@ -7,10 +7,6 @@ package org.apache.spark.sql
 object Sniffer {
 
   /** Backdoor for showString private function. */
-  def datasetShowString[T](
-      dataset: Dataset[T],
-      _numRows: Int,
-      truncate: Int,
-      vertical: Boolean
-  ): String = dataset.showString(_numRows, truncate, vertical)
+  def datasetShowString[T](dataset: Dataset[T], _numRows: Int, truncate: Int): String =
+    dataset.showString(_numRows, truncate)
 }
