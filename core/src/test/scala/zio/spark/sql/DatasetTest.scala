@@ -194,6 +194,12 @@ object DatasetTest {
           dfWithName = df.drop($"age").as[String]
           output <- dfWithName.head
         } yield assertTrue(output == "Maria")
+      },
+      test("Dataset should implement withColumnRenamed correctly") {
+        for {
+          df <- read
+          colnames = df.withColumnRenamed("name", "firstname").columns
+        } yield assertTrue(colnames == Seq("firstname", "age"))
       }
     )
 
