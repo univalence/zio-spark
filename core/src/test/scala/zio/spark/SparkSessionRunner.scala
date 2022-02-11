@@ -5,7 +5,7 @@ import org.apache.log4j.{Level, Logger}
 import zio._
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsTest, RDDTest}
-import zio.spark.sql.{DatasetTest, ExtraDatasetFeatureTest, SparkSession}
+import zio.spark.sql.{DataFrameReaderTest, DatasetTest, ExtraDatasetFeatureTest, SparkSession}
 import zio.test._
 
 /** Runs all spark specific tests in the same spark session. */
@@ -28,6 +28,7 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         DatasetTest.persistencySpec,
         DatasetTest.errorSpec,
         DatasetTest.fromSparkSpec,
+        DataFrameReaderTest.dataFrameReaderReadingSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,
         PairRDDFunctionsTest.spec

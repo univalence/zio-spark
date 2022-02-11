@@ -265,6 +265,4 @@ object DatasetTest {
         job.map(assert(_)(equalTo(2L)))
       }
     )
-
-  final case class Person(name: String, age: Int)
 }
