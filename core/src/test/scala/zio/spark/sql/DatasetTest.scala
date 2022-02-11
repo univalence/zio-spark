@@ -7,7 +7,7 @@ import zio.{Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
-import zio.test.TestAspect.sequential
+import zio.test.TestAspect._
 
 import scala.util.Try
 
@@ -15,7 +15,7 @@ object DatasetTest {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
-  def datasetActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def datasetActionsSpec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Actions")(
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
@@ -53,7 +53,45 @@ object DatasetTest {
         val pipeline = Pipeline.buildWithoutTransformation(readEmpty)(write)
 
         pipeline.run.map(assert(_)(isNone))
-      }
+      },
+      test("Dataset should implement show correctly") {
+        val result =
+          """+---------+---+
+            >|     name|age|
+            >+---------+---+
+            >|    Maria| 93|
+            >|     John| 24|
+            >|    Peter| 19|
+            >|Cassandra| 46|
+            >+---------+---+
+            >
+            >""".stripMargin('>')
+        for {
+          df     <- read
+          _      <- df.show
+          output <- TestConsole.output
+          representation = output.mkString("\n")
+        } yield assertTrue(representation == result)
+      } @@ silent,
+      test("Dataset should implement show with truncate correctly") {
+        val result =
+          """+---------+---+
+            >|name     |age|
+            >+---------+---+
+            >|Maria    |93 |
+            >|John     |24 |
+            >|Peter    |19 |
+            >|Cassandra|46 |
+            >+---------+---+
+            >
+            >""".stripMargin('>')
+        for {
+          df     <- read
+          _      <- df.show(truncate = false)
+          output <- TestConsole.output
+          representation = output.mkString("\n")
+        } yield assertTrue(representation == result)
+      } @@ silent
     )
 
   implicit class PipelineTestOps[S, O, R](pipeline: Pipeline[S, O, R]) {

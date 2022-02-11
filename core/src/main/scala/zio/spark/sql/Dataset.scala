@@ -1,9 +1,9 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row}
+import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row, Sniffer}
 import org.apache.spark.storage.StorageLevel
 
-import zio.{Task, UIO}
+import zio._
 import zio.spark.impure.Impure.ImpureBox
 import zio.spark.rdd.RDD
 
@@ -107,6 +107,40 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    * See [[UnderlyingDataset.count]] for more information.
    */
   def count: Task[Long] = action(_.count())
+
+  /**
+   * Displays the top rows of Dataset in a tabular form. Strings with
+   * more than 20 characters will be truncated.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
+  def show(numRows: Int): ZIO[Console, Throwable, Unit] = show(numRows, truncate = true)
+
+  /**
+   * Displays the top 20 rows of Dataset in a tabular form. Strings with
+   * more than 20 characters will be truncated.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
+  def show: ZIO[Console, Throwable, Unit] = show(20)
+
+  /**
+   * Displays the top 20 rows of Dataset in a tabular form.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
+  def show(truncate: Boolean): ZIO[Console, Throwable, Unit] = show(20, truncate)
+
+  /**
+   * Displays the top rows of Dataset in a tabular form.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
+  def show(numRows: Int, truncate: Boolean): ZIO[Console, Throwable, Unit] = {
+    val trunc         = if (truncate) 20 else 0
+    val stringifiedDf = underlyingDataset.succeedNow(d => Sniffer.datasetShowString(d, numRows, truncate = trunc))
+    Console.printLine(stringifiedDf)
+  }
 
   /**
    * Retrieves the rows of a dataset as a list of elements.
