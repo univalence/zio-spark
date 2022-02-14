@@ -5,11 +5,16 @@ import org.apache.spark.sql.{DataFrameWriter => UnderlyingDataFrameWriter, SaveM
 import zio.Task
 import zio.spark.sql.DataFrameWriter.Source
 
-final case class DataFrameWriter[T](ds: Dataset[T], source: Source, sourceMode: SaveMode) {
+final case class DataFrameWriter[T](
+    ds:      Dataset[T],
+    source:  Source,
+    mode:    SaveMode,
+    options: Map[String, String]
+) {
 
   /** Saves a DataFrame using one of the dataframe saver. */
   private def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit): Task[Unit] =
-    Task(f(ds.underlyingDataset.succeedNow(_.write).format(source.toString).mode(sourceMode)))
+    Task(f(ds.underlyingDataset.succeedNow(_.write).options(options).format(source.toString).mode(mode)))
 
   /** Saves the content of the DataFrame as the specified table. */
   def save: Task[Unit] = saveUsing(_.save())
@@ -47,6 +52,31 @@ final case class DataFrameWriter[T](ds: Dataset[T], source: Source, sourceMode: 
    * See [[UnderlyingDataFrameWriter.text]] for more information.
    */
   def text(path: String): Task[Unit] = format(Source.Text).save(path)
+
+  /** Adds multiple options to the DataFrameWriter. */
+  def options(options: Map[String, String]): DataFrameWriter[T] = this.copy(options = this.options ++ options)
+
+  /** Adds any type of option to the DataFrameWriter. */
+  private def addOption(key: String, value: Any): DataFrameWriter[T] = options(Map(key -> value.toString))
+
+  /** Adds an option to the DataFrameWriter. */
+  def option(key: String, value: String): DataFrameWriter[T] = addOption(key, value)
+
+  /** Adds an option to the DataFrameWriter. */
+  def option(key: String, value: Boolean): DataFrameWriter[T] = addOption(key, value)
+
+  /** Adds an option to the DataFrameWriter. */
+  def option(key: String, value: Int): DataFrameWriter[T] = addOption(key, value)
+
+  /** Adds an option to the DataFrameWriter. */
+  def option(key: String, value: Float): DataFrameWriter[T] = addOption(key, value)
+
+  /** Adds an option to the DataFrameWriter. */
+  def option(key: String, value: Double): DataFrameWriter[T] = addOption(key, value)
+
+  /** Adds an option to say that the file has a header. */
+  def withHeader: DataFrameWriter[T] = option("header", value = true)
+
 }
 
 object DataFrameWriter {
@@ -54,7 +84,8 @@ object DataFrameWriter {
     DataFrameWriter(
       ds,
       Source.Parquet,
-      SaveMode.ErrorIfExists
+      SaveMode.ErrorIfExists,
+      Map.empty
     )
 
   sealed trait Source {

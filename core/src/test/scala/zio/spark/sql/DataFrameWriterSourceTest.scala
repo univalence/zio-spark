@@ -1,7 +1,6 @@
 package zio.spark.sql
 
 import zio.spark.helper._
-import zio.spark.parameter.Master.MasterNodeConfiguration
 import zio.spark.sql.DataFrameWriter.Source
 
 object DataFrameWriterSourceTest

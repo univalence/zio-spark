@@ -61,7 +61,7 @@ final case class DataFrameReader(options: Map[String, String]) {
   def options(options: Map[String, String]): DataFrameReader = DataFrameReader(this.options ++ options)
 
   /** Adds any type of option to the DataFrameReader. */
-  private def addOption(key: String, value: Any) = DataFrameReader(this.options + (key -> value.toString))
+  private def addOption(key: String, value: Any): DataFrameReader = options(Map(key -> value.toString))
 
   /** Adds an option to the DataFrameReader. */
   def option(key: String, value: String): DataFrameReader = addOption(key, value)

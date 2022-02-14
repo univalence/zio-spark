@@ -10,7 +10,7 @@ object DataFrameWriterTest {
   def dataFrameWriterSaveSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("DataFrameWriter Save")(
       test("DataFrameWriter can save a DataFrame to CSV") {
-        val write: DataFrame => Task[Unit] = _.write.csv(s"$resourcesPath/output.csv")
+        val write: DataFrame => Task[Unit] = _.write.withHeader.csv(s"$resourcesPath/output.csv")
 
         val pipeline = Pipeline.buildWithoutTransformation(read)(write)
 
