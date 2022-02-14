@@ -40,11 +40,8 @@ object SparkSessionRunner extends DefaultRunnableSpec {
   }
 }
 
-object RunOneTest extends DefaultRunnableSpec {
-  Logger.getLogger("org").setLevel(Level.OFF)
-
-  override def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
-    suite("Run only one test")(DataFrameWriterTest.dataFrameWriterSavingSpec).provideCustomLayerShared(
-      SparkSessionRunner.session
-    )
-}
+/* object RunOneTest extends DefaultRunnableSpec { Logger.getLogger("org").setLevel(Level.OFF)
+ *
+ * override def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
+ * suite("Run only one test")(DataFrameWriterTest.dataFrameWriterSavingSpec).provideCustomLayerShared(
+ * SparkSessionRunner.session ) } */
