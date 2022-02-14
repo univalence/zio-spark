@@ -77,6 +77,9 @@ final case class DataFrameWriter[T](
   /** Adds an option to say that the file has a header. */
   def withHeader: DataFrameWriter[T] = option("header", value = true)
 
+  /** Setups a new [[SaveMode]] for the DataFrameWriter. */
+  def mode(m: SaveMode): DataFrameWriter[T] = copy(mode = m)
+
 }
 
 object DataFrameWriter {
