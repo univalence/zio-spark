@@ -1,5 +1,6 @@
 # Test
 core/src/test/resources/output*
+examples/src/main/resources/output*
 
 # OS
 .bsp
