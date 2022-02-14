@@ -5,7 +5,7 @@ import org.apache.log4j.{Level, Logger}
 import zio._
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsTest, RDDTest}
-import zio.spark.sql.{DataFrameReaderTest, DatasetTest, ExtraDatasetFeatureTest, SparkSession}
+import zio.spark.sql.{DataFrameReaderTest, DataFrameWriterTest, DatasetTest, ExtraDatasetFeatureTest, SparkSession}
 import zio.test._
 
 /** Runs all spark specific tests in the same spark session. */
@@ -28,6 +28,7 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         DatasetTest.persistencySpec,
         DatasetTest.errorSpec,
         DatasetTest.fromSparkSpec,
+        DataFrameWriterTest.dataFrameWriterSaveSpec,
         DataFrameReaderTest.dataFrameReaderReadingSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,
@@ -38,8 +39,11 @@ object SparkSessionRunner extends DefaultRunnableSpec {
   }
 }
 
-/* object RunOneTest extends DefaultRunnableSpec { Logger.getLogger("org").setLevel(Level.OFF)
- *
- * override def spec: ZSpec[TestEnvironment, Any] =
- * suite("one")(DatasetTest.persistDataFrameTest).
- * provideCustomLayerShared(SparkSessionRunner.session) } */
+object RunOneTest extends DefaultRunnableSpec {
+  Logger.getLogger("org").setLevel(Level.OFF)
+
+  override def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
+    suite("Run only one test")(DataFrameWriterTest.dataFrameWriterSaveSpec).provideCustomLayerShared(
+      SparkSessionRunner.session
+    )
+}

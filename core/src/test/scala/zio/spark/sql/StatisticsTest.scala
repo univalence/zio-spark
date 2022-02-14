@@ -5,6 +5,7 @@ import zio.spark.sql.Statistics._
 
 object StatisticsTest
     extends ADTTestFor[Statistics](
+      name = "Statistics",
       conftests =
         List(
           Conftest("count", Count, "count"),
