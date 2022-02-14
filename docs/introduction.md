@@ -5,13 +5,22 @@ sidebar_position: 1
 
 # Introduction
 
+zio-spark provides an easy way to deal with Spark using ZIO runtime. The library is designed to be as close to the Spark API as possible. It allows us to use our favorite ZIO functionnalities in our Spark job such as:
+
+- using ZLayer to inject the SparkSession
+- running our job in parrallel
+- retrying our job easily
+- increasing the performances of our jobs
+
+## About performances
+
 There are usual ways to improve the performances of spark jobs, in order of priority:
 
-* less join
-* less data (=> active location, streaming, ...)
-* less udf/rdd
-* better configuration
-* **better resource allocation** <-
+- less join
+- less data (=> active location, streaming, ...)
+- less udf/rdd
+- better configuration
+- **better resource allocation** <-
 
 What zio-spark can do is to launch different spark jobs in the same `SparkSession`, allowing to use more of the
 executors capacity. Eg. if you have 5 workers, and only 1 is working to finish the current job, and you wait before
