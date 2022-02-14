@@ -1,3 +1,6 @@
+# Test
+core/src/test/resources/output*
+
 # OS
 .bsp
 .DS_Store
