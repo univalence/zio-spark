@@ -303,4 +303,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    * See [[UnderlyingDataset.storageLevel]] for more information.
    */
   def storageLevel: UIO[StorageLevel] = succeed(_.storageLevel)
+
+  /** Create a DataFrameWrite from this dataset. */
+  def write: DataFrameWriter[T] = DataFrameWriter(this)
 }
