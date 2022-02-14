@@ -28,8 +28,9 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         DatasetTest.persistencySpec,
         DatasetTest.errorSpec,
         DatasetTest.fromSparkSpec,
-        DataFrameWriterTest.dataFrameWriterSaveSpec,
         DataFrameReaderTest.dataFrameReaderReadingSpec,
+        DataFrameWriterTest.dataFrameWriterSavingSpec,
+        DataFrameWriterTest.dataFrameWriterOptionDefinitionsSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,
         PairRDDFunctionsTest.spec
@@ -43,7 +44,7 @@ object RunOneTest extends DefaultRunnableSpec {
   Logger.getLogger("org").setLevel(Level.OFF)
 
   override def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] =
-    suite("Run only one test")(DataFrameWriterTest.dataFrameWriterSaveSpec).provideCustomLayerShared(
+    suite("Run only one test")(DataFrameWriterTest.dataFrameWriterSavingSpec).provideCustomLayerShared(
       SparkSessionRunner.session
     )
 }
