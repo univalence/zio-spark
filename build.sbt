@@ -4,7 +4,7 @@ ThisBuild / organizationName     := "Univalence"
 ThisBuild / organizationHomepage := Some(url("https://univalence.io/"))
 
 ThisBuild / version                  := "0.1.0"
-ThisBuild / description              := "Imagine if ZIO and Spark made a baby !"
+ThisBuild / description              := "A functional wrapper around Spark to make it work with ZIO"
 ThisBuild / startYear                := Some(2022)
 ThisBuild / licenses += ("Apache-2.0" → new URL("https://github.com/univalence/zio-spark/blob/master/LICENSE"))
 ThisBuild / homepage                 := Some(url("https://github.com/univalence/zio-spark"))
