@@ -33,6 +33,7 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         DataFrameWriterTest.dataFrameWriterOptionDefinitionsSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,
+        RDDTest.rddTransformationsSpec,
         PairRDDFunctionsTest.spec
       )
 

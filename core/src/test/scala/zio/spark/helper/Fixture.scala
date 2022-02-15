@@ -1,6 +1,8 @@
 package zio.spark.helper
 
-import zio.spark.sql.{DataFrame, Dataset, Spark, SparkSession}
+import zio.spark.rdd._
+import zio.spark.sql._
+import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
 object Fixture {
   final case class Person(name: String, age: Int)
@@ -14,4 +16,6 @@ object Fixture {
   val readEmpty: Spark[DataFrame] = readCsv(s"$resourcesPath/empty.csv")
 
   val readLorem: Spark[Dataset[String]] = SparkSession.read.textFile(s"$resourcesPath/lorem.txt")
+
+  val readRDD: Spark[RDD[Person]] = read.map(_.as[Person].rdd)
 }

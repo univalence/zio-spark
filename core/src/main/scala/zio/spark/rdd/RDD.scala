@@ -1,5 +1,6 @@
 package zio.spark.rdd
 
+import org.apache.spark.Partition
 import org.apache.spark.rdd.{RDD => UnderlyingRDD}
 
 import zio.Task
@@ -38,4 +39,11 @@ final case class RDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impu
    * See [[UnderlyingRDD.map]] for more information.
    */
   def map[U: ClassTag](f: T => U): RDD[U] = transformation(_.map(f))
+
+  /**
+   * Returns the underlying number of partitions.
+   *
+   * See [[UnderlyingRDD.partitions]] for more information.
+   */
+  def partitions: Array[Partition] = succeedNow(_.partitions)
 }
