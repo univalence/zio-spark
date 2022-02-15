@@ -60,7 +60,6 @@ new things in `zio-spark`, don't hesitate to open an issue!
 
 You can also talk to us directly using this link if you are interested to contribute https://calendly.com/zio-spark/contribution .
 
-
 ## License
 
 Copyright 2019-2022 Univalence.io
