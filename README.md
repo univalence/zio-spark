@@ -23,15 +23,17 @@
 
 You can find the documentation of zio-spark [here](https://univalence.github.io/zio-spark/).
 
+
+## Help
+
+You can ask us (Dylan, Jonathan) for some help if you want to use the lib or have questions around it : https://calendly.com/zio-spark/help
+
 ## Latest version
 
-If you want to get the very last version of this library you can still download it using bintray
-here : https://bintray.com/univalence/univalence-jvm/spark-zio.
-
-:warning: The library is currently under a huge refactoring, we will make a release soon with a lot of breaking changes.
+If you want to get the very last version of this library you can still download it using:
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
+libraryDependencies += "io.univalence" %% "zio-spark" % "1.0.2"
 ```
 
 ### Spark Version
@@ -41,14 +43,6 @@ usually).
 
 ```scala
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.7" % Provided
-```
-
-### Snapshots
-
-```scala
-resolvers += "univalence" at "http://dl.bintray.com/univalence/univalence-jvm"
-
-libraryDependecies += "io.univalence" %% "zio-spark" % "0.0.1-+"
 ```
 
 ## Why ?
