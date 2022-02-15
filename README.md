@@ -32,7 +32,7 @@ You can ask us (Dylan, Jonathan) for some help if you want to use the lib or hav
 If you want to get the very last version of this library you can still download it using:
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.2"
 ```
 
 ### Spark Version
@@ -59,10 +59,3 @@ Pull requests are welcomed. We are open to organize pair-programming session to 
 new things in `zio-spark`, don't hesitate to open an issue!
 
 You can also talk to us directly using this link if you are interested to contribute https://calendly.com/zio-spark/contribution .
-
-## License
-
-Copyright 2019-2022 Univalence.io
-
-Licensed under the Apache License, Version 2.0:
-http://www.apache.org/licenses/LICENSE-2.0

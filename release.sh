@@ -7,11 +7,15 @@ if [ -n "$1" ]; then
         if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
         then
             # update the version in README.md
-            sed -i -e "s|\"zio-spark\" % \".*\"|\"zio-spark\" % \"${1#v}\"|"  README.md
+            sed -i '' -E "s|\"zio-spark\" % \".*\"|\"zio-spark\" % \"${1#v}\"|" README.md
+            # update the version in docs/getting-started.md
+            sed -i '' -E "s|\"zio-spark\" % \".*\"|\"zio-spark\" % \"${1#v}\"|" docs/getting-started.md
             git add README.md
+            git add docs/getting-started.md
             git commit -m "chore(release): prepare for v$1"
             git tag "v$1"
             git push --atomic origin master "v$1"
+            cd website && npm run deploy
         else
             echo "Operation canceled"
         fi

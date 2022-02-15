@@ -3,7 +3,7 @@ inThisBuild(
   List(
     organization := "io.univalence",
     homepage     := Some(url("https://github.com/univalence/zio-spark")),
-    licenses     := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    licenses     := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
     developers := List(
       Developer(
         id    = "jwinandy",
