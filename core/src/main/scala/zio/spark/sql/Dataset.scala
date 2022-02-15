@@ -243,6 +243,23 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     transformation(_.withColumnRenamed(existingName, newName))
 
   /**
+   * Returns a Dataset with exactly "numPartitions" partitions with
+   * shuffle.
+   *
+   * See [[UnderlyingDataset.repartition]] for more information.
+   */
+  def repartition(numPartitions: Int): Dataset[T] = transformation(_.repartition(numPartitions))
+
+  /**
+   * Returns a Dataset with exactly "numPartitions" partitions without
+   * shuffle. It can only be used when we need fewer partitions
+   * otherwise it will stay at the current number of partitions.
+   *
+   * See [[UnderlyingDataset.coalesce]] for more information.
+   */
+  def coalesce(numPartitions: Int): Dataset[T] = transformation(_.coalesce(numPartitions))
+
+  /**
    * Returns a new Dataset that contains only the unique rows from this
    * Dataset, considering all columns.
    *

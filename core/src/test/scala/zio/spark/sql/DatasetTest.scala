@@ -254,6 +254,18 @@ object DatasetTest {
           df <- read
           colnames = df.withColumn("firstname", $"name").columns
         } yield assertTrue(colnames == Seq("name", "age", "firstname"))
+      },
+      test("Dataset should implement repartition correctly") {
+        for {
+          df <- read
+          transformedDf = df.repartition(10)
+        } yield assertTrue(transformedDf.rdd.partitions.length == 10)
+      },
+      test("Dataset should implement coalesce correctly") {
+        for {
+          df <- read
+          transformedDf = df.repartition(10).coalesce(2)
+        } yield assertTrue(transformedDf.rdd.partitions.length == 2)
       }
     )
 
