@@ -23,7 +23,6 @@
 
 You can find the documentation of zio-spark [here](https://univalence.github.io/zio-spark/).
 
-
 ## Help
 
 You can ask us (Dylan, Jonathan) for some help if you want to use the lib or have questions around it : https://calendly.com/zio-spark/help
@@ -59,7 +58,8 @@ There are many reasons why we decide to build this library, such as:
 Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements. If you want to add
 new things in `zio-spark`, don't hesitate to open an issue!
 
-You can also talk to us directly using this link if you are interested to
+You can also talk to us directly using this link if you are interested to contribute https://calendly.com/zio-spark/contribution .
+
 
 ## License
 
