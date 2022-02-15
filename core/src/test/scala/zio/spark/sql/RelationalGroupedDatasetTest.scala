@@ -16,7 +16,7 @@ object RelationalGroupedDatasetTest {
       def build: Spec[SparkSession, TestFailure[Any], TestSuccess] =
         test(s"DataFrameWriter should implement $aggregation correctly") {
           for {
-            df <- readCsv("group.csv")
+            df <- readCsv(s"$resourcesPath/group.csv")
             transformedDf =
               f("age")(df.groupBy($"status"))
                 .withColumnRenamed(s"$aggregation(age)", "age")
