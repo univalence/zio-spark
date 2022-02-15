@@ -132,7 +132,7 @@ object DatasetTest {
       }
     )
 
-  def datasetTransformationsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def datasetTransformationsSpec: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Transformations")(
       test("Dataset should implement limit correctly") {
         val process: DataFrame => DataFrame = _.limit(2)
@@ -266,7 +266,7 @@ object DatasetTest {
           df <- read
           transformedDf = df.repartition(10).coalesce(2)
         } yield assertTrue(transformedDf.rdd.partitions.length == 2)
-      }
+      } @@ scala211(ignore)
     )
 
   def sqlSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
