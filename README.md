@@ -33,7 +33,7 @@ You can ask us (Dylan, Jonathan) for some help if you want to use the lib or hav
 If you want to get the very last version of this library you can still download it using:
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "1.0.2"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
 ```
 
 ### Spark Version
@@ -49,7 +49,7 @@ libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.7" % Provided
 
 There are many reasons why we decide to build this library, such as:
 * allowing user to build Spark pipeline with ZIO easily.
-* making better code, pure FP, more composable, more readable (by some degree) Spark code.
+* making better code, pure FP, more composable, more readable Spark code.
 * stopping the propagation of ```implicit SparkSessions```.
 * improving some performances.
 * taking advantage of ZIO allowing our jobs to retry and to be run in parallel.
@@ -58,6 +58,8 @@ There are many reasons why we decide to build this library, such as:
 
 Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements. If you want to add
 new things in `zio-spark`, don't hesitate to open an issue!
+
+You can also talk to us directly using this link if you are interested to
 
 ## License
 
