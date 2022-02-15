@@ -13,7 +13,8 @@ object DatasetCompatibilityTest
           "transformationWithAnalysis",
           "action",
           "headOption",
-          "firstOption"
+          "firstOption",
+          "group"
         ) ++ extraAllowedMethods,
       isImpure = true
     )
