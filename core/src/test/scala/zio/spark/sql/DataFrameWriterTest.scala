@@ -47,7 +47,7 @@ object DataFrameWriterTest {
     ) {
       def build: Spec[SparkSession, TestFailure[Any], TestSuccess] =
         test(s"DataFrameWriter can save a DataFrame to $extension") {
-          val path: String = s"$resourcesPath/output.$extension"
+          val path: String = s"output.$extension"
 
           val pipeline = Pipeline.buildWithoutTransformation(read)(write(path))
 
