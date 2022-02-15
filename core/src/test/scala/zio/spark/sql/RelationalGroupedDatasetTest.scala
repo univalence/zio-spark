@@ -5,7 +5,7 @@ import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 import zio.test._
 
 object RelationalGroupedDatasetTest {
-  case class AggregatePerson(status: String, age: Double)
+  final case class AggregatePerson(status: String, age: Double)
 
   def relationalGroupedDatasetAggregationSpec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] = {
     final case class Test(
