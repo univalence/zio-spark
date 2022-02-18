@@ -6,4 +6,4 @@ addSbtPlugin("org.scoverage"             % "sbt-scoverage" % "1.9.3")
 lazy val codegen =
   project
     .in(file("."))
-    .dependsOn(ProjectRef(file("../zio-spark-codegen"), "zio-spark-codegen"))
+    .dependsOn(ProjectRef(file("../zio-spark-codegen"), "plugin"))

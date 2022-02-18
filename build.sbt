@@ -112,6 +112,7 @@ lazy val core =
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       scalacOptions ~= fatalWarningsAsProperties
     )
+    .enablePlugins(ZioSparkCodegenPlugin)
 
 lazy val examples =
   (project in file("examples"))
