@@ -101,7 +101,7 @@ lazy val scala =
 lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 
 lazy val core =
-  (project in file("zio-spark-core"))
+  (project in file("core"))
     .settings(
       name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
