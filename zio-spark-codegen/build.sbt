@@ -12,6 +12,6 @@ ThisBuild / sbtPlugin          := true
 ThisBuild / scalaVersion       := scala.v213
 ThisBuild / crossScalaVersions := supportedScalaVersions
 ThisBuild / libraryDependencies ++= Seq(
-  "dev.zio" %% "zio" % "2.0.0-RC2"
+  // "dev.zio" %% "zio" % "2.0.0-RC2"
   // "org.scalameta" %% "scalameta" % "4.4.35"
 )
