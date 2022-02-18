@@ -11,7 +11,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
   override lazy val projectSettings =
     Seq(
       Compile / sourceGenerators += Def.task {
-        val file = (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "codegen" / "Test.scala"
+        val file = (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "Test.scala"
         IO.write(file,
           """
             |package zio.spark.internal.codegen
