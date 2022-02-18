@@ -14,7 +14,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
         val file = (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "Test.scala"
         IO.write(file,
           """
-            |package zio.spark.internal.codegen
+            |package zio.spark.internal
             |
             |object Test extends App { println("Hi") }
             |""".stripMargin)
