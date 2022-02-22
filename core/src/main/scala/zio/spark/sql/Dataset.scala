@@ -1,6 +1,13 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row, Sniffer}
+import org.apache.spark.sql.{
+  Column,
+  Dataset => UnderlyingDataset,
+  Encoder,
+  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
+  Row,
+  Sniffer
+}
 import org.apache.spark.storage.StorageLevel
 
 import zio._
@@ -35,6 +42,10 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    */
   def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(transformation(f))
+
+  /** Transforms the Dataset into a RelationalGroupedDataset. */
+  def group(f: UnderlyingDataset[T] => UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
+    succeedNow(f.andThen(x => RelationalGroupedDataset(x)))
 
   /** Applies an action to the underlying dataset. */
   def action[A](f: UnderlyingDataset[T] => A): Task[A] = attemptBlocking(f)
@@ -243,6 +254,23 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     transformation(_.withColumnRenamed(existingName, newName))
 
   /**
+   * Returns a Dataset with exactly "numPartitions" partitions with
+   * shuffle.
+   *
+   * See [[UnderlyingDataset.repartition]] for more information.
+   */
+  def repartition(numPartitions: Int): Dataset[T] = transformation(_.repartition(numPartitions))
+
+  /**
+   * Returns a Dataset with exactly "numPartitions" partitions without
+   * shuffle. It can only be used when we need fewer partitions
+   * otherwise it will stay at the current number of partitions.
+   *
+   * See [[UnderlyingDataset.coalesce]] for more information.
+   */
+  def coalesce(numPartitions: Int): Dataset[T] = transformation(_.coalesce(numPartitions))
+
+  /**
    * Returns a new Dataset that contains only the unique rows from this
    * Dataset, considering all columns.
    *
@@ -252,6 +280,14 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
 
   /** Alias for [[dropDuplicates]]. */
   def distinct: Dataset[T] = dropDuplicates
+
+  /**
+   * Groups the Dataset using the specified columns, so we ca run
+   * aggregations on them.
+   *
+   * See [[UnderlyingDataset.groupBy]] for more information.
+   */
+  def groupBy(cols: Column*): RelationalGroupedDataset = group(_.groupBy(cols: _*))
 
   /**
    * Creates a local temporary view using the given name.

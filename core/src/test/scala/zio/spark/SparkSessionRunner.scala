@@ -5,7 +5,14 @@ import org.apache.log4j.{Level, Logger}
 import zio._
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsTest, RDDTest}
-import zio.spark.sql.{DataFrameReaderTest, DataFrameWriterTest, DatasetTest, ExtraDatasetFeatureTest, SparkSession}
+import zio.spark.sql.{
+  DataFrameReaderTest,
+  DataFrameWriterTest,
+  DatasetTest,
+  ExtraDatasetFeatureTest,
+  RelationalGroupedDatasetTest,
+  SparkSession
+}
 import zio.test._
 
 /** Runs all spark specific tests in the same spark session. */
@@ -33,7 +40,9 @@ object SparkSessionRunner extends DefaultRunnableSpec {
         DataFrameWriterTest.dataFrameWriterOptionDefinitionsSpec,
         ExtraDatasetFeatureTest.spec,
         RDDTest.rddActionsSpec,
-        PairRDDFunctionsTest.spec
+        RDDTest.rddTransformationsSpec,
+        PairRDDFunctionsTest.spec,
+        RelationalGroupedDatasetTest.relationalGroupedDatasetAggregationSpec
       )
 
     suite("Spark tests")(specs: _*).provideCustomLayerShared(session)
