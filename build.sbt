@@ -1,9 +1,10 @@
 // Common configuration
 inThisBuild(
   List(
-    organization := "io.univalence",
-    homepage     := Some(url("https://github.com/univalence/zio-spark")),
-    licenses     := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
+    organization  := "io.univalence",
+    homepage      := Some(url("https://github.com/univalence/zio-spark")),
+    licenses      := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
+    versionScheme := Some("early-semver"),
     developers := List(
       Developer(
         id    = "jwinandy",
