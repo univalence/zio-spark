@@ -2,6 +2,7 @@ package zio.spark.internal.codegen
 
 import sbt.*
 import sbt.Keys.*
+
 import zio.spark.internal.codegen.RDDAnalysis.*
 
 import scala.reflect.runtime.universe
@@ -25,55 +26,94 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
     methods.toSet
   }
 
+  def prefixAllLines(text: String, prefix: String): String = text.split("\n").map(prefix + _).mkString("\n")
+
+  def commentMethods(methods: String, title: String): String =
+    s"""/**
+       | * $title
+       | *
+       |${prefixAllLines(methods, " * ")}
+       | */""".stripMargin
+
   override lazy val projectSettings =
     Seq(
       Compile / sourceGenerators += Def.task {
         val file = (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "codegen" / "BaseRDD.scala"
 
         val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
-        val apacheSparkMethods: Seq[universe.MethodSymbol] = readMethodsApacheSparkRDD
-        val methodsToImplement: Seq[universe.MethodSymbol] = apacheSparkMethods.filter(s => !zioSparkMethodNames(s.fullName))
+        val apacheSparkMethods: Seq[universe.MethodSymbol] =
+          readMethodsApacheSparkRDD
+            .filterNot(_.fullName.contains("$"))
+            .filterNot(_.fullName.contains("java.lang.Object"))
+            .filterNot(_.fullName.contains("scala.Any"))
+            .filterNot(_.fullName.contains("<init>"))
 
-
-        def listMethods(methods: Seq[universe.MethodSymbol]): String = {
-          methods.map(_.fullName).filter(!_.contains("$")).filter(!_.contains("java.lang.Object")).filter(!_.contains("scala.Any")).distinct.map("[[" + _ + "]]").sliding(3, 3).map(_.mkString(", ")).map(" * " + _).mkString("\n")
-        }
-
-        val body:String = readMethodsApacheSparkRDD.groupBy(getMethodType).map({
-          case (MethodType.Ignored, methods) =>
-            "/** Ignored methods : \n" + listMethods(methods) + "\n */"
-          case (MethodType.ToImplement, methods) =>
-            "/** Methods to implement : \n" + listMethods(methods) + "\n */"
-          case (MethodType.SuccessNow, methods) => methods.map {
-            method =>
-              val methodCall:String = if(method.paramLists == List(Nil)) s"${method.name}()" else method.name.toString
-              s"def ${method.name}: ${method.returnType} = succeedNow(_.$methodCall)"
-          }.mkString("\n\n")
-
-          case _ => ""
-        }).mkString("\n//---------\n")
-
-
+        val body: String =
+          apacheSparkMethods
+            .groupBy(getMethodType)
+            .map { case (methodType, methods) =>
+              val allMethods = methods.map(method => generateMethod(method, methodType)).mkString("\n")
+              methodType match {
+                case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
+                case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")
+                case _                      => allMethods
+              }
+            }
+            .mkString("\n\n//===============\n\n")
 
         IO.write(
           file,
           s"""package zio.spark.internal.codegen
-            |
-            |import org.apache.spark.rdd.RDD
-            |
-            |import zio.spark.impure.Impure
-            |import zio.spark.impure.Impure.ImpureBox
-            |
-            |abstract class BaseRDD[T](underlyingDataset: ImpureBox[RDD[T]]) extends Impure[RDD[T]](underlyingDataset) {
-            |  import underlyingDataset._
-            |
-            |${body.split("\n").map("  " + _).mkString("\n")}
-            |}
-            |""".stripMargin
+             |
+             |import org.apache.spark.rdd.RDD
+             |
+             |import zio.spark.impure.Impure
+             |import zio.spark.impure.Impure.ImpureBox
+             |
+             |abstract class BaseRDD[T](underlyingDataset: ImpureBox[RDD[T]]) extends Impure[RDD[T]](underlyingDataset) {
+             |  import underlyingDataset._
+             |
+             |${prefixAllLines(body, "  ")}
+             |}
+             |""".stripMargin
         )
         Seq(file)
       }.taskValue
     )
 
+  def generateSymbols(symbolsLists: List[List[universe.Symbol]], isParameter: Boolean): String =
+    symbolsLists match {
+      case List(Nil) => "()"
+      case Nil       => ""
+      case symbolsLists =>
+        val symbols = symbolsLists.flatten
+        val symbolToString =
+          (s: universe.Symbol) => if (isParameter) s"${s.name}: ${s.typeSignature.typeSymbol.name}" else s.name
+        val body = symbols.map(symbolToString).mkString(", ")
+        s"($body)"
+    }
 
+  def generateMethod(method: universe.MethodSymbol, methodType: MethodType): String =
+    methodType match {
+      case MethodType.Ignored     => s"[[${method.fullName}]]"
+      case MethodType.ToImplement => s"[[${method.fullName}]]"
+      case _ =>
+        val paramLists = method.paramLists
+        val arguments  = generateSymbols(paramLists, isParameter = false)
+        val parameters = generateSymbols(paramLists, isParameter = true)
+        val returnType =
+          methodType match {
+            case MethodType.DriverAction           => s"Task[${method.returnType}]"
+            case MethodType.DistributedComputation => s"Task[${method.returnType}]"
+            case _                                 => method.returnType.toString
+          }
+        val transformation =
+          methodType match {
+            case MethodType.DriverAction           => "attemptBlocking"
+            case MethodType.DistributedComputation => "attemptBlocking"
+            case _                                 => "succeedNow"
+          }
+
+        s"def ${method.name}$parameters: $returnType = $transformation(_.${method.name}$arguments)"
+    }
 }

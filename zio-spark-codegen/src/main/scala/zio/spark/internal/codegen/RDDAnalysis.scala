@@ -24,13 +24,6 @@ object RDDAnalysis {
     case object ToImplement            extends MethodType
   }
 
-  private def yolo() = {
-
-    val rdd: org.apache.spark.rdd.RDD[Any] = ???
-
-    rdd
-  }
-
   def getMethodType(method: universe.MethodSymbol): MethodType = {
     val cacheElements =
       Set(
@@ -70,34 +63,35 @@ object RDDAnalysis {
     val returnType = method.returnType.typeSymbol
 
     methodName match {
-      case x if x.contains("$default$")                                             => Ignored
-      case _ if method.annotations.exists(_.toString.contains("DeveloperApi"))      => Ignored
-      case name if action(name)                                                     => DistributedComputation
-      case name if name.startsWith("take")                                          => DistributedComputation
-      case name if name.startsWith("foreach")                                       => DistributedComputation
-      case name if name.startsWith("count")                                         => DistributedComputation
-      case name if name.startsWith("saveAs")                                        => DistributedComputation
-      case "iterator"                                                               => DistributedComputation
-      case name if cacheElements(name)                                              => DriverAction
-      case name if otherTransformation(name)                                        => SuccessNow
-      case name if pureInfo(name)                                                   => SuccessNow
-      case "sparkContext" | "context"                                               => ToImplement
-      case "randomSplit"                                                            => ToImplement
-      case "toJavaRDD"                                                              => ToImplement
-      case _ if method.fullName.startsWith("java.lang.Object.")                     => Ignored
-      case _ if method.fullName.startsWith("scala.Any.")                            => Ignored
-      case "$init$" | "toString"                                                    => Ignored
-      case _ if method.isSetter                                                     => Ignored
-      case "name"                                                                   => DriverAction
-      case name if partitionOps(name)                                               => Transformation
-      case _ if returnType.fullName == "org.apache.spark.rdd.RDD" => Transformation
+      case x if x.contains("$")                                                => Ignored
+      case _ if method.annotations.exists(_.toString.contains("DeveloperApi")) => Ignored
+      case name if action(name)                                                => DistributedComputation
+      case name if name.startsWith("take")                                     => DistributedComputation
+      case name if name.startsWith("foreach")                                  => DistributedComputation
+      case name if name.startsWith("count")                                    => DistributedComputation
+      case name if name.startsWith("saveAs")                                   => DistributedComputation
+      case "iterator"                                                          => DistributedComputation
+      case name if cacheElements(name)                                         => DriverAction
+      case name if otherTransformation(name)                                   => SuccessNow
+      case name if pureInfo(name)                                              => SuccessNow
+      case "sparkContext" | "context"                                          => ToImplement
+      case "randomSplit"                                                       => ToImplement
+      case "toJavaRDD"                                                         => ToImplement
+      case _ if method.fullName.startsWith("java.lang.Object.")                => Ignored
+      case _ if method.fullName.startsWith("scala.Any.")                       => Ignored
+      case "toString"                                                          => Ignored
+      case _ if method.isSetter                                                => Ignored
+      case "name"                                                              => DriverAction
+      case name if partitionOps(name)                                          => Transformation
+      case _ if returnType.fullName == "org.apache.spark.rdd.RDD"              => Transformation
     }
   }
 
   def main(args: Array[String]): Unit =
-      readMethodsApacheSparkRDD.groupBy(getMethodType).foreach(t => {
+    readMethodsApacheSparkRDD
+      .groupBy(getMethodType)
+      .foreach { t =>
         println(t._1)
         t._2.map(_.fullName).distinct.sorted.foreach(m => println("  " + m))
       }
-    )
 }
