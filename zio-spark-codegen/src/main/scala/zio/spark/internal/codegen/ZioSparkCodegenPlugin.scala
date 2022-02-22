@@ -82,30 +82,4 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
         Seq(file)
       }.taskValue
     )
-
-  /* def generateParamList(paramList: List[universe.Symbol], isParameter: Boolean): String = { val symbolToString =
-   * (s: universe.Symbol) => if (isParameter) s"${s.name}: ${s.typeSignature.typeSymbol.name}" else s.name
-   *
-   * paramList match { case Nil => "" case symbol :: tail if symbol.isImplicit => if (isParameter) { val body = (symbol
-   * +: tail).map(symbolToString).mkString(", ") s"(implicit $body)" } else { "" } case symbols => val body =
-   * symbols.map(symbolToString).mkString(", ") s"($body)" } }
-   *
-   * def generateSymbols(paramLists: List[List[universe.Symbol]], isParameter: Boolean): String =
-   * paramLists match { case List(Nil) => if (isParameter) "" else "()" case Nil => "" case _ => paramLists.map(l =>
-   * generateParamList(l, isParameter)).mkString("") }
-   *
-   * def generateMethod(method: universe.MethodSymbol, methodType: MethodType): String =
-   * methodType match { case MethodType.Ignored => s"[[${method.fullName}]]" case MethodType.ToImplement =>
-   * s"[[${method.fullName}]]" case _ => val arguments = generateSymbols(method.paramLists, isParameter = false) val
-   * parameters = generateSymbols(method.paramLists, isParameter = true)
-   *
-   * val returnType =
-   * methodType match { case MethodType.DriverAction => s"Task[${method.returnType}]" case
-   * MethodType.DistributedComputation => s"Task[${method.returnType}]" case _ => method.returnType.toString }
-   *
-   * val transformation =
-   * methodType match { case MethodType.DriverAction => "attemptBlocking" case MethodType.DistributedComputation =>
-   * "attemptBlocking" case _ => "succeedNow" }
-   *
-   * s"def ${method.name}$parameters: $returnType = $transformation(_.${method.name}$arguments)" } */
 }
