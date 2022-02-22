@@ -23,15 +23,16 @@
 
 You can find the documentation of zio-spark [here](https://univalence.github.io/zio-spark/).
 
+## Help
+
+You can ask us (Dylan, Jonathan) for some help if you want to use the lib or have questions around it : https://calendly.com/zio-spark/help
+
 ## Latest version
 
-If you want to get the very last version of this library you can still download it using bintray
-here : https://bintray.com/univalence/univalence-jvm/spark-zio.
-
-:warning: The library is currently under a huge refactoring, we will make a release soon with a lot of breaking changes.
+If you want to get the very last version of this library you can still download it using:
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.1"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.2"
 ```
 
 ### Spark Version
@@ -43,19 +44,11 @@ usually).
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.7" % Provided
 ```
 
-### Snapshots
-
-```scala
-resolvers += "univalence" at "http://dl.bintray.com/univalence/univalence-jvm"
-
-libraryDependecies += "io.univalence" %% "zio-spark" % "0.0.1-+"
-```
-
 ## Why ?
 
 There are many reasons why we decide to build this library, such as:
 * allowing user to build Spark pipeline with ZIO easily.
-* making better code, pure FP, more composable, more readable (by some degree) Spark code.
+* making better code, pure FP, more composable, more readable Spark code.
 * stopping the propagation of ```implicit SparkSessions```.
 * improving some performances.
 * taking advantage of ZIO allowing our jobs to retry and to be run in parallel.
@@ -65,9 +58,4 @@ There are many reasons why we decide to build this library, such as:
 Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements. If you want to add
 new things in `zio-spark`, don't hesitate to open an issue!
 
-## License
-
-Copyright 2019-2022 Univalence.io
-
-Licensed under the Apache License, Version 2.0:
-http://www.apache.org/licenses/LICENSE-2.0
+You can also talk to us directly using this link if you are interested to contribute https://calendly.com/zio-spark/contribution .

@@ -1,65 +1,54 @@
 // Common configuration
-ThisBuild / organization         := "io.univalence"
-ThisBuild / organizationName     := "Univalence"
-ThisBuild / organizationHomepage := Some(url("https://univalence.io/"))
-
-ThisBuild / version                  := "0.1.0"
-ThisBuild / description              := "A functional wrapper around Spark to make it work with ZIO"
-ThisBuild / startYear                := Some(2022)
-ThisBuild / licenses += ("Apache-2.0" → new URL("https://github.com/univalence/zio-spark/blob/master/LICENSE"))
-ThisBuild / homepage                 := Some(url("https://github.com/univalence/zio-spark"))
-
-ThisBuild / scalafixScalaBinaryVersion := "2.13"
-
-ThisBuild / scmInfo := Some(
-  ScmInfo(
-    url("https://github.com/univalence/zio-spark"),
-    "scm:git:https://github.com/univalence/zio-spark.git",
-    "scm:git:git@github.com:univalence/zio-spark.git"
-  )
-)
-ThisBuild / developers := List(
-  Developer(
-    id    = "jwinandy",
-    name  = "Jonathan Winandy",
-    email = "jonathan@univalence.io",
-    url   = url("https://github.com/ahoy-jon")
-  ),
-  Developer(
-    id    = "phong",
-    name  = "Philippe Hong",
-    email = "philippe@univalence.io",
-    url   = url("https://github.com/hwki77")
-  ),
-  Developer(
-    id    = "fsarradin",
-    name  = "François Sarradin",
-    email = "francois@univalence.io",
-    url   = url("https://github.com/fsarradin")
-  ),
-  Developer(
-    id    = "bernit77",
-    name  = "Bernarith Men",
-    email = "bernarith@univalence.io",
-    url   = url("https://github.com/bernit77")
-  ),
-  Developer(
-    id    = "HarrisonCheng",
-    name  = "Harrison Cheng",
-    email = "harrison@univalence.io",
-    url   = url("https://github.com/HarrisonCheng")
-  ),
-  Developer(
-    id    = "dylandoamaral",
-    name  = "Dylan Do Amaral",
-    email = "dylan@univalence.io",
-    url   = url("https://github.com/dylandoamaral")
+inThisBuild(
+  List(
+    organization := "io.univalence",
+    homepage     := Some(url("https://github.com/univalence/zio-spark")),
+    licenses     := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
+    developers := List(
+      Developer(
+        id    = "jwinandy",
+        name  = "Jonathan Winandy",
+        email = "jonathan@univalence.io",
+        url   = url("https://github.com/ahoy-jon")
+      ),
+      Developer(
+        id    = "phong",
+        name  = "Philippe Hong",
+        email = "philippe@univalence.io",
+        url   = url("https://github.com/hwki77")
+      ),
+      Developer(
+        id    = "fsarradin",
+        name  = "François Sarradin",
+        email = "francois@univalence.io",
+        url   = url("https://github.com/fsarradin")
+      ),
+      Developer(
+        id    = "bernit77",
+        name  = "Bernarith Men",
+        email = "bernarith@univalence.io",
+        url   = url("https://github.com/bernit77")
+      ),
+      Developer(
+        id    = "HarrisonCheng",
+        name  = "Harrison Cheng",
+        email = "harrison@univalence.io",
+        url   = url("https://github.com/HarrisonCheng")
+      ),
+      Developer(
+        id    = "dylandoamaral",
+        name  = "Dylan Do Amaral",
+        email = "dylan@univalence.io",
+        url   = url("https://github.com/dylandoamaral")
+      )
+    )
   )
 )
 
 // Scalafix configuration
-ThisBuild / semanticdbEnabled := true
-ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / scalafixScalaBinaryVersion := "2.13"
+ThisBuild / semanticdbEnabled          := true
+ThisBuild / semanticdbVersion          := scalafixSemanticdb.revision
 ThisBuild / scalafixDependencies ++= Seq(
   "com.github.vovapolu" %% "scaluzzi" % "0.1.21"
 )
@@ -120,7 +109,8 @@ lazy val examples =
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core" % "3.2.1",
         "org.apache.spark" %% "spark-sql"  % "3.2.1"
-      )
+      ),
+      skip / publish := true
     )
     .dependsOn(core)
 
