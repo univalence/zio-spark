@@ -32,7 +32,7 @@ You can ask us (Dylan, Jonathan) for some help if you want to use the lib or hav
 If you want to get the very last version of this library you can still download it using:
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.0.2"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.1.0"
 ```
 
 ### Spark Version
