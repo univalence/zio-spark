@@ -100,7 +100,7 @@ lazy val core =
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       scalacOptions ~= fatalWarningsAsProperties,
-      sonatypeCredentialHost := "s01.oss.sonatype.org"
+      sonatypeCredentialHost := "s01.oss.sonatype.org",
       sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
     )
 
