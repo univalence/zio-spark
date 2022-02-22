@@ -16,7 +16,6 @@ object RDDAnalysis {
 
   sealed trait MethodType
   object MethodType {
-
     case object Ignored                extends MethodType
     case object Transformation         extends MethodType
     case object SuccessNow             extends MethodType
@@ -32,7 +31,7 @@ object RDDAnalysis {
     rdd
   }
 
-  private def getMethodType(method: universe.MethodSymbol): MethodType = {
+  def getMethodType(method: universe.MethodSymbol): MethodType = {
     val cacheElements =
       Set(
         "getStorageLevel",
@@ -70,8 +69,9 @@ object RDDAnalysis {
     val methodName = method.name.toString
     val returnType = method.returnType.typeSymbol
 
-    println(methodName, returnType, method)
-    method.name.toString match {
+    methodName match {
+      case x if x.contains("$default$")                                             => Ignored
+      case _ if method.annotations.exists(_.toString.contains("DeveloperApi"))      => Ignored
       case name if action(name)                                                     => DistributedComputation
       case name if name.startsWith("take")                                          => DistributedComputation
       case name if name.startsWith("foreach")                                       => DistributedComputation
@@ -83,24 +83,21 @@ object RDDAnalysis {
       case name if pureInfo(name)                                                   => SuccessNow
       case "sparkContext" | "context"                                               => ToImplement
       case "randomSplit"                                                            => ToImplement
-      case _ if method.annotations.exists(_.toString.contains("DeveloperApi"))      => Ignored
-      case "toJavaRDD"                                                              => Ignored
-      case x if x.contains("$default$")                                             => Ignored
+      case "toJavaRDD"                                                              => ToImplement
       case _ if method.fullName.startsWith("java.lang.Object.")                     => Ignored
       case _ if method.fullName.startsWith("scala.Any.")                            => Ignored
       case "$init$" | "toString"                                                    => Ignored
       case _ if method.isSetter                                                     => Ignored
-      case "name"                                                                   => Ignored
+      case "name"                                                                   => DriverAction
       case name if partitionOps(name)                                               => Transformation
-      case _ if method.returnType.typeSymbol.fullName == "org.apache.spark.rdd.RDD" => Transformation
+      case _ if returnType.fullName == "org.apache.spark.rdd.RDD" => Transformation
     }
-
   }
 
   def main(args: Array[String]): Unit =
-    println(
-      readMethodsApacheSparkRDD
-        .flatMap(method => scala.util.Try(getMethodType(method)).fold(x => Some(method.fullName), _ => None))
-        .mkString("\n")
+      readMethodsApacheSparkRDD.groupBy(getMethodType).foreach(t => {
+        println(t._1)
+        t._2.map(_.fullName).distinct.sorted.foreach(m => println("  " + m))
+      }
     )
 }
