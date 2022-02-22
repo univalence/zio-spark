@@ -99,9 +99,7 @@ lazy val core =
         CrossVersion.partialVersion(scalaVersion.value).get._2
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
-      scalacOptions ~= fatalWarningsAsProperties,
-      sonatypeCredentialHost := "s01.oss.sonatype.org",
-      sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
+      scalacOptions ~= fatalWarningsAsProperties
     )
 
 lazy val examples =
