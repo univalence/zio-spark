@@ -41,8 +41,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
         val file = (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "codegen" / "BaseRDD.scala"
 
         val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
-        val apacheSparkMethods: Seq[universe.MethodSymbol] =
+        val apacheSparkMethods: Seq[Method] =
           readMethodsApacheSparkRDD
+            .map(Method.fromSymbol)
             .filterNot(_.fullName.contains("$"))
             .filterNot(_.fullName.contains("java.lang.Object"))
             .filterNot(_.fullName.contains("scala.Any"))
@@ -52,7 +53,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           apacheSparkMethods
             .groupBy(getMethodType)
             .map { case (methodType, methods) =>
-              val allMethods = methods.map(method => generateMethod(method, methodType)).mkString("\n")
+              val allMethods = methods.map(_.toCode(methodType)).mkString("\n")
               methodType match {
                 case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
                 case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")
@@ -67,6 +68,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
              |
              |import org.apache.spark.rdd.RDD
              |
+             |import zio.Task
              |import zio.spark.impure.Impure
              |import zio.spark.impure.Impure.ImpureBox
              |
@@ -81,39 +83,29 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
       }.taskValue
     )
 
-  def generateSymbols(symbolsLists: List[List[universe.Symbol]], isParameter: Boolean): String =
-    symbolsLists match {
-      case List(Nil) => "()"
-      case Nil       => ""
-      case symbolsLists =>
-        val symbols = symbolsLists.flatten
-        val symbolToString =
-          (s: universe.Symbol) => if (isParameter) s"${s.name}: ${s.typeSignature.typeSymbol.name}" else s.name
-        val body = symbols.map(symbolToString).mkString(", ")
-        s"($body)"
-    }
-
-  def generateMethod(method: universe.MethodSymbol, methodType: MethodType): String =
-    methodType match {
-      case MethodType.Ignored     => s"[[${method.fullName}]]"
-      case MethodType.ToImplement => s"[[${method.fullName}]]"
-      case _ =>
-        val paramLists = method.paramLists
-        val arguments  = generateSymbols(paramLists, isParameter = false)
-        val parameters = generateSymbols(paramLists, isParameter = true)
-        val returnType =
-          methodType match {
-            case MethodType.DriverAction           => s"Task[${method.returnType}]"
-            case MethodType.DistributedComputation => s"Task[${method.returnType}]"
-            case _                                 => method.returnType.toString
-          }
-        val transformation =
-          methodType match {
-            case MethodType.DriverAction           => "attemptBlocking"
-            case MethodType.DistributedComputation => "attemptBlocking"
-            case _                                 => "succeedNow"
-          }
-
-        s"def ${method.name}$parameters: $returnType = $transformation(_.${method.name}$arguments)"
-    }
+  /* def generateParamList(paramList: List[universe.Symbol], isParameter: Boolean): String = { val symbolToString =
+   * (s: universe.Symbol) => if (isParameter) s"${s.name}: ${s.typeSignature.typeSymbol.name}" else s.name
+   *
+   * paramList match { case Nil => "" case symbol :: tail if symbol.isImplicit => if (isParameter) { val body = (symbol
+   * +: tail).map(symbolToString).mkString(", ") s"(implicit $body)" } else { "" } case symbols => val body =
+   * symbols.map(symbolToString).mkString(", ") s"($body)" } }
+   *
+   * def generateSymbols(paramLists: List[List[universe.Symbol]], isParameter: Boolean): String =
+   * paramLists match { case List(Nil) => if (isParameter) "" else "()" case Nil => "" case _ => paramLists.map(l =>
+   * generateParamList(l, isParameter)).mkString("") }
+   *
+   * def generateMethod(method: universe.MethodSymbol, methodType: MethodType): String =
+   * methodType match { case MethodType.Ignored => s"[[${method.fullName}]]" case MethodType.ToImplement =>
+   * s"[[${method.fullName}]]" case _ => val arguments = generateSymbols(method.paramLists, isParameter = false) val
+   * parameters = generateSymbols(method.paramLists, isParameter = true)
+   *
+   * val returnType =
+   * methodType match { case MethodType.DriverAction => s"Task[${method.returnType}]" case
+   * MethodType.DistributedComputation => s"Task[${method.returnType}]" case _ => method.returnType.toString }
+   *
+   * val transformation =
+   * methodType match { case MethodType.DriverAction => "attemptBlocking" case MethodType.DistributedComputation =>
+   * "attemptBlocking" case _ => "succeedNow" }
+   *
+   * s"def ${method.name}$parameters: $returnType = $transformation(_.${method.name}$arguments)" } */
 }
