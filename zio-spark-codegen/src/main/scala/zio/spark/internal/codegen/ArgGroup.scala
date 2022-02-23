@@ -2,9 +2,12 @@ package zio.spark.internal.codegen
 
 import scala.reflect.runtime.universe
 
-case class Call(parameters: List[Parameter]) {
+case class ArgGroup(symbols: List[universe.Symbol]) {
+
+  val parameters: List[Parameter] = symbols.map(Parameter.fromSymbol)
+
   def toCode(isArgs: Boolean): String = {
-    val hasImplicit = parameters.exists(_.isImplicit)
+    val hasImplicit: Boolean = parameters.exists(_.isImplicit)
 
     parameters match {
       case Nil => if (isArgs) "()" else ""
@@ -20,9 +23,6 @@ case class Call(parameters: List[Parameter]) {
   }
 }
 
-object Call {
-  def fromSymbol(symbols: List[universe.Symbol]): Call =
-    Call(
-      parameters = symbols.map(Parameter.fromSymbol)
-    )
+object ArgGroup {
+  def fromSymbol(symbols: List[universe.Symbol]): ArgGroup = ArgGroup(symbols: List[universe.Symbol])
 }

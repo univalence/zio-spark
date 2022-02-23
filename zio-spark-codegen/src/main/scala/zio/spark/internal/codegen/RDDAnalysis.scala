@@ -62,27 +62,27 @@ object RDDAnalysis {
     println(method)
 
     method.name match {
-      case x if x.contains("$")                                       => Ignored
-      case _ if method.annotations.exists(_.contains("DeveloperApi")) => Ignored
-      case name if action(name)                                       => DistributedComputation
-      case name if name.startsWith("take")                            => DistributedComputation
-      case name if name.startsWith("foreach")                         => DistributedComputation
-      case name if name.startsWith("count")                           => DistributedComputation
-      case name if name.startsWith("saveAs")                          => DistributedComputation
-      case "iterator"                                                 => DistributedComputation
-      case name if cacheElements(name)                                => DriverAction
-      case name if otherTransformation(name)                          => SuccessNow
-      case name if pureInfo(name)                                     => SuccessNow
-      case "sparkContext" | "context"                                 => ToImplement
-      case "randomSplit"                                              => ToImplement
-      case "toJavaRDD"                                                => ToImplement
-      case _ if method.path.startsWith("java.lang.Object")            => Ignored
-      case _ if method.path.startsWith("scala.Any")                   => Ignored
-      case "toString"                                                 => Ignored
-      case _ if method.isSetter                                       => Ignored
-      case "name"                                                     => DriverAction
-      case name if partitionOps(name)                                 => Transformation
-      case _ if method.returnType == "org.apache.spark.rdd.RDD"       => Transformation
+      case x if x.contains("$")                                          => Ignored
+      case _ if method.annotations.exists(_.contains("DeveloperApi"))    => Ignored
+      case name if action(name)                                          => DistributedComputation
+      case name if name.startsWith("take")                               => DistributedComputation
+      case name if name.startsWith("foreach")                            => DistributedComputation
+      case name if name.startsWith("count")                              => DistributedComputation
+      case name if name.startsWith("saveAs")                             => DistributedComputation
+      case "iterator"                                                    => DistributedComputation
+      case name if cacheElements(name)                                   => DriverAction
+      case name if otherTransformation(name)                             => SuccessNow
+      case name if pureInfo(name)                                        => SuccessNow
+      case "sparkContext" | "context"                                    => ToImplement
+      case "randomSplit"                                                 => ToImplement
+      case "toJavaRDD"                                                   => ToImplement
+      case _ if method.path.startsWith("java.lang.Object")               => Ignored
+      case _ if method.path.startsWith("scala.Any")                      => Ignored
+      case "toString"                                                    => Ignored
+      case _ if method.isSetter                                          => Ignored
+      case "name"                                                        => DriverAction
+      case name if partitionOps(name)                                    => Transformation
+      case _ if method.returnType.fullName == "org.apache.spark.rdd.RDD" => Transformation
     }
   }
 }

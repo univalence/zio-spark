@@ -1,18 +1,34 @@
 package zio.spark.internal.codegen
 
+import zio.spark.internal.codegen.Method.Kind
 import zio.spark.internal.codegen.RDDAnalysis.MethodType
+import zio.spark.internal.codegen.TypeUtils.{cleanType, cleanTypeSymbol}
 
 import scala.reflect.runtime.universe
 
-case class Method(
-    name:        String,
-    path:        String,
-    calls:       List[Call],
-    returnType:  String,
-    annotations: List[String],
-    kind:        Method.Kind
-) {
-  val fullName = s"$path.$name"
+object TypeUtils {
+
+  def cleanTypeSymbol(typeSymbol: universe.TypeSymbol): String =
+    typeSymbol.fullName
+      .replaceAll("^scala\\.", "")
+      .replaceAll("^java\\.lang\\.", "")
+
+  def cleanType(type_ : universe.Type): String =
+    type_.etaExpand.toString.replaceAll("^\\[T\\]", "") match {
+      case "org.apache.spark.rdd.RDD.T" => "T"
+      case s                            => s
+    }
+}
+
+case class Method(symbol: universe.MethodSymbol) {
+
+  private val calls: List[ArgGroup]   = symbol.paramLists.map(ArgGroup.fromSymbol)
+  private val kind                    = if (symbol.isSetter) Kind.Setter else Kind.Function
+  val name: String                    = symbol.name.toString
+  val annotations: Seq[String]        = symbol.annotations.map(_.toString)
+  val path: String                    = symbol.fullName.split('.').dropRight(1).mkString(".")
+  val returnType: universe.TypeSymbol = symbol.returnType.typeSymbol.asType
+  val fullName: String                = s"$path.$name"
 
   def toCode(methodType: MethodType): String =
     methodType match {
@@ -29,11 +45,12 @@ case class Method(
             case _                                 => "succeedNow"
           }
 
+        val cleanReturnType = cleanType(symbol.returnType)
         val trueReturnType =
           methodType match {
-            case MethodType.DriverAction           => s"Task[$returnType]"
-            case MethodType.DistributedComputation => s"Task[$returnType]"
-            case _                                 => returnType
+            case MethodType.DriverAction           => s"Task[$cleanReturnType]"
+            case MethodType.DistributedComputation => s"Task[$cleanReturnType]"
+            case _                                 => cleanReturnType
           }
 
         s"def $name$parameters: $trueReturnType = $transformation(_.$name$arguments)"
@@ -49,13 +66,5 @@ object Method {
     final case object Setter   extends Kind
   }
 
-  def fromSymbol(symbol: universe.MethodSymbol): Method =
-    Method(
-      name        = symbol.name.toString,
-      path        = symbol.fullName.split("\\.").dropRight(1).mkString("."),
-      calls       = symbol.paramLists.map(Call.fromSymbol),
-      returnType  = symbol.returnType.typeSymbol.fullName,
-      annotations = symbol.annotations.map(_.toString),
-      kind        = if (symbol.isSetter) Kind.Setter else Kind.Function
-    )
+  def fromSymbol(symbol: universe.MethodSymbol): Method = Method(symbol)
 }

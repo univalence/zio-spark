@@ -11,6 +11,9 @@ lazy val plugin =
         "dev.zio"          %% "zio"        % "2.0.0-RC2",
         "org.scalameta"    %% "scalameta"  % "4.4.35",
         "org.apache.spark" %% "spark-core" % "3.2.1",
-        "org.apache.spark" %% "spark-sql"  % "3.2.1"
-      )
+        "org.apache.spark" %% "spark-sql"  % "3.2.1",
+        "dev.zio"          %% "zio-test"     % "2.0.0-RC2" % Test,
+        "dev.zio"          %% "zio-test-sbt" % "2.0.0-RC2" % Test,
+      ),
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
     )

@@ -1,8 +1,17 @@
 package zio.spark.internal.codegen
 
+import zio.spark.internal.codegen.Parameter.Modifier
+
 import scala.reflect.runtime.universe
 
-case class Parameter(name: String, parameterType: String, modifiers: List[Parameter.Modifier]) {
+case class Parameter(symbol: universe.Symbol) {
+
+  val name: String                     = symbol.name.toString
+  private val signature: universe.Type = symbol.typeSignature
+
+  val parameterType: String    = TypeUtils.cleanType(signature)
+  val modifiers: Seq[Modifier] = if (symbol.isImplicit) List(Modifier.Implicit) else Nil
+
   def toCode(isArgs: Boolean): String =
     if (isArgs) name
     else s"$name: $parameterType"
@@ -16,12 +25,5 @@ object Parameter {
     final case object Implicit extends Modifier
   }
 
-  def fromSymbol(symbol: universe.Symbol): Parameter =
-    Parameter(
-      name          = symbol.name.toString,
-      parameterType = symbol.typeSignature.typeSymbol.name.toString,
-      modifiers =
-        if (symbol.isImplicit) List(Modifier.Implicit)
-        else Nil
-    )
+  def fromSymbol(symbol: universe.Symbol): Parameter = Parameter(symbol)
 }
