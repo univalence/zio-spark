@@ -38,7 +38,8 @@ object RDDAnalysis {
         "isCheckpointed",
         "dependencies"
       )
-    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+    val partitionOps =
+      Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
 
     val otherTransformation = Set("barrier")
     val pureInfo            = Set("toDebugString")
@@ -71,6 +72,7 @@ object RDDAnalysis {
       case name if cacheElements(name)                                   => DriverAction
       case name if otherTransformation(name)                             => SuccessNow
       case name if pureInfo(name)                                        => SuccessNow
+      case name if partitionOps(name)                                    => SuccessNow
       case "sparkContext" | "context"                                    => ToImplement
       case "randomSplit"                                                 => ToImplement
       case "toJavaRDD"                                                   => ToImplement
@@ -79,7 +81,6 @@ object RDDAnalysis {
       case "toString"                                                    => Ignored
       case _ if method.isSetter                                          => Ignored
       case "name"                                                        => DriverAction
-      case name if partitionOps(name)                                    => Transformation
       case _ if method.returnType.fullName == "org.apache.spark.rdd.RDD" => Transformation
     }
   }

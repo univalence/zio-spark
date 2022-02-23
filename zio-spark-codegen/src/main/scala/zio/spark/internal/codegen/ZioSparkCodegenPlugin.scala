@@ -69,18 +69,24 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
              |import scala.reflect._
              |
              |import org.apache.spark._
-             |import org.apache.spark.rdd._
+             |import org.apache.spark.rdd.{RDD => UnderlyingRDD,_}
              |import org.apache.spark.partial._
              |
              |import zio.Task
              |import zio.spark.impure.Impure
              |import zio.spark.impure.Impure.ImpureBox
+             |import zio.spark.rdd.RDD
              |
-             |abstract class BaseRDD[T](underlyingRDD: ImpureBox[RDD[T]]) extends Impure[RDD[T]](underlyingRDD) {
+             |abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impure[UnderlyingRDD[T]](underlyingRDD) {
              |  import underlyingRDD._
              |
-             |  //private implicit def arrayToSeq1[T](array: Array[T]): Seq[T] = array.toSeq
-             |  private implicit def arrayToSeq2[T](rdd: RDD[Array[T]]): RDD[Seq[T]] = rdd.map(x => x.toSeq)
+             |  private implicit def arrayToSeq[U](rdd: RDD[Array[U]]): RDD[Seq[U]] = rdd.map(x => x.toSeq)
+             |  
+             |  /** Applies an action to the underlying RDD. */
+             |  def action[U](f: UnderlyingRDD[T] => U): Task[U] = attemptBlocking(f)
+             |
+             |  /** Applies a transformation to the underlying RDD. */
+             |  def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = succeedNow(f.andThen(x => RDD(x)))
              |
              |${prefixAllLines(body, "  ")}
              |}

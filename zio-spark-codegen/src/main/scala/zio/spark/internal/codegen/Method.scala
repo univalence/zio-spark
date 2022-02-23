@@ -10,7 +10,15 @@ object TypeUtils {
 
   def cleanPrefixPackage(type_ : String): String = {
     val importedPackages =
-      Seq("scala.reflect", "scala.math", "scala", "java.lang", "org.apache.spark.rdd", "org.apache.spark", "org.apache.spark.partial")
+      Seq(
+        "scala.reflect",
+        "scala.math",
+        "scala",
+        "java.lang",
+        "org.apache.spark.rdd",
+        "org.apache.spark",
+        "org.apache.spark.partial"
+      )
 
     import scala.meta.*
 
@@ -55,8 +63,9 @@ case class Method(symbol: universe.MethodSymbol) {
 
         val transformation =
           methodType match {
-            case MethodType.DriverAction           => "attemptBlocking"
-            case MethodType.DistributedComputation => "attemptBlocking"
+            case MethodType.DriverAction           => "action"
+            case MethodType.DistributedComputation => "action"
+            case MethodType.Transformation         => "transformation"
             case _                                 => "succeedNow"
           }
 
