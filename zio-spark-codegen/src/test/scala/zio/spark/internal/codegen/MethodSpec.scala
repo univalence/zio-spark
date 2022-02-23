@@ -14,25 +14,26 @@ object MethodSpec extends DefaultRunnableSpec {
   def genTest(name: String, arity: Int = -1)(generatedCode: String): ZSpec[Any, Nothing] =
     test(name) {
       val find = findMethod(name, arity)
-      find.fold(assertNever(s"can't find $name"))(m => assertTrue(m.toCode(RDDAnalysis.getMethodType(m)) == generatedCode))
+      find.fold(assertNever(s"can't find $name"))(m => assertTrue(m.toCode(RDDAnalysis.getMethodType(m)).contains(generatedCode)))
     }
 
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("basic gen")(
-      genTest("collect", 0)("def collect: Task[Seq[T]] = attemptBlocking(_.collect())"),
-      genTest("saveAsObjectFile")("def saveAsObjectFile(path: String): Task[Unit] = attemptBlocking(_.saveAsObjectFile(path))"),
-      genTest("min")("def min(implicit ord: Ordering[T]): Task[T] = attemptBlocking(_.min())"),
-      genTest("countByValue")("def countByValue(implicit ord: Ordering[T]): Task[collection.Map[T, Long]] = attemptBlocking(_.countByValue())"),
-      genTest("map")("def map[U](f: T => U)(implicit evidence$3: ClassTag[U]): RDD[U] = succeedNow(_.map(f))"),
-      genTest("cache")("def cache: Task[RDD[T]] = attemptBlocking(_.cache())"),
-      genTest("dependencies")("def dependencies: Task[Seq[Dependency[_]]] = attemptBlocking(_.dependencies)"),
-      genTest("zipWithIndex")("def zipWithIndex: RDD[(T, Long)] = succeedNow(_.zipWithIndex())"),
+      genTest("collect", 0)("collect: Task[Seq[T]]"),
+      genTest("saveAsObjectFile")("saveAsObjectFile(path: String): Task[Unit]"),
+      genTest("min")("min(implicit ord: Ordering[T]): Task[T]"),
+      genTest("countByValue")("countByValue(implicit ord: Ordering[T]): Task[collection.Map[T, Long]]"),
+      genTest("map")("map[U](f: T => U)(implicit evidence$3: ClassTag[U]): RDD[U]"),
+      genTest("cache")("cache: Task[RDD[T]]"),
+      genTest("dependencies")("dependencies: Task[Seq[Dependency[_]]]"),
+      genTest("zipWithIndex")("zipWithIndex: RDD[(T, Long)]"),
       genTest("countByValueApprox")(
-        "def countByValueApprox(timeout: Long, confidence: Double)(implicit ord: Ordering[T]): Task[PartialResult[collection.Map[T, BoundedDouble]]] = attemptBlocking(_.countByValueApprox(timeout, confidence))"
+        "countByValueApprox(timeout: Long, confidence: Double)(implicit ord: Ordering[T]): Task[PartialResult[collection.Map[T, BoundedDouble]]]"
       ),
+      genTest("distinct")("distinct(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T]") @@ ignore,
       /* not possible at the moment, we cannot get the information '_ <: CompressionCodec' from the typeTag, it needs to be implemented manually */
       genTest("saveAsTextFile", 2)(
-        "def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit] = attemptBlocking(_.saveAsTextFile(path, codec))"
+        "saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit]"
       ) @@ ignore
     )
 
