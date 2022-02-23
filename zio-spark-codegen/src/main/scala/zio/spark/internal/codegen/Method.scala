@@ -8,22 +8,17 @@ import scala.reflect.runtime.universe
 
 object TypeUtils {
 
-  def cleanPrefixPackage(type_ : String): String =
-    type_
-      .replaceAll("^scala\\.reflect\\.", "")
-      .replaceAll("^scala\\.collection\\.", "")
-      .replaceAll("^scala\\.math\\.", "")
-      .replaceAll("^scala\\.", "")
-      .replaceAll("^java\\.lang\\.", "")
+  def cleanPrefixPackage(type_ : String): String = {
+    val importedPackages = Seq("scala.reflect", "scala.collection", "scala.math", "scala", "java.lang", "org.apache.spark.rdd")
 
-  def cleanEtaExpandedType(type_ : String): String =
-    type_.replaceAll("^\\[[ a-zA-Z,+-]*\\]", "") match {
-      case "org.apache.spark.rdd.RDD.T" => "T"
-      case "org.apache.spark.rdd.RDD"   => "RDD"
-      case s                            => s
+    importedPackages.foldLeft(type_) { (res, packageName) =>
+      if (res.startsWith(packageName + ".")) {
+        res.replace(packageName + ".", "")
+      } else res
     }
+  }
 
-  def cleanType(type_ : String): String = cleanPrefixPackage(cleanEtaExpandedType(type_)).replaceAll(",", ", ")
+  def cleanType(type_ : String): String = cleanPrefixPackage(type_).replaceAll(",\\b", ", ")
 }
 
 case class Method(symbol: universe.MethodSymbol) {
