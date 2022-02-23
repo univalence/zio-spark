@@ -80,7 +80,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
              |abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impure[UnderlyingRDD[T]](underlyingRDD) {
              |  import underlyingRDD._
              |
-             |  private implicit def arrayToSeq[U](rdd: RDD[Array[U]]): RDD[Seq[U]] = rdd.map(x => x.toSeq)
+             |  private implicit def arrayToSeq1[U](rdd: RDD[Array[U]]): RDD[Seq[U]] = rdd.map(x => x.toSeq)
+             |  private implicit def arrayToSeq2[U](rdd: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = rdd.map(x => x.toSeq)
+             |  private implicit def lift[U](rdd:UnderlyingRDD[U]):RDD[U] = RDD(rdd)
+             |  private implicit def escape[U](rdd:RDD[U]):UnderlyingRDD[U] = rdd.underlyingRDD.succeedNow(x => x)
              |  
              |  /** Applies an action to the underlying RDD. */
              |  def action[U](f: UnderlyingRDD[T] => U): Task[U] = attemptBlocking(f)
