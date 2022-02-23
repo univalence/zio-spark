@@ -66,14 +66,16 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           file,
           s"""package zio.spark.internal.codegen
              |
+             |import scala.reflect._
+             |
              |import org.apache.spark.rdd.RDD
              |
              |import zio.Task
              |import zio.spark.impure.Impure
              |import zio.spark.impure.Impure.ImpureBox
              |
-             |abstract class BaseRDD[T](underlyingDataset: ImpureBox[RDD[T]]) extends Impure[RDD[T]](underlyingDataset) {
-             |  import underlyingDataset._
+             |abstract class BaseRDD[T](underlyingRDD: ImpureBox[RDD[T]]) extends Impure[RDD[T]](underlyingRDD) {
+             |  import underlyingRDD._
              |
              |${prefixAllLines(body, "  ")}
              |}

@@ -10,6 +10,7 @@ object TypeUtils {
 
   def cleanPrefixPackage(type_ : String): String =
     type_
+      .replaceAll("^scala\\.reflect\\.", "")
       .replaceAll("^scala\\.collection\\.", "")
       .replaceAll("^scala\\.math\\.", "")
       .replaceAll("^scala\\.", "")
@@ -18,6 +19,7 @@ object TypeUtils {
   def cleanEtaExpandedType(type_ : String): String =
     type_.replaceAll("^\\[[ a-zA-Z,+-]*\\]", "") match {
       case "org.apache.spark.rdd.RDD.T" => "T"
+      case "org.apache.spark.rdd.RDD"   => "RDD"
       case s                            => s
     }
 
