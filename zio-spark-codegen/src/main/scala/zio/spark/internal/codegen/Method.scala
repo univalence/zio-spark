@@ -11,6 +11,7 @@ object TypeUtils {
   def cleanPrefixPackage(type_ : String): String =
     type_
       .replaceAll("^scala\\.collection\\.", "")
+      .replaceAll("^scala\\.math\\.", "")
       .replaceAll("^scala\\.", "")
       .replaceAll("^java\\.lang\\.", "")
 
@@ -32,6 +33,7 @@ case class Method(symbol: universe.MethodSymbol) {
   val path: String                    = symbol.fullName.split('.').dropRight(1).mkString(".")
   val returnType: universe.TypeSymbol = symbol.returnType.typeSymbol.asType
   val fullName: String                = s"$path.$name"
+  val typeParams: Seq[String]         = symbol.typeParams.map(_.name.toString)
 
   def toCode(methodType: MethodType): String =
     methodType match {
@@ -57,7 +59,9 @@ case class Method(symbol: universe.MethodSymbol) {
             case _                                 => cleanReturnType
           }
 
-        s"def $name$parameters: $trueReturnType = $transformation(_.$name$arguments)"
+        val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.mkString(", ")}]" else ""
+
+        s"def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments)"
     }
 
   def isSetter: Boolean = kind == Method.Kind.Setter

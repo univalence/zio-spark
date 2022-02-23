@@ -31,6 +31,7 @@ object MethodSpec extends DefaultRunnableSpec {
       genTest("countByValue")(
         "def countByValue(implicit ord: Ordering[T]): Task[Map[T, Long]] = attemptBlocking(_.countByValue())"
       )
+      /* genTest("map")( "def map[U: ClassTag](f: T => U): RDD[U] = succeedNow(_.map(f))" ) */
     )
 
 }
