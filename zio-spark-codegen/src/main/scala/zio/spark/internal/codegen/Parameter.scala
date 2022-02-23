@@ -10,7 +10,7 @@ case class Parameter(symbol: universe.Symbol) {
   private val signature: universe.Type = symbol.typeSignature
 
   val parameterType: String =
-    if (signature.etaExpand.toString.contains("Class[")) TypeUtils.cleanType(signature.etaExpand.toString)
+    if (signature.etaExpand.toString.contains("Class[")) signature.etaExpand.toString
     else TypeUtils.cleanType(signature.dealias.toString)
 
   val modifiers: Seq[Modifier] = if (symbol.isImplicit) List(Modifier.Implicit) else Nil

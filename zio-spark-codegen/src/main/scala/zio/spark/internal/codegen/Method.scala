@@ -9,19 +9,27 @@ import scala.reflect.runtime.universe
 object TypeUtils {
 
   def cleanPrefixPackage(type_ : String): String = {
-    val importedPackages = Seq("scala.reflect", "scala.collection", "scala.math", "scala", "java.lang", "org.apache.spark.rdd")
+    val importedPackages = Seq("scala.reflect", "scala.collection", "scala.math", "scala", "java.lang", "org.apache.spark.rdd", "org.apache.spark")
 
-    importedPackages.foldLeft(type_) { (res, packageName) =>
-      if (res.startsWith(packageName + ".")) {
-        res.replace(packageName + ".", "")
-      } else res
-    }
+    import scala.meta.*
+
+    val res =
+      type_
+        .parse[Type]
+        .get
+        .transform { case tree @ t"$ref.$tpname" =>
+          if (importedPackages.contains(ref.toString))
+            tpname
+          else tree
+        }
+
+    res.toString()
   }
 
   def cleanType(type_ : String): String =
     cleanPrefixPackage(type_).replaceAll(",\\b", ", ") match {
       case "RDD.this.type" => "RDD[T]"
-      case s => s
+      case s               => s
     }
 }
 
