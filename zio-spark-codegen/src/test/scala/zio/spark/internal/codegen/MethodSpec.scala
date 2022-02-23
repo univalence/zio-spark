@@ -1,6 +1,7 @@
 package zio.spark.internal.codegen
 
-import zio.test.{assertNever, assertTrue, ignored, Assertion, DefaultRunnableSpec, TestEnvironment, ZSpec}
+import zio.test._
+import zio.test.TestAspect._
 
 object MethodSpec extends DefaultRunnableSpec {
   val allMethods: Seq[Method] = RDDAnalysis.readMethodsApacheSparkRDD.map(Method.fromSymbol)
@@ -20,18 +21,15 @@ object MethodSpec extends DefaultRunnableSpec {
 
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("basic gen")(
-      genTest("saveAsObjectFile")(
-        "def saveAsObjectFile(path: String): Task[Unit] = attemptBlocking(_.saveAsObjectFile(path))"
-      ),
-      /* not possible at the moment, we cannot get the information '_ <: CompressionCodec' from the typeTag, it needs to
-       * be implemented manually */
-      /* genTest("saveAsTextFile", 2)("def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit]
-       * = attemptBlocking(_.saveAsTextFile(path, codec))") */
+      genTest("saveAsObjectFile")("def saveAsObjectFile(path: String): Task[Unit] = attemptBlocking(_.saveAsObjectFile(path))"),
       genTest("min")("def min(implicit ord: Ordering[T]): Task[T] = attemptBlocking(_.min())"),
-      genTest("countByValue")(
-        "def countByValue(implicit ord: Ordering[T]): Task[Map[T, Long]] = attemptBlocking(_.countByValue())"
-      )
-      /* genTest("map")( "def map[U: ClassTag](f: T => U): RDD[U] = succeedNow(_.map(f))" ) */
+      genTest("countByValue")("def countByValue(implicit ord: Ordering[T]): Task[Map[T, Long]] = attemptBlocking(_.countByValue())"),
+      genTest("map")("def map[U: ClassTag](f: T => U): RDD[U] = succeedNow(_.map(f))") @@ ignore,
+      genTest("cache")("def cache: Task[RDD[T]] = attemptBlocking(_.cache())") @@ ignore,
+      genTest("dependencies")("def dependencies: Task[Seq[Dependency[_]]] = attemptBlocking(_.dependencies)") @@ ignore,
+      genTest("zipWithIndex")("def zipWithIndex: RDD[(T, Long)] = succeedNow(_.zipWithIndex())") @@ ignore,
+      /* not possible at the moment, we cannot get the information '_ <: CompressionCodec' from the typeTag, it needs to be implemented manually */
+      genTest("saveAsTextFile", 2)("def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit] = attemptBlocking(_.saveAsTextFile(path, codec))") @@ ignore
     )
 
 }
