@@ -27,7 +27,10 @@ object MethodSpec extends DefaultRunnableSpec {
        * be implemented manually */
       /* genTest("saveAsTextFile", 2)("def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit]
        * = attemptBlocking(_.saveAsTextFile(path, codec))") */
-      genTest("min")("def min(implicit ord: Ordering[T]): Task[T] = attemptBlocking(_.min())")
+      genTest("min")("def min(implicit ord: Ordering[T]): Task[T] = attemptBlocking(_.min())"),
+      genTest("countByValue")(
+        "def countByValue(implicit ord: Ordering[T]): Task[Map[T, Long]] = attemptBlocking(_.countByValue())"
+      )
     )
 
 }

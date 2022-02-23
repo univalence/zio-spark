@@ -2,22 +2,25 @@ package zio.spark.internal.codegen
 
 import zio.spark.internal.codegen.Method.Kind
 import zio.spark.internal.codegen.RDDAnalysis.MethodType
-import zio.spark.internal.codegen.TypeUtils.{cleanType, cleanTypeSymbol}
+import zio.spark.internal.codegen.TypeUtils._
 
 import scala.reflect.runtime.universe
 
 object TypeUtils {
 
-  def cleanTypeSymbol(typeSymbol: universe.TypeSymbol): String =
-    typeSymbol.fullName
+  def cleanPrefixPackage(type_ : String): String =
+    type_
+      .replaceAll("^scala\\.collection\\.", "")
       .replaceAll("^scala\\.", "")
       .replaceAll("^java\\.lang\\.", "")
 
-  def cleanType(type_ : universe.Type): String =
-    type_.etaExpand.toString.replaceAll("^\\[T\\]", "") match {
+  def cleanEtaExpandedType(type_ : String): String =
+    type_.replaceAll("^\\[[ a-zA-Z,+-]*\\]", "") match {
       case "org.apache.spark.rdd.RDD.T" => "T"
       case s                            => s
     }
+
+  def cleanType(type_ : String): String = cleanPrefixPackage(cleanEtaExpandedType(type_)).replaceAll(",", ", ")
 }
 
 case class Method(symbol: universe.MethodSymbol) {
@@ -45,7 +48,8 @@ case class Method(symbol: universe.MethodSymbol) {
             case _                                 => "succeedNow"
           }
 
-        val cleanReturnType = cleanType(symbol.returnType)
+        val cleanReturnType = cleanType(symbol.returnType.dealias.toString)
+
         val trueReturnType =
           methodType match {
             case MethodType.DriverAction           => s"Task[$cleanReturnType]"

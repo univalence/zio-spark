@@ -9,7 +9,7 @@ case class Parameter(symbol: universe.Symbol) {
   val name: String                     = symbol.name.toString
   private val signature: universe.Type = symbol.typeSignature
 
-  val parameterType: String    = TypeUtils.cleanType(signature)
+  val parameterType: String    = TypeUtils.cleanType(signature.etaExpand.toString)
   val modifiers: Seq[Modifier] = if (symbol.isImplicit) List(Modifier.Implicit) else Nil
 
   def toCode(isArgs: Boolean): String =
