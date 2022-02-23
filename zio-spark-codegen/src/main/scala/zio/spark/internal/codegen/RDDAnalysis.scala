@@ -58,9 +58,8 @@ object RDDAnalysis {
         "collect"
       )
 
-    println(method)
-
     method.name match {
+      case "saveAsTextFile"                                              => ToImplement
       case x if x.contains("$")                                          => Ignored
       case _ if method.annotations.exists(_.contains("DeveloperApi"))    => Ignored
       case name if action(name)                                          => DistributedComputation

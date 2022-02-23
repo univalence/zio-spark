@@ -68,7 +68,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
              |
              |import scala.reflect._
              |
-             |import org.apache.spark.rdd.RDD
+             |import org.apache.spark._
+             |import org.apache.spark.rdd._
+             |import org.apache.spark.partial._
              |
              |import zio.Task
              |import zio.spark.impure.Impure
@@ -76,6 +78,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
              |
              |abstract class BaseRDD[T](underlyingRDD: ImpureBox[RDD[T]]) extends Impure[RDD[T]](underlyingRDD) {
              |  import underlyingRDD._
+             |
+             |  //private implicit def arrayToSeq1[T](array: Array[T]): Seq[T] = array.toSeq
+             |  private implicit def arrayToSeq2[T](rdd: RDD[Array[T]]): RDD[Seq[T]] = rdd.map(x => x.toSeq)
              |
              |${prefixAllLines(body, "  ")}
              |}

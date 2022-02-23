@@ -2,14 +2,15 @@ package zio.spark.internal.codegen
 
 import zio.spark.internal.codegen.Method.Kind
 import zio.spark.internal.codegen.RDDAnalysis.MethodType
-import zio.spark.internal.codegen.TypeUtils._
+import zio.spark.internal.codegen.TypeUtils.*
 
 import scala.reflect.runtime.universe
 
 object TypeUtils {
 
   def cleanPrefixPackage(type_ : String): String = {
-    val importedPackages = Seq("scala.reflect", "scala.collection", "scala.math", "scala", "java.lang", "org.apache.spark.rdd", "org.apache.spark")
+    val importedPackages =
+      Seq("scala.reflect", "scala.math", "scala", "java.lang", "org.apache.spark.rdd", "org.apache.spark", "org.apache.spark.partial")
 
     import scala.meta.*
 
@@ -17,12 +18,12 @@ object TypeUtils {
       type_
         .parse[Type]
         .get
-        .transform { case tree @ t"$ref.$tpname" =>
-          if (importedPackages.contains(ref.toString))
-            tpname
-          else tree
-        }
+        .transform {
+          case t"$ref" if ref.toString == "Array"                         => "Seq".parse[Type].get
+          case t"$ref.$tpname" if ref.toString == "scala.collection"      => s"collection.$tpname".parse[Type].get
+          case t"$ref.$tpname" if importedPackages.contains(ref.toString) => tpname
 
+        }
     res.toString()
   }
 
