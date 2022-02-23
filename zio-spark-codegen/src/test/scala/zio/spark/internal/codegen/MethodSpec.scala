@@ -23,7 +23,7 @@ object MethodSpec extends DefaultRunnableSpec {
       genTest("min")("def min(implicit ord: Ordering[T]): Task[T] = attemptBlocking(_.min())"),
       genTest("countByValue")("def countByValue(implicit ord: Ordering[T]): Task[Map[T, Long]] = attemptBlocking(_.countByValue())"),
       genTest("map")("def map[U](f: T => U)(implicit evidence$3: ClassTag[U]): RDD[U] = succeedNow(_.map(f))"),
-      genTest("cache")("def cache: Task[RDD[T]] = attemptBlocking(_.cache())") @@ ignore,
+      genTest("cache")("def cache: Task[RDD[T]] = attemptBlocking(_.cache())"),
       genTest("dependencies")("def dependencies: Task[Seq[Dependency[_]]] = attemptBlocking(_.dependencies)") @@ ignore,
       genTest("zipWithIndex")("def zipWithIndex: RDD[(T, Long)] = succeedNow(_.zipWithIndex())") @@ ignore,
       /* not possible at the moment, we cannot get the information '_ <: CompressionCodec' from the typeTag, it needs to be implemented manually */

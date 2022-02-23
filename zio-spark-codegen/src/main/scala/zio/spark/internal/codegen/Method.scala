@@ -18,7 +18,11 @@ object TypeUtils {
     }
   }
 
-  def cleanType(type_ : String): String = cleanPrefixPackage(type_).replaceAll(",\\b", ", ")
+  def cleanType(type_ : String): String =
+    cleanPrefixPackage(type_).replaceAll(",\\b", ", ") match {
+      case "RDD.this.type" => "RDD[T]"
+      case s => s
+    }
 }
 
 case class Method(symbol: universe.MethodSymbol) {
