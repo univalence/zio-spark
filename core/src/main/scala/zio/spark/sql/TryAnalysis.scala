@@ -38,12 +38,12 @@ object TryAnalysis {
       case analysisException: AnalysisException => Failure(analysisException)
     }
 
-  implicit final class Ops[+T](tryAnalysis: => TryAnalysis[T]) {
+  implicit final class Ops[T](tryAnalysis: => TryAnalysis[T]) {
     // only eval once if needed
     private lazy val eval: TryAnalysis[T] = TryAnalysis(tryAnalysis.getOrThrow)
 
     /** Recovers from an Analysis Exception. */
-    def recover[U >: T](failure: AnalysisException => U): U = fold(failure, identity)
+    def recover(failure: AnalysisException => T): T = fold(failure, identity)
 
     /** Folds a TryAnalysis into a type B. */
     def fold[B](failure: AnalysisException => B, success: T => B): B =

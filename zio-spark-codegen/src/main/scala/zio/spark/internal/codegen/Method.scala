@@ -9,6 +9,8 @@ import scala.reflect.runtime.universe
 object TypeUtils {
 
   def cleanPrefixPackage(type_ : String): String = {
+    import scala.meta.*
+
     val importedPackages =
       Seq(
         "scala.reflect",
@@ -20,17 +22,15 @@ object TypeUtils {
         "org.apache.spark.partial"
       )
 
-    import scala.meta.*
-
     val res =
       type_
         .parse[Type]
         .get
         .transform {
-          case t"$ref" if ref.toString == "Array"                         => "Seq".parse[Type].get
-          case t"$ref.$tpname" if ref.toString == "scala.collection"      => s"collection.$tpname".parse[Type].get
-          case t"$ref.$tpname" if importedPackages.contains(ref.toString) => tpname
-
+          case t"Array"                                 => t"Seq"
+          case Type.Select(q"scala.collection", tpname) => t"collection.$tpname"
+          case t"$ref.$tpname" if importedPackages.contains(ref.toString()) =>
+            tpname
         }
     res.toString()
   }

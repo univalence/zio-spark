@@ -40,6 +40,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
       Compile / sourceGenerators += Def.task {
         val file = (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "codegen" / "BaseRDD.scala"
 
+        // TODO Check implementations
         val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
         val apacheSparkMethods: Seq[Method] =
           readMethodsApacheSparkRDD
