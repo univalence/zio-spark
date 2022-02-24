@@ -58,7 +58,7 @@ case class Method(symbol: universe.MethodSymbol) {
       case MethodType.Ignored     => s"[[$fullName]]"
       case MethodType.ToImplement => s"[[$fullName]]"
       case _ =>
-        val parameters = calls.map(_.toCode(false)).mkString("")
+        val parameters = calls.map(_.toCode(false, RDDAnalysis.listOfMethodsWithImplicitNullOrdering.contains(name))).mkString("")
         val arguments  = calls.map(_.toCode(true)).mkString("")
 
         val transformation =

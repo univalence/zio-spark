@@ -21,7 +21,7 @@ object MethodSpec extends DefaultRunnableSpec {
       genTest("collect", 0)("collect: Task[Seq[T]]"),
       genTest("saveAsObjectFile")("saveAsObjectFile(path: String): Task[Unit]"),
       genTest("min")("min(implicit ord: Ordering[T]): Task[T]"),
-      genTest("countByValue")("countByValue(implicit ord: Ordering[T]): Task[collection.Map[T, Long]]"),
+      genTest("countByValue")("Task[collection.Map[T, Long]]"),
       genTest("map")("map[U](f: T => U)(implicit evidence$3: ClassTag[U]): RDD[U]"),
       genTest("cache")("cache: Task[RDD[T]]"),
       genTest("dependencies")("dependencies: Task[Seq[Dependency[_]]]"),
