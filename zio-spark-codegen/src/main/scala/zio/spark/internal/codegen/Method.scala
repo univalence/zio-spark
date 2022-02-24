@@ -11,17 +11,6 @@ object TypeUtils {
   def cleanPrefixPackage(type_ : String): String = {
     import scala.meta.*
 
-    val importedPackages =
-      Seq(
-        "scala.reflect",
-        "scala.math",
-        "scala",
-        "java.lang",
-        "org.apache.spark.rdd",
-        "org.apache.spark",
-        "org.apache.spark.partial"
-      )
-
     val res =
       type_
         .parse[Type]
@@ -29,8 +18,7 @@ object TypeUtils {
         .transform {
           case t"Array"                                 => t"Seq"
           case Type.Select(q"scala.collection", tpname) => t"collection.$tpname"
-          case t"$ref.$tpname" if importedPackages.contains(ref.toString()) =>
-            tpname
+          case t"$ref.$tpname"                          => tpname
         }
     res.toString()
   }
@@ -58,8 +46,16 @@ case class Method(symbol: universe.MethodSymbol) {
       case MethodType.Ignored     => s"[[$fullName]]"
       case MethodType.ToImplement => s"[[$fullName]]"
       case _ =>
-        val parameters = calls.map(_.toCode(false, RDDAnalysis.listOfMethodsWithImplicitNullOrdering.contains(name))).mkString("")
-        val arguments  = calls.map(_.toCode(true)).mkString("")
+        val parameters =
+          calls
+            .map(
+              _.toCode(
+                isArgs                       = false,
+                isHavingNullImplicitOrdering = RDDAnalysis.listOfMethodsWithImplicitNullOrdering.contains(name)
+              )
+            )
+            .mkString("")
+        val arguments = calls.map(_.toCode(isArgs = true)).mkString("")
 
         val transformation =
           methodType match {
@@ -79,6 +75,7 @@ case class Method(symbol: universe.MethodSymbol) {
           }
 
         val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.mkString(", ")}]" else ""
+        println(symbol.isParamWithDefault)
 
         s"def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments)"
     }

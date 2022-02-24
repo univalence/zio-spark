@@ -17,7 +17,8 @@ case class Parameter(symbol: universe.Symbol) {
 
   def toCode(isArgs: Boolean, isHavingNullImplicitOrdering: Boolean): String =
     if (isArgs) name
-    else if (isHavingNullImplicitOrdering && name == "ord" && parameterType.startsWith("Ordering")) s"$name: $parameterType = null"
+    else if (isHavingNullImplicitOrdering && name == "ord" && parameterType.startsWith("Ordering"))
+      s"$name: $parameterType = null"
     else s"$name: $parameterType"
 
   def isImplicit: Boolean = modifiers.contains(Parameter.Modifier.Implicit)

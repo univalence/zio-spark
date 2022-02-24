@@ -3,6 +3,7 @@ package zio.spark.internal.codegen
 import sbt.*
 import sbt.Keys.*
 
+import zio.spark.internal.codegen.ImportUtils.*
 import zio.spark.internal.codegen.RDDAnalysis.*
 
 import scala.reflect.runtime.universe
@@ -50,9 +51,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             .filterNot(_.fullName.contains("scala.Any"))
             .filterNot(_.fullName.contains("<init>"))
 
+        val apacheSparkMethodsWithMethodTypes: Map[MethodType, Seq[Method]] = apacheSparkMethods.groupBy(getMethodType)
+
         val body: String =
-          apacheSparkMethods
-            .groupBy(getMethodType)
+          apacheSparkMethodsWithMethodTypes
             .map { case (methodType, methods) =>
               val allMethods = methods.map(_.toCode(methodType)).mkString("\n")
               methodType match {
@@ -63,15 +65,21 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             }
             .mkString("\n\n//===============\n\n")
 
+        val imports =
+          findImports(
+            (apacheSparkMethodsWithMethodTypes - (MethodType.ToImplement, MethodType.Ignored)).values.flatten.toSeq
+          ).filterNot { case (pkg, _) => importedPackages.contains(pkg) }
+            .map { case (pkg, objs) => generateImport(pkg, objs) }
+            .map("import " + _)
+            .mkString("\n")
+
         IO.write(
           file,
           s"""package zio.spark.internal.codegen
              |
              |import scala.reflect._
              |
-             |import org.apache.spark._
-             |import org.apache.spark.rdd.{RDD => UnderlyingRDD,_}
-             |import org.apache.spark.partial._
+             |$imports
              |
              |import zio.Task
              |import zio.spark.impure.Impure
