@@ -25,8 +25,9 @@ object TypeUtils {
 
   def cleanType(type_ : String): String =
     cleanPrefixPackage(type_).replaceAll(",\\b", ", ") match {
-      case "RDD.this.type" => "RDD[T]"
-      case s               => s
+      case "RDD.this.type"     => "RDD[T]"
+      case "Dataset.this.type" => "Dataset[T]"
+      case s                   => s
     }
 }
 
@@ -75,7 +76,6 @@ case class Method(symbol: universe.MethodSymbol) {
           }
 
         val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.mkString(", ")}]" else ""
-        println(symbol.isParamWithDefault)
 
         s"def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments)"
     }

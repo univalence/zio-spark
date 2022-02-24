@@ -1,12 +1,62 @@
 package zio.spark.internal.codegen
 
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Dataset
 import sbt.*
 import sbt.Keys.*
 
+import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.ImportUtils.*
 import zio.spark.internal.codegen.RDDAnalysis.*
 
-import scala.reflect.runtime.universe
+import scala.reflect.{classTag, ClassTag}
+import scala.reflect.runtime.universe.{typeTag, MethodSymbol, TypeTag}
+
+case class GenerationPlan[T: TypeTag](path: String) {
+
+  val planType: PlanType =
+    path match {
+      case "org.apache.spark.rdd.RDD"     => GenerationPlan.RDDPlan
+      case "org.apache.spark.sql.Dataset" => GenerationPlan.DatasetPlan
+    }
+
+  def name: String = path.split('.').last
+
+  def sparkZioPath: String = path.replace("org.apache.spark", "zio.spark")
+
+  lazy val allMethodSymbols: Seq[MethodSymbol] =
+    typeTag[T].tpe.members.collect {
+      case m: MethodSymbol if m.isMethod && m.isPublic => m
+    }.toSeq
+
+  lazy val methods: Seq[Method] = allMethodSymbols.map(Method.fromSymbol)
+
+  def baseImplicits: String = {
+    val encoder: String = planType.fold("", ": Encoder")
+
+    s"""private implicit def arrayToSeq1[U$encoder](x: $name[Array[U]]): $name[Seq[U]] = x.map(_.toSeq)
+       |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]]): Underlying$name[Seq[U]] = x.map(_.toSeq)
+       |private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
+       |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name.succeedNow(v => v)
+       |""".stripMargin
+  }
+}
+
+object GenerationPlan {
+  sealed trait PlanType {
+    def fold[C](rdd: => C, dataset: => C): C =
+      this match {
+        case RDDPlan     => rdd
+        case DatasetPlan => dataset
+      }
+  }
+  case object RDDPlan     extends PlanType
+  case object DatasetPlan extends PlanType
+
+  lazy val rddPlan: GenerationPlan[RDD[Any]]         = GenerationPlan[RDD[Any]]("org.apache.spark.rdd.RDD")
+  lazy val datasetPlan: GenerationPlan[Dataset[Any]] = GenerationPlan[Dataset[Any]]("org.apache.spark.sql.Dataset")
+
+}
 
 object ZioSparkCodegenPlugin extends AutoPlugin {
   object autoImport {
@@ -39,72 +89,84 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
   override lazy val projectSettings =
     Seq(
       Compile / sourceGenerators += Def.task {
-        val file = (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "codegen" / "BaseRDD.scala"
 
-        // TODO Check implementations
+        val generationPlans =
+          List(
+            GenerationPlan.rddPlan,
+            GenerationPlan.datasetPlan
+          )
+
+        // TODO Check implementation
         val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
-        val apacheSparkMethods: Seq[Method] =
-          readMethodsApacheSparkRDD
-            .map(Method.fromSymbol)
-            .filterNot(_.fullName.contains("$"))
-            .filterNot(_.fullName.contains("java.lang.Object"))
-            .filterNot(_.fullName.contains("scala.Any"))
-            .filterNot(_.fullName.contains("<init>"))
 
-        val apacheSparkMethodsWithMethodTypes: Map[MethodType, Seq[Method]] = apacheSparkMethods.groupBy(getMethodType)
+        val generatedFiles =
+          generationPlans.map { plan =>
+            (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "codegen" / s"Base${plan.name}.scala"
+          }
 
-        val body: String =
-          apacheSparkMethodsWithMethodTypes
-            .map { case (methodType, methods) =>
-              val allMethods = methods.map(_.toCode(methodType)).mkString("\n")
-              methodType match {
-                case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
-                case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")
-                case _                      => allMethods
+        generationPlans.zip(generatedFiles).foreach { case (plan, file) =>
+          val methods =
+            plan.methods
+              .filterNot(_.fullName.contains("$"))
+              .filterNot(_.fullName.contains("java.lang.Object"))
+              .filterNot(_.fullName.contains("scala.Any"))
+              .filterNot(_.fullName.contains("<init>"))
+
+          val methodsWithMethodTypes = methods.groupBy(getMethodType)
+
+          val body: String =
+            methodsWithMethodTypes
+              .map { case (methodType, methods) =>
+                val allMethods = methods.map(_.toCode(methodType)).mkString("\n")
+                methodType match {
+                  case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
+                  case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")
+                  case _                      => allMethods
+                }
               }
-            }
-            .mkString("\n\n//===============\n\n")
+              .mkString("\n\n//===============\n\n")
 
-        val imports =
-          findImports(
-            (apacheSparkMethodsWithMethodTypes - (MethodType.ToImplement, MethodType.Ignored)).values.flatten.toSeq
-          ).filterNot { case (pkg, _) => importedPackages.contains(pkg) }
-            .map { case (pkg, objs) => generateImport(pkg, objs) }
-            .map("import " + _)
-            .mkString("\n")
+          val imports =
+            findImports(
+              (methodsWithMethodTypes - (MethodType.ToImplement, MethodType.Ignored)).values.flatten.toSeq
+            ).filterNot { case (pkg, _) => importedPackages.contains(pkg) }
+              .map { case (pkg, objs) => generateImport(pkg, objs) }
+              .map("import " + _)
+              .toSeq
+              .sorted
+              .mkString("\n")
 
-        IO.write(
-          file,
-          s"""package zio.spark.internal.codegen
-             |
-             |import scala.reflect._
-             |
-             |$imports
-             |
-             |import zio.Task
-             |import zio.spark.impure.Impure
-             |import zio.spark.impure.Impure.ImpureBox
-             |import zio.spark.rdd.RDD
-             |
-             |abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impure[UnderlyingRDD[T]](underlyingRDD) {
-             |  import underlyingRDD._
-             |
-             |  private implicit def arrayToSeq1[U](rdd: RDD[Array[U]]): RDD[Seq[U]] = rdd.map(x => x.toSeq)
-             |  private implicit def arrayToSeq2[U](rdd: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = rdd.map(x => x.toSeq)
-             |  private implicit def lift[U](rdd:UnderlyingRDD[U]):RDD[U] = RDD(rdd)
-             |  private implicit def escape[U](rdd:RDD[U]):UnderlyingRDD[U] = rdd.underlyingRDD.succeedNow(x => x)
-             |  
-             |  /** Applies an action to the underlying RDD. */
-             |  def action[U](f: UnderlyingRDD[T] => U): Task[U] = attemptBlocking(f)
-             |
-             |  /** Applies a transformation to the underlying RDD. */
-             |  def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = succeedNow(f.andThen(x => RDD(x)))
-             |
-             |${prefixAllLines(body, "  ")}
-             |}
-             |""".stripMargin
-        )
-        Seq(file)
+          IO.write(
+            file,
+            s"""package zio.spark.internal.codegen
+               |
+               |import scala.reflect._
+               |
+               |$imports
+               |
+               |import zio.Task
+               |import zio.spark.impure.Impure
+               |import zio.spark.impure.Impure.ImpureBox
+               |import ${plan.sparkZioPath}
+               |
+               |abstract class Base${plan.name}[T](underlying${plan.name}: ImpureBox[Underlying${plan.name}[T]]) extends Impure[Underlying${plan.name}[T]](underlying${plan.name}) {
+               |  import underlying${plan.name}._
+               |
+               |${prefixAllLines(plan.baseImplicits, "  ")}
+               |  
+               |  /** Applies an action to the underlying ${plan.name}. */
+               |  def action[U](f: Underlying${plan.name}[T] => U): Task[U] = attemptBlocking(f)
+               |
+               |  /** Applies a transformation to the underlying ${plan.name}. */
+               |  def transformation[U](f: Underlying${plan.name}[T] => Underlying${plan.name}[U]): ${plan.name}[U] = succeedNow(f.andThen(x => ${plan.name}(x)))
+               |
+               |${prefixAllLines(body, "  ")}
+               |}
+               |""".stripMargin
+          )
+        }
+
+        generatedFiles
       }.taskValue
     )
 }

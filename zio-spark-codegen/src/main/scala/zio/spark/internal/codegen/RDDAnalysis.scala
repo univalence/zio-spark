@@ -6,8 +6,21 @@ import scala.reflect.runtime.universe
 
 object RDDAnalysis {
 
+  // TODO : IGNORE
+  // def foreachPartition(func: ForeachPartitionFunction[T]): Task[Unit] = action(_.foreachPartition(func))
+
   val listOfMethodsWithImplicitNullOrdering =
-    Seq("distinct", "repartition", "coalesce", "intersection", "groupBy", "groupBy", "subtract", "countByValue", "countByValueApprox")
+    Seq(
+      "distinct",
+      "repartition",
+      "coalesce",
+      "intersection",
+      "groupBy",
+      "groupBy",
+      "subtract",
+      "countByValue",
+      "countByValueApprox"
+    )
   // rddToPairRDDFunctions
 
   /**
@@ -68,7 +81,8 @@ object RDDAnalysis {
         "isCheckpointed",
         "dependencies"
       )
-    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+    val partitionOps =
+      Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
 
     val otherTransformation = Set("barrier")
     val pureInfo            = Set("toDebugString")
@@ -111,6 +125,9 @@ object RDDAnalysis {
       case _ if method.isSetter                                          => Ignored
       case "name"                                                        => DriverAction
       case _ if method.returnType.fullName == "org.apache.spark.rdd.RDD" => Transformation
+      case _ if method.returnType.fullName == "org.apache.spark.sql.Dataset" =>
+        Transformation // TODO: remove this one when dataset are handled
+      case _ => Ignored // TODO: remove this one when dataset are handled
     }
   }
 }

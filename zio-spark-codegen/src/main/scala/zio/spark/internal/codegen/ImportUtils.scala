@@ -12,14 +12,11 @@ object ImportUtils {
       "java.lang"
     )
 
-  def findAllTypes(methods: Seq[Method]): Seq[String] = {
-    methods.foreach(m => println(m.symbol.returnType.dealias))
-
+  def findAllTypes(methods: Seq[Method]): Seq[String] =
     methods
       .flatMap(m =>
         m.symbol.paramLists.flatten.map(_.typeSignature.dealias.toString) :+ m.symbol.returnType.dealias.toString
       )
-  }
 
   def findImports(methods: Seq[Method]): Map[String, Seq[String]] = {
     val types = findAllTypes(methods).filterNot(_ == "<none>")
@@ -33,7 +30,7 @@ object ImportUtils {
   }
 
   def generateImport(pkg: String, objs: Seq[String]): String = {
-    val underlyingObjects = List("RDD")
+    val underlyingObjects = List("RDD", "Dataset")
 
     val augmentedObjs =
       objs.map {
