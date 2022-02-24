@@ -4,18 +4,16 @@ import zio.test.*
 import zio.test.TestAspect.*
 
 object MethodSpec extends DefaultRunnableSpec {
-
   def genTest2(plan: GenerationPlan[?])(name: String, arity: Int = -1)(generatedCode: String): ZSpec[Any, Nothing] = {
-
     def findMethod(name: String, arity: Int): Option[Method] =
       plan.methods.find(m => m.name == name && m.symbol.paramLists.flatten.size == arity) orElse plan.methods.find(
         _.name == name
       )
 
-    val find = findMethod(name, arity)
+    val maybeMethod = findMethod(name, arity)
 
     test(name) {
-      find.fold(assertNever(s"can't find $name"))(m =>
+      maybeMethod.fold(assertNever(s"can't find $name"))(m =>
         assertTrue(m.toCode(RDDAnalysis.getMethodType(m)).contains(generatedCode))
       )
     }
@@ -25,7 +23,7 @@ object MethodSpec extends DefaultRunnableSpec {
     def checkGen(methodName: String, arity: Int = -1)(genCodeFragment: String): ZSpec[Any, Nothing] =
       genTest2(GenerationPlan.rddPlan)(methodName, arity)(genCodeFragment)
 
-    suite("basic gen")(
+    suite("check gen for RDD")(
       checkGen("collect", 0)("collect: Task[Seq[T]]"),
       checkGen("saveAsObjectFile")("saveAsObjectFile(path: String): Task[Unit]"),
       checkGen("min")("min(implicit ord: Ordering[T]): Task[T]"),
@@ -48,8 +46,8 @@ object MethodSpec extends DefaultRunnableSpec {
     def checkGen(methodName: String, arity: Int = -1)(genCodeFragment: String): ZSpec[Any, Nothing] =
       genTest2(GenerationPlan.datasetPlan)(methodName, arity)(genCodeFragment)
 
-    suite("basic gen")(
-      checkGen("cache")("cache: Task[Dataset[T]]")
+    suite("check gen for Dataset")(
+      checkGen("orderBy", arity = 1)("_.orderBy(sortExprs: _*)")
     )
   }
 

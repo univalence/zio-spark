@@ -97,7 +97,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           )
 
         // TODO Check implementation
-        val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
+        // val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
 
         val generatedFiles =
           generationPlans.map { plan =>
@@ -117,7 +117,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           val body: String =
             methodsWithMethodTypes
               .map { case (methodType, methods) =>
-                val allMethods = methods.map(_.toCode(methodType)).mkString("\n")
+                val allMethods = methods.map(_.toCode(methodType)).distinct.mkString("\n")
                 methodType match {
                   case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
                   case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")

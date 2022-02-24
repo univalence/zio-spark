@@ -16,8 +16,15 @@ case class Parameter(symbol: universe.Symbol) {
   val modifiers: Seq[Modifier] = if (symbol.isImplicit) List(Modifier.Implicit) else Nil
 
   def toCode(isArgs: Boolean, isHavingNullImplicitOrdering: Boolean): String =
-    if (isArgs) name
-    else if (isHavingNullImplicitOrdering && name == "ord" && parameterType.startsWith("Ordering"))
+    if (isArgs) toCodeArgument
+    else toCodeParameter(isHavingNullImplicitOrdering)
+
+  private def toCodeArgument: String =
+    if (parameterType.contains("*")) s"$name: _*"
+    else name
+
+  private def toCodeParameter(isHavingNullImplicitOrdering: Boolean): String =
+    if (isHavingNullImplicitOrdering && name == "ord" && parameterType.startsWith("Ordering"))
       s"$name: $parameterType = null"
     else s"$name: $parameterType"
 
