@@ -130,7 +130,7 @@ def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core"   % sparkVersion   % Provided,
+    "org.apache.spark" %% "spark-core"   % sparkVersion   % Provided withSources(),
     "org.apache.spark" %% "spark-sql"    % sparkVersion   % Provided,
     "dev.zio"          %% "zio-test"     % libVersion.zio % Test,
     "dev.zio"          %% "zio-test-sbt" % libVersion.zio % Test,

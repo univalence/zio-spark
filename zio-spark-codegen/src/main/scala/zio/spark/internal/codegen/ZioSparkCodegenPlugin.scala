@@ -157,6 +157,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
     Seq(
       Compile / sourceGenerators += Def.task {
 
+        // TODO : use to get source jar
+        val jars: Classpath = (Compile / dependencyClasspathAsJars).value
+
         val generationPlans =
           List(
             GenerationPlan.rddPlan,
