@@ -32,12 +32,14 @@ case class GenerationPlan[T: TypeTag](path: String) {
   lazy val methods: Seq[Method] = allMethodSymbols.map(Method.fromSymbol)
 
   def baseImplicits: String = {
-    val encoder: String = planType.fold("", ": Encoder")
+    val encoder: String = planType.fold("", "(implicit enc: Encoder[Seq[U]])")
 
-    s"""private implicit def arrayToSeq1[U$encoder](x: $name[Array[U]]): $name[Seq[U]] = x.map(_.toSeq)
-       |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]]): Underlying$name[Seq[U]] = x.map(_.toSeq)
+    s"""private implicit def arrayToSeq1[U](x: $name[Array[U]])$encoder: $name[Seq[U]] = x.map(_.toSeq)
+       |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]])$encoder: Underlying$name[Seq[U]] = x.map(_.toSeq)
        |private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
        |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name.succeedNow(v => v)
+       |
+       |private implicit def iteratorConversion[T](iterator: java.util.Iterator[T]):Iterator[T] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
        |""".stripMargin
   }
 }
@@ -112,7 +114,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               .filterNot(_.fullName.contains("scala.Any"))
               .filterNot(_.fullName.contains("<init>"))
 
-          val methodsWithMethodTypes = methods.groupBy(getMethodType)
+          val methodsWithMethodTypes = methods.groupBy(getMethodType(_, plan.path))
 
           val body: String =
             methodsWithMethodTypes
@@ -132,6 +134,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             ).filterNot { case (pkg, _) => importedPackages.contains(pkg) }
               .map { case (pkg, objs) => generateImport(pkg, objs) }
               .map("import " + _)
+              .filterNot(_.contains("java"))
               .toSeq
               .sorted
               .mkString("\n")
@@ -148,6 +151,8 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |import zio.spark.impure.Impure
                |import zio.spark.impure.Impure.ImpureBox
                |import ${plan.sparkZioPath}
+               |import zio.spark.rdd.RDD
+               |
                |
                |abstract class Base${plan.name}[T](underlying${plan.name}: ImpureBox[Underlying${plan.name}[T]]) extends Impure[Underlying${plan.name}[T]](underlying${plan.name}) {
                |  import underlying${plan.name}._

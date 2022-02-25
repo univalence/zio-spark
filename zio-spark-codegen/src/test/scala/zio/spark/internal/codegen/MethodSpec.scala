@@ -13,7 +13,7 @@ object MethodSpec extends DefaultRunnableSpec {
     val maybeMethod = findMethod(name, arity)
 
     test(name) {
-      maybeMethod.fold(assertNever(s"can't find $name"))(m => assertTrue(m.toCode(RDDAnalysis.getMethodType(m)).contains(generatedCode)))
+      maybeMethod.fold(assertNever(s"can't find $name"))(m => assertTrue(m.toCode(RDDAnalysis.getMethodType(m, plan.path)).contains(generatedCode)))
     }
   }
 
@@ -44,7 +44,10 @@ object MethodSpec extends DefaultRunnableSpec {
       genTest2(GenerationPlan.datasetPlan)(methodName, arity)(genCodeFragment)
 
     suite("check gen for Dataset")(
-      checkGen("orderBy", arity = 1)("_.orderBy(sortExprs: _*)")
+      checkGen("orderBy", arity = 1)("_.orderBy(sortExprs: _*)"),
+      checkGen("explode", arity = 3)(
+        "def explode[A <: Product](input: Column*)(f: Row => TraversableOnce[A])(implicit evidence$4: TypeTag[A])"
+      ) @@ ignore
     )
   }
 

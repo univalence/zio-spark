@@ -33,7 +33,7 @@ object TypeUtils {
 
 case class Method(symbol: universe.MethodSymbol) {
 
-  private val calls: List[ArgGroup]   = symbol.paramLists.map(ArgGroup.fromSymbol)
+  val calls: List[ArgGroup]           = symbol.paramLists.map(ArgGroup.fromSymbol)
   private val kind                    = if (symbol.isSetter) Kind.Setter else Kind.Function
   val name: String                    = symbol.name.toString
   val annotations: Seq[String]        = symbol.annotations.map(_.toString)

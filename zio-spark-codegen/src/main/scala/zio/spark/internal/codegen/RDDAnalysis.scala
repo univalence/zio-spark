@@ -67,7 +67,7 @@ object RDDAnalysis {
     case object ToImplement            extends MethodType
   }
 
-  def getMethodType(method: Method): MethodType = {
+  def getMethodType(method: Method, path: String): MethodType = {
     val cacheElements =
       Set(
         "getStorageLevel",
@@ -101,32 +101,36 @@ object RDDAnalysis {
         "collect"
       )
 
+    def checkForJavaArgs: Boolean = method.calls.exists(_.symbols.exists(_.typeSignature.toString.contains("org.apache.spark.api.java.function")))
+
     method.name match {
-      case "saveAsTextFile"                                              => ToImplement
-      case x if x.contains("$")                                          => Ignored
-      case _ if method.annotations.exists(_.contains("DeveloperApi"))    => Ignored
-      case name if action(name)                                          => DistributedComputation
-      case name if name.startsWith("take")                               => DistributedComputation
-      case name if name.startsWith("foreach")                            => DistributedComputation
-      case name if name.startsWith("count")                              => DistributedComputation
-      case name if name.startsWith("saveAs")                             => DistributedComputation
-      case "iterator"                                                    => DistributedComputation
-      case name if cacheElements(name)                                   => DriverAction
-      case name if otherTransformation(name)                             => SuccessNow
-      case name if pureInfo(name)                                        => SuccessNow
-      case name if partitionOps(name)                                    => SuccessNow
-      case "sparkContext" | "context"                                    => ToImplement
-      case "randomSplit"                                                 => ToImplement
-      case "toJavaRDD"                                                   => ToImplement
-      case _ if method.path.startsWith("java.lang.Object")               => Ignored
-      case _ if method.path.startsWith("scala.Any")                      => Ignored
-      case "toString"                                                    => Ignored
-      case _ if method.isSetter                                          => Ignored
-      case "name"                                                        => DriverAction
-      case _ if method.returnType.fullName == "org.apache.spark.rdd.RDD" => Transformation
-      case _ if method.returnType.fullName == "org.apache.spark.sql.Dataset" =>
-        Transformation // TODO: remove this one when dataset are handled
-      case _ => Ignored // TODO: remove this one when dataset are handled
+      case "takeAsList"                                               => Ignored     // return java.util.List
+      case "saveAsTextFile"                                           => ToImplement
+      case x if x.contains("$")                                       => Ignored
+      case _ if method.annotations.exists(_.contains("DeveloperApi")) => Ignored
+      case _ if checkForJavaArgs                                      => Ignored
+      case "transform"                                                => ToImplement // codegen hard to do for an helper method
+      case "explode"                                                  => ToImplement // codegen not perfect due to contextBound on A
+      case name if action(name)                                       => DistributedComputation
+      case name if name.startsWith("take")                            => DistributedComputation
+      case name if name.startsWith("foreach")                         => DistributedComputation
+      case name if name.startsWith("count")                           => DistributedComputation
+      case name if name.startsWith("saveAs")                          => DistributedComputation
+      case "iterator"                                                 => DistributedComputation
+      case name if cacheElements(name)                                => DriverAction
+      case name if otherTransformation(name)                          => SuccessNow
+      case name if pureInfo(name)                                     => SuccessNow
+      case name if partitionOps(name)                                 => SuccessNow
+      case "sparkContext" | "context"                                 => ToImplement
+      case "randomSplit"                                              => ToImplement
+      case "toJavaRDD"                                                => ToImplement
+      case _ if method.path.startsWith("java.lang.Object")            => Ignored
+      case _ if method.path.startsWith("scala.Any")                   => Ignored
+      case "toString"                                                 => Ignored
+      case _ if method.isSetter                                       => Ignored
+      case "name"                                                     => DriverAction
+      case _ if method.returnType.fullName == path                    => Transformation
+      case _                                                          => Ignored     // TODO: remove this one when dataset are handled
     }
   }
 }
