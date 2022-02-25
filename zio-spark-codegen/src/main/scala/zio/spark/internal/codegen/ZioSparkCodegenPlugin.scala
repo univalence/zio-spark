@@ -103,7 +103,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
         val generatedFiles =
           generationPlans.map { plan =>
-            (Compile / sourceManaged).value / "zio" / "spark" / "internal" / "codegen" / s"Base${plan.name}.scala"
+            (Compile / scalaSource).value / "zio" / "spark" / "internal" / "codegen" / s"Base${plan.name}.scala"
           }
 
         generationPlans.zip(generatedFiles).foreach { case (plan, file) =>
@@ -117,9 +117,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           val methodsWithMethodTypes = methods.groupBy(getMethodType(_, plan.path))
 
           val body: String =
-            methodsWithMethodTypes
+            methodsWithMethodTypes.toList
+              .sortBy(_._1)
               .map { case (methodType, methods) =>
-                val allMethods = methods.map(_.toCode(methodType)).distinct.mkString("\n")
+                val allMethods = methods.sortBy(_.fullName).map(_.toCode(methodType)).distinct.mkString("\n")
                 methodType match {
                   case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
                   case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")
