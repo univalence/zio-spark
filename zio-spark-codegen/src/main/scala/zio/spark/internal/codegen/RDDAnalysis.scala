@@ -81,8 +81,7 @@ object RDDAnalysis {
         "isCheckpointed",
         "dependencies"
       )
-    val partitionOps =
-      Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
 
     val otherTransformation = Set("barrier")
     val pureInfo            = Set("toDebugString")

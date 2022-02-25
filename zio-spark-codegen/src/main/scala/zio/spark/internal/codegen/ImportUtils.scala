@@ -14,9 +14,7 @@ object ImportUtils {
 
   def findAllTypes(methods: Seq[Method]): Seq[String] =
     methods
-      .flatMap(m =>
-        m.symbol.paramLists.flatten.map(_.typeSignature.dealias.toString) :+ m.symbol.returnType.dealias.toString
-      )
+      .flatMap(m => m.symbol.paramLists.flatten.map(_.typeSignature.dealias.toString) :+ m.symbol.returnType.dealias.toString)
 
   def findImports(methods: Seq[Method]): Map[String, Seq[String]] = {
     val types = findAllTypes(methods).filterNot(_ == "<none>")
