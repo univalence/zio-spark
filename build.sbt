@@ -128,7 +128,8 @@ def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   sparkLibraries ++ Seq(
     "dev.zio" %% "zio-test"     % libVersion.zio % Test,
     "dev.zio" %% "zio-test-sbt" % libVersion.zio % Test,
-    "dev.zio" %% "zio"          % libVersion.zio
+    "dev.zio" %% "zio"          % libVersion.zio,
+    "dev.zio"          %% "zio-streams"  % libVersion.zio
   )
 }
 

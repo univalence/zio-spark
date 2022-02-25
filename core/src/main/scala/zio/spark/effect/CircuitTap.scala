@@ -73,6 +73,7 @@ object Ratio {
 
   val zero: Ratio = Ratio.create(0.0)
   val full: Ratio = Ratio.create(1.0)
+  val p05: Ratio  = Ratio.create(0.05)
 
   def mean(w1: Int, r1: Ratio)(w2: Int, r2: Ratio): Ratio = {
     assert(w1 > 0)
@@ -115,11 +116,11 @@ object CircuitTap {
 
   private def zeroState(scale: Int): State = State(0, 0, 0, DecayingRatio(Ratio.zero, scale))
 
-
-  //TODO: ChangeMaker with configure
-  //make[RejectionError](maxError: Ratio, decayScale:Int, rejected: CircuitTap.State => RejectionError).qualifyErrors[E](qualifie: E => Boolean)
-  //.manage(effect)
-  //.mamageAndQualify(effect)(qualifie)
+  // TODO: ChangeMaker with configure
+  /* make[RejectionError](maxError: Ratio, decayScale:Int, rejected: CircuitTap.State =>
+   * RejectionError).qualifyErrors[E](qualifie: E => Boolean) */
+  // .manage(effect)
+  // .mamageAndQualify(effect)(qualifie)
   /**
    * Creates a tap that aims for the specified maximum error rate, using
    * the specified function to qualify errors (unqualified errors are
