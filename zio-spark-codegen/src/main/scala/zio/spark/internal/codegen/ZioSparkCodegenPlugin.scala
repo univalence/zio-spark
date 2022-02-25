@@ -13,6 +13,8 @@ import zio.spark.internal.codegen.structure.Method
 
 import scala.collection.immutable
 import scala.meta.*
+import scala.meta.contrib.AssociatedComments
+import scala.meta.tokens.Token
 
 case class GenerationPlan(module: String, path: String) {
 
@@ -54,7 +56,9 @@ case class GenerationPlan(module: String, path: String) {
         case d: Decl.Def if checkMods(d.mods) => ??? // only compute is declared
       }
 
-    allMethods.map(m => Method.fromScalaMeta(m, path.replace('/', '.').replace(".scala", "")))
+    val comments: AssociatedComments = contrib.AssociatedComments(template)
+
+    allMethods.map(m => Method.fromScalaMeta(m, comments, path.replace('/', '.').replace(".scala", "")))
   }
 
   def baseImplicits: String = {
@@ -181,7 +185,14 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             methodsWithMethodTypes.toList
               .sortBy(_._1)
               .map { case (methodType, methods) =>
-                val allMethods = methods.sortBy(_.fullName).map(_.toCode(methodType)).distinct.mkString("\n")
+                val sep =
+                  methodType match {
+                    case MethodType.ToImplement => "\n"
+                    case MethodType.Ignored     => "\n"
+                    case _                      => "\n\n"
+                  }
+
+                val allMethods = methods.sortBy(_.fullName).map(_.toCode(methodType)).distinct.mkString(sep)
                 methodType match {
                   case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
                   case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")

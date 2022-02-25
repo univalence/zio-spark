@@ -5,8 +5,10 @@ import zio.spark.internal.codegen.RDDAnalysis.MethodType
 import zio.spark.internal.codegen.structure.TypeUtils.*
 
 import scala.meta.*
+import scala.meta.contrib.AssociatedComments
+import scala.meta.tokens.Token
 
-case class Method(df: Defn.Def, path: String) {
+case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
 
   val calls: List[ParameterGroup] = df.paramss.map(ParameterGroup.fromScalaMeta)
 
@@ -42,7 +44,9 @@ case class Method(df: Defn.Def, path: String) {
 
         val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode).mkString(", ")}]" else ""
 
-        s"def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments)"
+        val comment = if (comments.leading(df).isEmpty) "" else comments.leading(df).mkString("\n") + "\n"
+
+        s"${comment}def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments)"
     }
 
   def isSetter: Boolean = name.startsWith("set")
@@ -55,5 +59,5 @@ object Method {
     final case object Setter   extends Kind
   }
 
-  def fromScalaMeta(df: Defn.Def, path: String): Method = Method(df, path)
+  def fromScalaMeta(df: Defn.Def, comments: AssociatedComments, path: String): Method = Method(df, comments, path)
 }
