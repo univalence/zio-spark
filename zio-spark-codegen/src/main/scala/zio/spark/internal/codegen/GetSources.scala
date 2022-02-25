@@ -1,27 +1,38 @@
 package zio.spark.internal.codegen
 
+import zio.{Task, ZManaged}
+
 import scala.collection.immutable
-import scala.io.{BufferedSource, Source}
 import scala.meta.*
 import scala.meta.tokens.Token
 
-import java.io.InputStream
-import java.util.jar.JarFile
-import java.util.zip.ZipEntry
-
 object GetSources {
 
+  def getSource(module: String, file: String): zio.Task[meta.Source] =
+    Task {
+      import scala.io.{BufferedSource, Source}
+      import java.io.InputStream
+      import java.util.jar.JarFile
+      import java.util.zip.ZipEntry
+
+      val sparkCoreJar: String   = System.getProperty("java.class.path").split(':').find(_.contains(module)).get
+      val sparkSourceJar: String = sparkCoreJar.replace(".jar", "-sources.jar")
+
+      ZManaged
+        .acquireReleaseAttemptWith(new JarFile(sparkSourceJar))(_.close())
+        .use(jarFile =>
+          Task {
+            val entry: ZipEntry         = jarFile.getEntry(file)
+            val stream: InputStream     = jarFile.getInputStream(entry)
+            val content: BufferedSource = Source.fromInputStream(stream)
+
+            content.getLines().mkString("\n").parse[meta.Source].get
+          }
+        )
+    }.flatten
+
   def main(args: Array[String]): Unit = {
-    val sparkCoreJar: String = System.getProperty("java.class.path").split(':').find(_.contains("spark-core")).get
-
-    val sparkSourceJar: String = sparkCoreJar.replace(".jar", "-sources.jar")
-
-    val jarFile: JarFile        = new JarFile(sparkSourceJar)
-    val entry: ZipEntry         = jarFile.getEntry("org/apache/spark/rdd/RDD.scala")
-    val stream: InputStream     = jarFile.getInputStream(entry)
-    val content: BufferedSource = Source.fromInputStream(stream)
-
-    val rddFileSource: meta.Source = content.getLines().mkString("\n").parse[meta.Source].get
+    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala"))
 
     // source -> packages -> statements (imports | class | object)
     val rddTemplate: Template =
@@ -59,7 +70,7 @@ object GetSources {
      * storage level set yet. Local checkpointing is an exception.
      */
 
-    val lines = content.getLines().size
+    val a = 1
   }
 
 }
