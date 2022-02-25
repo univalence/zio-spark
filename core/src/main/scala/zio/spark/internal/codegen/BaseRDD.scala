@@ -20,15 +20,20 @@ import zio.spark.rdd.RDD
 import scala.collection.Map
 
 
+
+@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impure[UnderlyingRDD[T]](underlyingRDD) {
   import underlyingRDD._
 
-  private implicit def arrayToSeq1[U](x: RDD[Array[U]]): RDD[Seq[U]] = x.map(_.toSeq)
-  private implicit def arrayToSeq2[U](x: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = x.map(_.toSeq)
+  // scalafix:off
+  private implicit def arrayToSeq1[U](x: RDD[Array[U]]): RDD[Seq[U]] = x.map(_.toIndexedSeq)
+  private implicit def arrayToSeq2[U](x: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = x.map(_.toIndexedSeq)
   private implicit def lift[U](x:UnderlyingRDD[U]):RDD[U] = RDD(x)
   private implicit def escape[U](x:RDD[U]):UnderlyingRDD[U] = x.underlyingRDD.succeedNow(v => v)
+  private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
   
-  private implicit def iteratorConversion[T](iterator: java.util.Iterator[T]):Iterator[T] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
+  @inline private def noOrdering[U]: Ordering[U] = null
+  // scalafix:on
   
   /** Applies an action to the underlying RDD. */
   def action[U](f: UnderlyingRDD[T] => U): Task[U] = attemptBlocking(f)
@@ -161,7 +166,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * , which returns an RDD[T, Long] instead of a map.
      */
-  def countByValue(implicit ord: Ordering[T] = null): Task[Map[T, Long]] = action(_.countByValue())
+  def countByValue(implicit ord: Ordering[T] = noOrdering): Task[Map[T, Long]] = action(_.countByValue())
   
   /**
      * Approximate version of countByValue().
@@ -170,7 +175,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param confidence the desired statistical confidence in the result
      * @return a potentially incomplete result, with error bounds
      */
-  def countByValueApprox(timeout: Long, confidence: Double = 0.95)(implicit ord: Ordering[T] = null): Task[PartialResult[Map[T, BoundedDouble]]] = action(_.countByValueApprox(timeout, confidence))
+  def countByValueApprox(timeout: Long, confidence: Double = 0.95)(implicit ord: Ordering[T] = noOrdering): Task[PartialResult[Map[T, BoundedDouble]]] = action(_.countByValueApprox(timeout, confidence))
   
   /**
      * Return the first element in this RDD.
@@ -474,12 +479,12 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * data distributed using a hash partitioner. The optional partition coalescer
      * passed in must be serializable.
      */
-  def coalesce(numPartitions: Int, shuffle: Boolean = false, partitionCoalescer: Option[PartitionCoalescer] = Option.empty)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.coalesce(numPartitions, shuffle, partitionCoalescer))
+  def coalesce(numPartitions: Int, shuffle: Boolean = false, partitionCoalescer: Option[PartitionCoalescer] = Option.empty)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.coalesce(numPartitions, shuffle, partitionCoalescer))
   
   /**
      * Return a new RDD containing the distinct elements in this RDD.
      */
-  def distinct(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.distinct(numPartitions))
+  def distinct(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.distinct(numPartitions))
   
   /**
      * Return a new RDD containing the distinct elements in this RDD.
@@ -533,7 +538,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * aggregation (such as a sum or average) over each key, using `PairRDDFunctions.aggregateByKey`
      * or `PairRDDFunctions.reduceByKey` will provide much better performance.
      */
-  def groupBy[K](f: T => K, p: Partitioner)(implicit kt: ClassTag[K], ord: Ordering[K] = null): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, p))
+  def groupBy[K](f: T => K, p: Partitioner)(implicit kt: ClassTag[K], ord: Ordering[K] = noOrdering): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, p))
   
   /**
      * Return the intersection of this RDD and another one. The output will not contain any duplicate
@@ -551,7 +556,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * @param partitioner Partitioner to use for the resulting RDD
      */
-  def intersection(other: RDD[T], partitioner: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.intersection(other, partitioner))
+  def intersection(other: RDD[T], partitioner: Partitioner)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.intersection(other, partitioner))
   
   /**
      * Return the intersection of this RDD and another one. The output will not contain any duplicate
@@ -642,7 +647,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * If you are decreasing the number of partitions in this RDD, consider using `coalesce`,
      * which can avoid performing a shuffle.
      */
-  def repartition(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.repartition(numPartitions))
+  def repartition(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.repartition(numPartitions))
   
   /**
      * Return a sampled subset of this RDD.
@@ -680,7 +685,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   /**
      * Return an RDD with the elements from `this` that are not in `other`.
      */
-  def subtract(other: RDD[T], p: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.subtract(other, p))
+  def subtract(other: RDD[T], p: Partitioner)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.subtract(other, p))
   
   /**
      * Return the union of this RDD and another one. Any identical elements will appear multiple

@@ -80,9 +80,8 @@ object GetSources {
     val allDefinitions = allMethods.map(dfn => dfn.toString().replace(s" = ${dfn.body.toString()}", ""))
 
     val allReturnTypes =
-      allDefinitions.map(_.parse[Stat].get).collect {
-        case q"..$mods def $ename[..$tparams](...$paramss): $tpeopt = $expr" =>
-          expr.pos
+      allDefinitions.map(_.parse[Stat].get).collect { case q"..$mods def $ename[..$tparams](...$paramss): $tpeopt = $expr" =>
+        expr.pos
       }
     val a = 1
   }

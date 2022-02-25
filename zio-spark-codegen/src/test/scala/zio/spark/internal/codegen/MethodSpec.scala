@@ -14,9 +14,7 @@ object MethodSpec extends DefaultRunnableSpec {
     val maybeMethod = findMethod(name, arity)
 
     test(name) {
-      maybeMethod.fold(assertNever(s"can't find $name"))(m =>
-        assertTrue(m.toCode(RDDAnalysis.getMethodType(m, plan.path)).contains(generatedCode))
-      )
+      maybeMethod.fold(assertNever(s"can't find $name"))(m => assertTrue(m.toCode(RDDAnalysis.getMethodType(m, plan.path)).contains(generatedCode)))
     }
   }
 
@@ -35,8 +33,7 @@ object MethodSpec extends DefaultRunnableSpec {
       checkGen("zipWithIndex")("zipWithIndex: RDD[(T, Long)]"),
       checkGen("countByValueApprox")("Task[PartialResult[Map[T, BoundedDouble]]]"),
       checkGen("distinct", 2)("distinct(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T]"),
-      /* not possible at the moment, we cannot get the information '_ <: CompressionCodec' from the typeTag, it needs to
-       * be implemented manually */
+      /* not possible at the moment, we cannot get the information '_ <: CompressionCodec' from the typeTag, it needs to be implemented manually */
       checkGen("saveAsTextFile", 2)(
         "saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit]"
       )

@@ -10,15 +10,20 @@ import zio.spark.impure.Impure.ImpureBox
 import zio.spark.sql.Dataset
 
 
+
+@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]) extends Impure[UnderlyingDataset[T]](underlyingDataset) {
   import underlyingDataset._
 
-  private implicit def arrayToSeq1[U](x: Dataset[Array[U]])(implicit enc: Encoder[Seq[U]]): Dataset[Seq[U]] = x.map(_.toSeq)
-  private implicit def arrayToSeq2[U](x: UnderlyingDataset[Array[U]])(implicit enc: Encoder[Seq[U]]): UnderlyingDataset[Seq[U]] = x.map(_.toSeq)
+  // scalafix:off
+  private implicit def arrayToSeq1[U](x: Dataset[Array[U]])(implicit enc: Encoder[Seq[U]]): Dataset[Seq[U]] = x.map(_.toIndexedSeq)
+  private implicit def arrayToSeq2[U](x: UnderlyingDataset[Array[U]])(implicit enc: Encoder[Seq[U]]): UnderlyingDataset[Seq[U]] = x.map(_.toIndexedSeq)
   private implicit def lift[U](x:UnderlyingDataset[U]):Dataset[U] = Dataset(x)
   private implicit def escape[U](x:Dataset[U]):UnderlyingDataset[U] = x.underlyingDataset.succeedNow(v => v)
+  private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
   
-  private implicit def iteratorConversion[T](iterator: java.util.Iterator[T]):Iterator[T] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
+  @inline private def noOrdering[U]: Ordering[U] = null
+  // scalafix:on
   
   /** Applies an action to the underlying Dataset. */
   def action[U](f: UnderlyingDataset[T] => U): Task[U] = attemptBlocking(f)
