@@ -1,6 +1,7 @@
 package zio.spark.internal.codegen
 
-import zio.spark.internal.codegen.RDDAnalysis.MethodType._
+import zio.spark.internal.codegen.RDDAnalysis.MethodType.*
+import zio.spark.internal.codegen.structure.Method
 
 import scala.reflect.runtime.universe
 
@@ -22,31 +23,6 @@ object RDDAnalysis {
       "countByValueApprox"
     )
   // rddToPairRDDFunctions
-
-  /**
-   * TODO : Manage default values
-   *
-   * Default values are managed using alternate methods in the class
-   * definition They are not available in the MethodSymbol
-   *
-   * There are 3 strategies to manage default values
-   *   1. dirty : listOfMethodsWithImplicitNullOrdering, list the
-   *      methods that have default arguments, like implicit
-   *      ord:Ordering[T] = null, propagate the information downstream
-   *      to generate correctly
-   *
-   * 2. mapping hack :
-   * RDDAnalysis.readMethodsApacheSparkRDD.count(_.fullName.contains("$default$"))
-   * isolate the default methods, build a Map MethodName -> (Map ArgName
-   * -> Type) if the method m1 generated can overlap a default method
-   * with the same name (all args of the default method are in m1) set
-   * the missing argument to default value (null for Ordering, None for
-   * Option, Random for Long ? (seed)
-   *
-   * 3. scala meta from the future get the information from the source
-   * directly, using ScalaMeta to parse the org.apache.spark.rdd.RDD
-   * source file generate from this information
-   */
 
   import scala.reflect.runtime.universe.*
 
@@ -117,15 +93,15 @@ object RDDAnalysis {
         "collect"
       )
 
-    def checkForJavaArgs: Boolean =
-      method.calls.exists(_.symbols.exists(_.typeSignature.toString.contains("org.apache.spark.api.java.function")))
+    // def checkForJavaArgs: Boolean =
+    //  method.calls.exists(_.symbols.exists(_.typeSignature.toString.contains("org.apache.spark.api.java.function")))
 
     method.name match {
-      case "takeAsList"                                               => Ignored // return java.util.List
-      case "saveAsTextFile"                                           => ToImplement
-      case x if x.contains("$")                                       => Ignored
-      case _ if method.annotations.exists(_.contains("DeveloperApi")) => Ignored
-      case _ if checkForJavaArgs                                      => Ignored
+      case "takeAsList"         => Ignored // return java.util.List
+      case x if x.contains("$") => Ignored
+      // case _ if method.annotations.exists(_.contains("DeveloperApi")) => Ignored
+      // case _ if checkForJavaArgs                                      => Ignored
+      case _ if method.calls.flatMap(_.parameters.map(_.signature)).exists(_.contains("Function")) => Ignored
       case "transform"                        => ToImplement // codegen hard to do for an helper method
       case "explode"                          => ToImplement // codegen not perfect due to contextBound on A
       case name if action(name)               => DistributedComputation
@@ -146,7 +122,9 @@ object RDDAnalysis {
       case "toString"                                      => Ignored
       case _ if method.isSetter                            => Ignored
       case "name"                                          => DriverAction
-      case _ if method.returnType.fullName == path         => Transformation
+      case _ if method.returnType.startsWith("RDD")        => Transformation
+      case _ if method.returnType.startsWith("Dataset")    => Transformation
+      case _ if method.returnType.contains("this.type")    => Transformation
       case _                                               => Ignored // TODO: remove this one when dataset are handled
     }
   }

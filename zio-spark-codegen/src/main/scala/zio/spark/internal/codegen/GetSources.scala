@@ -15,11 +15,18 @@ object GetSources {
       import java.util.jar.JarFile
       import java.util.zip.ZipEntry
 
-      val sparkCoreJar: String   = System.getProperty("java.class.path").split(':').find(_.contains(module)).get
-      val sparkSourceJar: String = sparkCoreJar.replace(".jar", "-sources.jar")
+      // val sparkCoreJar: String   = System.getProperty("java.class.path").split(':').find(_.contains(module)).get
+      // val sparkSourceJar: String = sparkCoreJar.replace(".jar", "-sources.jar")
+      /* val sparkSourceJar =
+       * "/Users/dylandoamaral/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark/spark-core_2.12/3.2.1/spark-core_2.12-3.2.1-sources.jar" */
+
+      val hardSourceJar: String =
+        System.getProperty(
+          "user.home"
+        ) + s"/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark/${module}_2.12/3.2.1/${module}_2.12-3.2.1-sources.jar"
 
       ZManaged
-        .acquireReleaseAttemptWith(new JarFile(sparkSourceJar))(_.close())
+        .acquireReleaseAttemptWith(new JarFile(hardSourceJar))(_.close())
         .use(jarFile =>
           Task {
             val entry: ZipEntry         = jarFile.getEntry(file)
@@ -70,6 +77,13 @@ object GetSources {
      * storage level set yet. Local checkpointing is an exception.
      */
 
+    val allDefinitions = allMethods.map(dfn => dfn.toString().replace(s" = ${dfn.body.toString()}", ""))
+
+    val allReturnTypes =
+      allDefinitions.map(_.parse[Stat].get).collect {
+        case q"..$mods def $ename[..$tparams](...$paramss): $tpeopt = $expr" =>
+          expr.pos
+      }
     val a = 1
   }
 

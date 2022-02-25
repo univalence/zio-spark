@@ -6,30 +6,56 @@ import sbt.*
 import sbt.Keys.*
 
 import zio.spark.internal.codegen.GenerationPlan.PlanType
+import zio.spark.internal.codegen.GetSources.getSource
 import zio.spark.internal.codegen.ImportUtils.*
 import zio.spark.internal.codegen.RDDAnalysis.*
+import zio.spark.internal.codegen.structure.Method
 
-import scala.reflect.{classTag, ClassTag}
-import scala.reflect.runtime.universe.{typeTag, MethodSymbol, TypeTag}
+import scala.collection.immutable
+import scala.meta.*
 
-case class GenerationPlan[T: TypeTag](path: String) {
+case class GenerationPlan(module: String, path: String) {
 
   val planType: PlanType =
     path match {
-      case "org.apache.spark.rdd.RDD"     => GenerationPlan.RDDPlan
-      case "org.apache.spark.sql.Dataset" => GenerationPlan.DatasetPlan
+      case "org/apache/spark/rdd/RDD.scala"     => GenerationPlan.RDDPlan
+      case "org/apache/spark/sql/Dataset.scala" => GenerationPlan.DatasetPlan
     }
 
-  def name: String = path.split('.').last
+  def name: String = path.replace(".scala", "").split('/').last
 
-  def sparkZioPath: String = path.replace("org.apache.spark", "zio.spark")
+  def pkg: String = path.replace(".scala", "").replace('/', '.')
 
-  lazy val allMethodSymbols: Seq[MethodSymbol] =
-    typeTag[T].tpe.members.collect {
-      case m: MethodSymbol if m.isMethod && m.isPublic => m
-    }.toSeq
+  def sparkZioPath: String = pkg.replace("org.apache.spark", "zio.spark")
 
-  lazy val methods: Seq[Method] = allMethodSymbols.map(Method.fromSymbol)
+  lazy val methods: Seq[Method] = {
+    val fileSource = zio.Runtime.default.unsafeRun(getSource(module, path))
+
+    val template: Template =
+      fileSource.children
+        .flatMap(_.children)
+        .collectFirst {
+          case c: Defn.Class if c.name.toString == "RDD"     => c.templ
+          case c: Defn.Class if c.name.toString == "Dataset" => c.templ
+        }
+        .get
+
+    def checkMods(mods: List[Mod]): Boolean =
+      !mods.exists {
+        case mod"@DeveloperApi"   => true
+        case mod"private[$ref]"   => true
+        case mod"protected[$ref]" => true
+        case _                    => false
+      }
+
+    val allMethods: immutable.Seq[Defn.Def] =
+      template.stats.collect {
+        case d: Defn.Def if checkMods(d.mods) => d
+        case d: Decl.Def if checkMods(d.mods) => ??? // only compute is declared
+      }
+
+    allMethods.map(m => Method.fromScalaMeta(m, path.replace('/', '.').replace(".scala", "")))
+  }
 
   def baseImplicits: String = {
     val encoder: String = planType.fold("", "(implicit enc: Encoder[Seq[U]])")
@@ -41,6 +67,42 @@ case class GenerationPlan[T: TypeTag](path: String) {
        |
        |private implicit def iteratorConversion[T](iterator: java.util.Iterator[T]):Iterator[T] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
        |""".stripMargin
+  }
+
+  def imports: String = {
+    val rddImports =
+      """
+        |import scala.reflect._
+        |
+        |import scala.io.Codec
+        |
+        |import org.apache.spark.partial.{PartialResult, BoundedDouble}
+        |import org.apache.spark.rdd.{RDD => UnderlyingRDD, RDDBarrier, PartitionCoalescer}
+        |import org.apache.spark.resource.ResourceProfile
+        |import org.apache.spark.storage.StorageLevel
+        |import org.apache.spark.{Partition, TaskContext, Dependency, Partitioner}
+        |import org.apache.hadoop.io.compress.CompressionCodec
+        |
+        |import zio.Task
+        |import zio.spark.impure.Impure
+        |import zio.spark.impure.Impure.ImpureBox
+        |import zio.spark.rdd.RDD
+        |
+        |import scala.collection.Map
+        |""".stripMargin
+
+    val datasetImports =
+      """
+        |import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, Row, TypedColumn}
+        |import org.apache.spark.storage.StorageLevel
+        |
+        |import zio.Task
+        |import zio.spark.impure.Impure
+        |import zio.spark.impure.Impure.ImpureBox
+        |import zio.spark.sql.Dataset
+        |""".stripMargin
+
+    planType.fold(rddImports, datasetImports)
   }
 }
 
@@ -55,9 +117,8 @@ object GenerationPlan {
   case object RDDPlan     extends PlanType
   case object DatasetPlan extends PlanType
 
-  lazy val rddPlan: GenerationPlan[RDD[Any]]         = GenerationPlan[RDD[Any]]("org.apache.spark.rdd.RDD")
-  lazy val datasetPlan: GenerationPlan[Dataset[Any]] = GenerationPlan[Dataset[Any]]("org.apache.spark.sql.Dataset")
-
+  lazy val rddPlan: GenerationPlan     = GenerationPlan("spark-core", "org/apache/spark/rdd/RDD.scala")
+  lazy val datasetPlan: GenerationPlan = GenerationPlan("spark-sql", "org/apache/spark/sql/Dataset.scala")
 }
 
 object ZioSparkCodegenPlugin extends AutoPlugin {
@@ -144,16 +205,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             file,
             s"""package zio.spark.internal.codegen
                |
-               |import scala.reflect._
-               |
-               |$imports
-               |
-               |import zio.Task
-               |import zio.spark.impure.Impure
-               |import zio.spark.impure.Impure.ImpureBox
-               |import ${plan.sparkZioPath}
-               |import zio.spark.rdd.RDD
-               |
+               |${plan.imports}
                |
                |abstract class Base${plan.name}[T](underlying${plan.name}: ImpureBox[Underlying${plan.name}[T]]) extends Impure[Underlying${plan.name}[T]](underlying${plan.name}) {
                |  import underlying${plan.name}._

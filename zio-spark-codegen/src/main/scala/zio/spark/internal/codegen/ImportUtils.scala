@@ -1,5 +1,7 @@
 package zio.spark.internal.codegen
 
+import zio.spark.internal.codegen.structure.Method
+
 object ImportUtils {
   import scala.meta.*
 
@@ -14,7 +16,7 @@ object ImportUtils {
 
   def findAllTypes(methods: Seq[Method]): Seq[String] =
     methods
-      .flatMap(m => m.symbol.paramLists.flatten.map(_.typeSignature.dealias.toString) :+ m.symbol.returnType.dealias.toString)
+      .flatMap(m => m.calls.flatMap(_.parameters).map(_.signature) :+ m.returnType)
 
   def findImports(methods: Seq[Method]): Map[String, Seq[String]] = {
     val types = findAllTypes(methods).filterNot(_ == "<none>")

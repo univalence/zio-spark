@@ -1,18 +1,24 @@
 package zio.spark.internal.codegen
 
+
 import scala.reflect._
+
+import scala.io.Codec
 
 import org.apache.spark.partial.{PartialResult, BoundedDouble}
 import org.apache.spark.rdd.{RDD => UnderlyingRDD, RDDBarrier, PartitionCoalescer}
 import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.{Partition, TaskContext, Dependency, Partitioner}
+import org.apache.spark.util.Utils
+import org.apache.hadoop.io.compress.CompressionCodec
 
 import zio.Task
 import zio.spark.impure.Impure
 import zio.spark.impure.Impure.ImpureBox
 import zio.spark.rdd.RDD
-import zio.spark.rdd.RDD
+
+import scala.collection.Map
 
 
 abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impure[UnderlyingRDD[T]](underlyingRDD) {
@@ -33,23 +39,20 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
 
   def barrier: RDDBarrier[T] = succeedNow(_.barrier())
   def getNumPartitions: Int = succeedNow(_.getNumPartitions)
-  def id: Int = succeedNow(_.id)
-  def partitioner: Option[Partitioner] = succeedNow(_.partitioner)
   def partitions: Seq[Partition] = succeedNow(_.partitions)
   def preferredLocations(split: Partition): Seq[String] = succeedNow(_.preferredLocations(split))
   def toDebugString: String = succeedNow(_.toDebugString)
   
   //===============
   
-  def aggregate[U](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U)(implicit evidence$31: ClassTag[U]): Task[U] = action(_.aggregate(zeroValue)(seqOp, combOp))
-  def collect[U](f: PartialFunction[T, U])(implicit evidence$30: ClassTag[U]): Task[RDD[U]] = action(_.collect(f))
+  def aggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U): Task[U] = action(_.aggregate(zeroValue)(seqOp, combOp))
   def collect: Task[Seq[T]] = action(_.collect())
   def count: Task[Long] = action(_.count())
-  def countApprox(timeout: Long, confidence: Double): Task[PartialResult[BoundedDouble]] = action(_.countApprox(timeout, confidence))
-  def countApproxDistinct(relativeSD: Double): Task[Long] = action(_.countApproxDistinct(relativeSD))
+  def countApprox(timeout: Long, confidence: Double = 0.95): Task[PartialResult[BoundedDouble]] = action(_.countApprox(timeout, confidence))
   def countApproxDistinct(p: Int, sp: Int): Task[Long] = action(_.countApproxDistinct(p, sp))
-  def countByValue(implicit ord: Ordering[T] = null): Task[collection.Map[T, Long]] = action(_.countByValue())
-  def countByValueApprox(timeout: Long, confidence: Double)(implicit ord: Ordering[T] = null): Task[PartialResult[collection.Map[T, BoundedDouble]]] = action(_.countByValueApprox(timeout, confidence))
+  def countApproxDistinct(relativeSD: Double = 0.05): Task[Long] = action(_.countApproxDistinct(relativeSD))
+  def countByValue(implicit ord: Ordering[T] = null): Task[Map[T, Long]] = action(_.countByValue())
+  def countByValueApprox(timeout: Long, confidence: Double = 0.95)(implicit ord: Ordering[T] = null): Task[PartialResult[Map[T, BoundedDouble]]] = action(_.countByValueApprox(timeout, confidence))
   def first: Task[T] = action(_.first())
   def fold(zeroValue: T)(op: (T, T) => T): Task[T] = action(_.fold(zeroValue)(op))
   def foreach(f: T => Unit): Task[Unit] = action(_.foreach(f))
@@ -60,13 +63,15 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   def min(implicit ord: Ordering[T]): Task[T] = action(_.min())
   def reduce(f: (T, T) => T): Task[T] = action(_.reduce(f))
   def saveAsObjectFile(path: String): Task[Unit] = action(_.saveAsObjectFile(path))
+  def saveAsTextFile(path: String): Task[Unit] = action(_.saveAsTextFile(path))
+  def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit] = action(_.saveAsTextFile(path, codec))
   def take(num: Int): Task[Seq[T]] = action(_.take(num))
   def takeOrdered(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.takeOrdered(num))
   def takeSample(withReplacement: Boolean, num: Int, seed: Long): Task[Seq[T]] = action(_.takeSample(withReplacement, num, seed))
   def toLocalIterator: Task[Iterator[T]] = action(_.toLocalIterator)
   def top(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.top(num))
-  def treeAggregate[U](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U, depth: Int)(implicit evidence$32: ClassTag[U]): Task[U] = action(_.treeAggregate(zeroValue)(seqOp, combOp, depth))
-  def treeReduce(f: (T, T) => T, depth: Int): Task[T] = action(_.treeReduce(f, depth))
+  def treeAggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U, depth: Int = 2): Task[U] = action(_.treeAggregate(zeroValue)(seqOp, combOp, depth))
+  def treeReduce(f: (T, T) => T, depth: Int = 2): Task[T] = action(_.treeReduce(f, depth))
   
   //===============
   
@@ -78,49 +83,48 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   def getStorageLevel: Task[StorageLevel] = action(_.getStorageLevel)
   def isCheckpointed: Task[Boolean] = action(_.isCheckpointed)
   def localCheckpoint: Task[RDD[T]] = action(_.localCheckpoint())
-  def name: Task[String] = action(_.name)
-  def persist: Task[RDD[T]] = action(_.persist())
   def persist(newLevel: StorageLevel): Task[RDD[T]] = action(_.persist(newLevel))
-  def unpersist(blocking: Boolean): Task[RDD[T]] = action(_.unpersist(blocking))
+  def persist: Task[RDD[T]] = action(_.persist())
+  def unpersist(blocking: Boolean = false): Task[RDD[T]] = action(_.unpersist(blocking))
   
   //===============
   
-  def cartesian[U](other: RDD[U])(implicit evidence$5: ClassTag[U]): RDD[(T, U)] = transformation(_.cartesian(other))
-  def coalesce(numPartitions: Int, shuffle: Boolean, partitionCoalescer: Option[PartitionCoalescer])(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.coalesce(numPartitions, shuffle, partitionCoalescer))
-  def distinct: RDD[T] = transformation(_.distinct())
+  def ++(other: RDD[T]): RDD[T] = transformation(_.++(other))
+  def cartesian[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.cartesian(other))
+  def coalesce(numPartitions: Int, shuffle: Boolean = false, partitionCoalescer: Option[PartitionCoalescer] = Option.empty)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.coalesce(numPartitions, shuffle, partitionCoalescer))
   def distinct(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.distinct(numPartitions))
+  def distinct: RDD[T] = transformation(_.distinct())
   def filter(f: T => Boolean): RDD[T] = transformation(_.filter(f))
-  def flatMap[U](f: T => TraversableOnce[U])(implicit evidence$4: ClassTag[U]): RDD[U] = transformation(_.flatMap(f))
+  def flatMap[U: ClassTag](f: T => TraversableOnce[U]): RDD[U] = transformation(_.flatMap(f))
   def glom: RDD[Seq[T]] = transformation(_.glom())
-  def groupBy[K](f: T => K, p: Partitioner)(implicit kt: ClassTag[K], ord: Ordering[K] = null): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, p))
-  def groupBy[K](f: T => K, numPartitions: Int)(implicit kt: ClassTag[K]): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, numPartitions))
   def groupBy[K](f: T => K)(implicit kt: ClassTag[K]): RDD[(K, Iterable[T])] = transformation(_.groupBy(f))
-  def intersection(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.intersection(other, numPartitions))
-  def intersection(other: RDD[T], partitioner: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.intersection(other, partitioner))
+  def groupBy[K](f: T => K, numPartitions: Int)(implicit kt: ClassTag[K]): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, numPartitions))
+  def groupBy[K](f: T => K, p: Partitioner)(implicit kt: ClassTag[K], ord: Ordering[K] = null): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, p))
   def intersection(other: RDD[T]): RDD[T] = transformation(_.intersection(other))
+  def intersection(other: RDD[T], partitioner: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.intersection(other, partitioner))
+  def intersection(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.intersection(other, numPartitions))
   def keyBy[K](f: T => K): RDD[(K, T)] = transformation(_.keyBy(f))
-  def map[U](f: T => U)(implicit evidence$3: ClassTag[U]): RDD[U] = transformation(_.map(f))
-  def mapPartitions[U](f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean)(implicit evidence$6: ClassTag[U]): RDD[U] = transformation(_.mapPartitions(f, preservesPartitioning))
-  def mapPartitionsWithIndex[U](f: (Int, Iterator[T]) => Iterator[U], preservesPartitioning: Boolean)(implicit evidence$9: ClassTag[U]): RDD[U] = transformation(_.mapPartitionsWithIndex(f, preservesPartitioning))
-  def pipe(command: Seq[String], env: collection.Map[String, String], printPipeContext: (String => Unit) => Unit, printRDDElement: (T, String => Unit) => Unit, separateWorkingDir: Boolean, bufferSize: Int, encoding: String): RDD[String] = transformation(_.pipe(command, env, printPipeContext, printRDDElement, separateWorkingDir, bufferSize, encoding))
-  def pipe(command: String, env: collection.Map[String, String]): RDD[String] = transformation(_.pipe(command, env))
+  def map[U: ClassTag](f: T => U): RDD[U] = transformation(_.map(f))
+  def mapPartitions[U: ClassTag](f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = transformation(_.mapPartitions(f, preservesPartitioning))
+  def mapPartitionsWithIndex[U: ClassTag](f: (Int, Iterator[T]) => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = transformation(_.mapPartitionsWithIndex(f, preservesPartitioning))
   def pipe(command: String): RDD[String] = transformation(_.pipe(command))
+  def pipe(command: String, env: Map[String, String]): RDD[String] = transformation(_.pipe(command, env))
+  def pipe(command: Seq[String], env: Map[String, String] = Map(), printPipeContext: (String => Unit) => Unit = null, printRDDElement: (T, String => Unit) => Unit = null, separateWorkingDir: Boolean = false, bufferSize: Int = 8192, encoding: String = Codec.defaultCharsetCodec.name): RDD[String] = transformation(_.pipe(command, env, printPipeContext, printRDDElement, separateWorkingDir, bufferSize, encoding))
   def repartition(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.repartition(numPartitions))
   def sample(withReplacement: Boolean, fraction: Double, seed: Long): RDD[T] = transformation(_.sample(withReplacement, fraction, seed))
-  def setName(_name: String): RDD[T] = transformation(_.setName(_name))
-  def sortBy[K](f: T => K, ascending: Boolean, numPartitions: Int)(implicit ord: Ordering[K], ctag: ClassTag[K]): RDD[T] = transformation(_.sortBy(f, ascending, numPartitions))
-  def subtract(other: RDD[T], p: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.subtract(other, p))
-  def subtract(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.subtract(other, numPartitions))
+  def sortBy[K](f: (T) => K, ascending: Boolean = true, numPartitions: Int = this.partitions.length)(implicit ord: Ordering[K], ctag: ClassTag[K]): RDD[T] = transformation(_.sortBy(f, ascending, numPartitions))
   def subtract(other: RDD[T]): RDD[T] = transformation(_.subtract(other))
+  def subtract(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.subtract(other, numPartitions))
+  def subtract(other: RDD[T], p: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = transformation(_.subtract(other, p))
   def union(other: RDD[T]): RDD[T] = transformation(_.union(other))
   def withResources(rp: ResourceProfile): RDD[T] = transformation(_.withResources(rp))
-  def zip[U](other: RDD[U])(implicit evidence$11: ClassTag[U]): RDD[(T, U)] = transformation(_.zip(other))
-  def zipPartitions[B, C, D, V](rdd2: RDD[B], rdd3: RDD[C], rdd4: RDD[D])(f: (Iterator[T], Iterator[B], Iterator[C], Iterator[D]) => Iterator[V])(implicit evidence$26: ClassTag[B], evidence$27: ClassTag[C], evidence$28: ClassTag[D], evidence$29: ClassTag[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, rdd4)(f))
-  def zipPartitions[B, C, D, V](rdd2: RDD[B], rdd3: RDD[C], rdd4: RDD[D], preservesPartitioning: Boolean)(f: (Iterator[T], Iterator[B], Iterator[C], Iterator[D]) => Iterator[V])(implicit evidence$22: ClassTag[B], evidence$23: ClassTag[C], evidence$24: ClassTag[D], evidence$25: ClassTag[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, rdd4, preservesPartitioning)(f))
-  def zipPartitions[B, C, V](rdd2: RDD[B], rdd3: RDD[C])(f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V])(implicit evidence$19: ClassTag[B], evidence$20: ClassTag[C], evidence$21: ClassTag[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3)(f))
-  def zipPartitions[B, C, V](rdd2: RDD[B], rdd3: RDD[C], preservesPartitioning: Boolean)(f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V])(implicit evidence$16: ClassTag[B], evidence$17: ClassTag[C], evidence$18: ClassTag[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, preservesPartitioning)(f))
-  def zipPartitions[B, V](rdd2: RDD[B])(f: (Iterator[T], Iterator[B]) => Iterator[V])(implicit evidence$14: ClassTag[B], evidence$15: ClassTag[V]): RDD[V] = transformation(_.zipPartitions(rdd2)(f))
-  def zipPartitions[B, V](rdd2: RDD[B], preservesPartitioning: Boolean)(f: (Iterator[T], Iterator[B]) => Iterator[V])(implicit evidence$12: ClassTag[B], evidence$13: ClassTag[V]): RDD[V] = transformation(_.zipPartitions(rdd2, preservesPartitioning)(f))
+  def zip[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.zip(other))
+  def zipPartitions[B: ClassTag, V: ClassTag](rdd2: RDD[B], preservesPartitioning: Boolean)(f: (Iterator[T], Iterator[B]) => Iterator[V]): RDD[V] = transformation(_.zipPartitions(rdd2, preservesPartitioning)(f))
+  def zipPartitions[B: ClassTag, V: ClassTag](rdd2: RDD[B])(f: (Iterator[T], Iterator[B]) => Iterator[V]): RDD[V] = transformation(_.zipPartitions(rdd2)(f))
+  def zipPartitions[B: ClassTag, C: ClassTag, V: ClassTag](rdd2: RDD[B], rdd3: RDD[C], preservesPartitioning: Boolean)(f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, preservesPartitioning)(f))
+  def zipPartitions[B: ClassTag, C: ClassTag, V: ClassTag](rdd2: RDD[B], rdd3: RDD[C])(f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3)(f))
+  def zipPartitions[B: ClassTag, C: ClassTag, D: ClassTag, V: ClassTag](rdd2: RDD[B], rdd3: RDD[C], rdd4: RDD[D], preservesPartitioning: Boolean)(f: (Iterator[T], Iterator[B], Iterator[C], Iterator[D]) => Iterator[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, rdd4, preservesPartitioning)(f))
+  def zipPartitions[B: ClassTag, C: ClassTag, D: ClassTag, V: ClassTag](rdd2: RDD[B], rdd3: RDD[C], rdd4: RDD[D])(f: (Iterator[T], Iterator[B], Iterator[C], Iterator[D]) => Iterator[V]): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, rdd4)(f))
   def zipWithIndex: RDD[(T, Long)] = transformation(_.zipWithIndex())
   def zipWithUniqueId: RDD[(T, Long)] = transformation(_.zipWithUniqueId())
   
@@ -131,7 +135,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    *
    * [[org.apache.spark.rdd.RDD.context]]
    * [[org.apache.spark.rdd.RDD.randomSplit]]
-   * [[org.apache.spark.rdd.RDD.saveAsTextFile]]
    * [[org.apache.spark.rdd.RDD.sparkContext]]
    * [[org.apache.spark.rdd.RDD.toJavaRDD]]
    */
@@ -141,8 +144,8 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   /**
    * Ignored method
    *
-   * [[org.apache.spark.rdd.RDD.cleanShuffleDependencies]]
-   * [[org.apache.spark.rdd.RDD.compute]]
+   * [[org.apache.spark.rdd.RDD.collect]]
+   * [[org.apache.spark.rdd.RDD.setName]]
    * [[org.apache.spark.rdd.RDD.toString]]
    */
 }
