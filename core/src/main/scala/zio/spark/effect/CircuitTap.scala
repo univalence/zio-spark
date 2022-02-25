@@ -115,6 +115,11 @@ object CircuitTap {
 
   private def zeroState(scale: Int): State = State(0, 0, 0, DecayingRatio(Ratio.zero, scale))
 
+
+  //TODO: ChangeMaker with configure
+  //make[RejectionError](maxError: Ratio, decayScale:Int, rejected: CircuitTap.State => RejectionError).qualifyErrors[E](qualifie: E => Boolean)
+  //.manage(effect)
+  //.mamageAndQualify(effect)(qualifie)
   /**
    * Creates a tap that aims for the specified maximum error rate, using
    * the specified function to qualify errors (unqualified errors are
