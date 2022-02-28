@@ -1,14 +1,18 @@
 package zio.spark.internal.codegen
 
+import sbt.internal.util.Attributed
+
 import zio.{Task, ZManaged}
 
 import scala.collection.immutable
 import scala.meta.*
 import scala.meta.tokens.Token
 
+import java.io.File
+
 object GetSources {
 
-  def getSource(module: String, file: String): zio.Task[meta.Source] =
+  def getSource(module: String, file: String)(classpath: sbt.Def.Classpath): zio.Task[meta.Source] =
     Task {
       import scala.io.{BufferedSource, Source}
       import java.io.InputStream
@@ -38,8 +42,13 @@ object GetSources {
         )
     }.flatten
 
+  type Classpath = Seq[Attributed[File]]
+
+  val defaultClasspath: Classpath = System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
+
   def main(args: Array[String]): Unit = {
-    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala"))
+
+    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(defaultClasspath))
 
     // source -> packages -> statements (imports | class | object)
     val rddTemplate: Template =

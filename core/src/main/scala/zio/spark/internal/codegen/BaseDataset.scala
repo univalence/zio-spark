@@ -3,7 +3,7 @@ package zio.spark.internal.codegen
 
 import scala.reflect.runtime.universe.TypeTag
 
-import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, Row, TypedColumn}
+import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, TypedColumn}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.types.StructType
 
@@ -94,14 +94,14 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 1.6.0
      */
   def head(n: Int): Task[Seq[T]] = action(_.head(n))
-  
+
   /**
      * Returns the first row.
      * @group action
      * @since 1.6.0
      */
   def head: Task[T] = action(_.head())
-  
+
   /**
      * Returns true if the `Dataset` is empty.
      *
@@ -130,7 +130,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 3.0.0
      */
   def tail(n: Int): Task[Seq[T]] = action(_.tail(n))
-  
+
   /**
      * Returns the first `n` rows in the Dataset.
      *
@@ -195,7 +195,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 1.6.0
      */
   def columns: Task[Seq[String]] = action(_.columns)
-  
+
   /**
      * Creates a global temporary view using the given name. The lifetime of this
      * temporary view is tied to this Spark application.
@@ -211,7 +211,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.1.0
      */
   def createGlobalTempView(viewName: String): Task[Unit] = action(_.createGlobalTempView(viewName))
-  
+
   /**
      * Creates or replaces a global temporary view using the given name. The lifetime of this
      * temporary view is tied to this Spark application.
@@ -225,7 +225,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.2.0
      */
   def createOrReplaceGlobalTempView(viewName: String): Task[Unit] = action(_.createOrReplaceGlobalTempView(viewName))
-  
+
   /**
      * Creates a local temporary view using the given name. The lifetime of this
      * temporary view is tied to the [[SparkSession]] that was used to create this Dataset.
@@ -234,7 +234,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def createOrReplaceTempView(viewName: String): Task[Unit] = action(_.createOrReplaceTempView(viewName))
-  
+
   /**
      * Creates a local temporary view using the given name. The lifetime of this
      * temporary view is tied to the [[SparkSession]] that was used to create this Dataset.
@@ -249,7 +249,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def createTempView(viewName: String): Task[Unit] = action(_.createTempView(viewName))
-  
+
   /**
      * Returns all column names and their data types as an array.
      *
@@ -257,7 +257,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 1.6.0
      */
   def dtypes: Task[Seq[(String, String)]] = action(_.dtypes)
-  
+
   /**
      * Returns a best-effort snapshot of the files that compose this Dataset. This method simply
      * asks each constituent BaseRelation for its respective files and takes the union of all results.
@@ -267,7 +267,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def inputFiles: Task[Seq[String]] = action(_.inputFiles)
-  
+
   /**
      * Returns true if the `collect` and `take` methods can be run locally
      * (without any Spark executors).
@@ -276,7 +276,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 1.6.0
      */
   def isLocal: Task[Boolean] = action(_.isLocal)
-  
+
   /**
      * Returns true if this Dataset contains one or more sources that continuously
      * return data as it arrives. A Dataset that reads data from a streaming source
@@ -289,7 +289,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def isStreaming: Task[Boolean] = action(_.isStreaming)
-  
+
   /**
      * Eagerly locally checkpoints a Dataset and return the new Dataset. Checkpointing can be
      * used to truncate the logical plan of this Dataset, which is especially useful in iterative
@@ -339,7 +339,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 1.6.0
      */
   def registerTempTable(tableName: String): Task[Unit] = action(_.registerTempTable(tableName))
-  
+
   /**
      * Returns the schema of this Dataset.
      *
@@ -347,7 +347,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 1.6.0
      */
   def schema: Task[StructType] = action(_.schema)
-  
+
   /**
      * Get the Dataset's current storage level, or StorageLevel.NONE if not persisted.
      *
@@ -355,7 +355,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.1.0
      */
   def storageLevel: Task[StorageLevel] = action(_.storageLevel)
-  
+
   /**
      * Mark the Dataset as non-persistent, and remove all blocks for it from memory and disk.
      * This will not un-persist any cached data that is built upon this Dataset.
@@ -390,7 +390,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def agg(aggExpr: (String, String), aggExprs: (String, String)*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(aggExpr, aggExprs: _*))
-  
+
   /**
      * (Scala-specific) Aggregates on the entire Dataset without groups.
      * {{{
@@ -403,7 +403,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def agg(exprs: Map[String, String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(exprs))
-  
+
   /**
      * (Java-specific) Aggregates on the entire Dataset without groups.
      * {{{
@@ -416,7 +416,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def agg(exprs: java.util.Map[String, String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(exprs))
-  
+
   /**
      * Aggregates on the entire Dataset without groups.
      * {{{
@@ -429,7 +429,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def agg(expr: Column, exprs: Column*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(expr, exprs: _*))
-  
+
   /**
      * Returns a new Dataset with an alias set. Same as `as`.
      *
@@ -516,7 +516,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.1.0
      */
   def crossJoin(right: Dataset[_]): DataFrame = transformation(_.crossJoin(right))
-  
+
   /**
      * Computes basic statistics for numeric and string columns, including count, mean, stddev, min,
      * and max. If no columns are given, this function computes statistics for all numerical or
@@ -546,7 +546,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 1.6.0
      */
   def describe(cols: String*): DataFrame = transformation(_.describe(cols: _*))
-  
+
   /**
      * Returns a new Dataset that contains only the unique rows from this Dataset.
      * This is an alias for `dropDuplicates`.
@@ -574,7 +574,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def drop(colName: String): DataFrame = transformation(_.drop(colName))
-  
+
   /**
      * Returns a new Dataset with columns dropped.
      * This is a no-op if schema doesn't contain column name(s).
@@ -586,7 +586,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
-  
+
   /**
      * Returns a new Dataset with a column dropped.
      * This version of drop accepts a [[Column]] rather than a name.
@@ -597,7 +597,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def drop(col: Column): DataFrame = transformation(_.drop(col))
-  
+
   /**
      * Returns a new Dataset that contains only the unique rows from this Dataset.
      * This is an alias for `distinct`.
@@ -712,7 +712,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def explode[A <: Product : TypeTag](input: Column*)(f: Row => TraversableOnce[A]): DataFrame = transformation(_.explode(input: _*)(f))
-  
+
   /**
      * (Scala-specific) Returns a new Dataset where a single column has been expanded to zero
      * or more rows by the provided function. This is similar to a `LATERAL VIEW` in HiveQL. All
@@ -735,7 +735,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def explode[A, B : TypeTag](inputColumn: String, outputColumn: String)(f: A => TraversableOnce[B]): DataFrame = transformation(_.explode(inputColumn, outputColumn)(f))
-  
+
   /**
      * Filters rows using the given condition.
      * {{{
@@ -829,7 +829,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def join(right: Dataset[_]): DataFrame = transformation(_.join(right))
-  
+
   /**
      * Inner equi-join with another `DataFrame` using the given column.
      *
@@ -852,7 +852,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def join(right: Dataset[_], usingColumn: String): DataFrame = transformation(_.join(right, usingColumn))
-  
+
   /**
      * Inner equi-join with another `DataFrame` using the given columns.
      *
@@ -875,7 +875,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def join(right: Dataset[_], usingColumns: Seq[String]): DataFrame = transformation(_.join(right, usingColumns))
-  
+
   /**
      * Equi-join with another `DataFrame` using the given columns. A cross join with a predicate
      * is specified as an inner join. If you would explicitly like to perform a cross join use the
@@ -899,7 +899,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def join(right: Dataset[_], usingColumns: Seq[String], joinType: String): DataFrame = transformation(_.join(right, usingColumns, joinType))
-  
+
   /**
      * Inner join with another `DataFrame`, using the given join expression.
      *
@@ -913,7 +913,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def join(right: Dataset[_], joinExprs: Column): TryAnalysis[DataFrame] = transformationWithAnalysis(_.join(right, joinExprs))
-  
+
   /**
      * Join with another `DataFrame`, using the given join expression. The following performs
      * a full outer join between `df1` and `df2`.
@@ -939,7 +939,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def join(right: Dataset[_], joinExprs: Column, joinType: String): TryAnalysis[DataFrame] = transformationWithAnalysis(_.join(right, joinExprs, joinType))
-  
+
   /**
      * Joins this Dataset returning a `Tuple2` for each pair where `condition` evaluates to
      * true.
@@ -1207,7 +1207,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def select(cols: Column*): DataFrame = transformation(_.select(cols: _*))
-  
+
   /**
      * Selects a set of columns. This is a variant of `select` that can only select
      * existing columns using column names (i.e. cannot construct expressions).
@@ -1222,7 +1222,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def select(col: String, cols: String*): DataFrame = transformation(_.select(col, cols: _*))
-  
+
   /**
      * Returns a new Dataset by computing the given [[Column]] expression for each element.
      *
@@ -1282,7 +1282,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def selectExpr(exprs: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.selectExpr(exprs: _*))
-  
+
   /**
      * Returns a new Dataset sorted by the specified column, all in ascending order.
      * {{{
@@ -1403,7 +1403,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.3.0
      */
   def summary(statistics: String*): DataFrame = transformation(_.summary(statistics: _*))
-  
+
   /**
      * Converts this strongly typed collection of data to generic Dataframe. In contrast to the
      * strongly typed objects that Dataset operations work on, a Dataframe returns generic [[Row]]
@@ -1415,7 +1415,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // This is declared with parentheses to prevent the Scala compiler from treating
   // `ds.toDF("1")` as invoking this toDF and then apply on the returned DataFrame.
   def toDF: DataFrame = transformation(_.toDF())
-  
+
   /**
      * Converts this strongly typed collection of data to generic `DataFrame` with columns renamed.
      * This can be quite convenient in conversion from an RDD of tuples into a `DataFrame` with
@@ -1430,7 +1430,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def toDF(colNames: String*): DataFrame = transformation(_.toDF(colNames: _*))
-  
+
   /**
      * Returns the content of the Dataset as a Dataset of JSON strings.
      * @since 2.0.0
@@ -1595,7 +1595,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def withColumn(colName: String, col: Column): DataFrame = transformation(_.withColumn(colName, col))
-  
+
   /**
      * Returns a new Dataset with a column renamed.
      * This is a no-op if schema doesn't contain existingName.
@@ -1604,7 +1604,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @since 2.0.0
      */
   def withColumnRenamed(existingName: String, newName: String): DataFrame = transformation(_.withColumnRenamed(existingName, newName))
-  
+
   /**
      * Defines an event time watermark for this [[Dataset]]. A watermark tracks a point in time
      * before which we assume no more late data is going to arrive.

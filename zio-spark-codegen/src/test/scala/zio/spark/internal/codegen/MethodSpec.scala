@@ -29,9 +29,11 @@ object MethodSpec extends DefaultRunnableSpec {
   }
 
   val rddMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
+    val plan = zio.Runtime.default.unsafeRun(GenerationPlan.rddPlan(GetSources.defaultClasspath))
+
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         genCodeFragment: String
-    ): ZSpec[Any, Nothing] = genTest2(GenerationPlan.rddPlan)(methodName, arity, args)(genCodeFragment)
+    ): ZSpec[Any, Nothing] = genTest2(plan)(methodName, arity, args)(genCodeFragment)
 
     suite("check gen for RDD")(
       checkGen("min")("min(implicit ord: Ordering[T]): Task[T]"),
@@ -49,9 +51,11 @@ object MethodSpec extends DefaultRunnableSpec {
   }
 
   val datasetMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
+    val plan = zio.Runtime.default.unsafeRun(GenerationPlan.datasetPlan(GetSources.defaultClasspath))
+
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         genCodeFragment: String
-    ): ZSpec[Any, Nothing] = genTest2(GenerationPlan.datasetPlan)(methodName, arity, args)(genCodeFragment)
+    ): ZSpec[Any, Nothing] = genTest2(plan)(methodName, arity, args)(genCodeFragment)
 
     suite("check gen for Dataset")(
       checkGen("filter", 1, List("conditionExpr"))("filter(conditionExpr: String): TryAnalysis[Dataset[T]]"),

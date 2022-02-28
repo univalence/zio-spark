@@ -4,7 +4,6 @@ import sbt.*
 import sbt.Keys.*
 
 import zio.spark.internal.codegen.GenerationPlan.PlanType
-import zio.spark.internal.codegen.GetSources.getSource
 import zio.spark.internal.codegen.ImportUtils.*
 import zio.spark.internal.codegen.RDDAnalysis.*
 import zio.spark.internal.codegen.structure.Method
@@ -13,7 +12,7 @@ import scala.collection.immutable
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
 
-case class GenerationPlan(module: String, path: String) {
+case class GenerationPlan(module: String, path: String, source: meta.Source) {
 
   val planType: PlanType =
     path match {
@@ -28,7 +27,7 @@ case class GenerationPlan(module: String, path: String) {
   def sparkZioPath: String = pkg.replace("org.apache.spark", "zio.spark")
 
   lazy val methods: Seq[Method] = {
-    val fileSource = zio.Runtime.default.unsafeRun(getSource(module, path))
+    val fileSource = source
 
     val template: Template =
       fileSource.children
@@ -144,8 +143,12 @@ object GenerationPlan {
   case object RDDPlan     extends PlanType
   case object DatasetPlan extends PlanType
 
-  lazy val rddPlan: GenerationPlan     = GenerationPlan("spark-core", "org/apache/spark/rdd/RDD.scala")
-  lazy val datasetPlan: GenerationPlan = GenerationPlan("spark-sql", "org/apache/spark/sql/Dataset.scala")
+  private def get(module: String, file: String, classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
+    GetSources.getSource(module, file)(classpath).map(source => GenerationPlan(module, file, source))
+
+  def rddPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan]     = get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath)
+  def datasetPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] = get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath)
+
 }
 
 object ZioSparkCodegenPlugin extends AutoPlugin {
@@ -183,11 +186,11 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
         // TODO : use to get source jar
         val jars = (Compile / dependencyClasspathAsJars).value
 
-        val generationPlans =
+        val generationPlans: immutable.Seq[GenerationPlan] =
           List(
-            GenerationPlan.rddPlan,
-            GenerationPlan.datasetPlan
-          )
+            GenerationPlan.rddPlan(jars),
+            GenerationPlan.datasetPlan(jars)
+          ).map(zio.Runtime.default.unsafeRun)
 
         // TODO Check implementation
         // val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
