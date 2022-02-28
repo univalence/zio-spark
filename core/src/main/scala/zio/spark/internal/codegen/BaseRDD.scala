@@ -508,39 +508,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   def glom: RDD[Seq[T]] = transformation(_.glom())
   
   /**
-     * Return an RDD of grouped items. Each group consists of a key and a sequence of elements
-     * mapping to that key. The ordering of elements within each group is not guaranteed, and
-     * may even differ each time the resulting RDD is evaluated.
-     *
-     * @note This operation may be very expensive. If you are grouping in order to perform an
-     * aggregation (such as a sum or average) over each key, using `PairRDDFunctions.aggregateByKey`
-     * or `PairRDDFunctions.reduceByKey` will provide much better performance.
-     */
-  def groupBy[K](f: T => K)(implicit kt: ClassTag[K]): RDD[(K, Iterable[T])] = transformation(_.groupBy(f))
-  
-  /**
-     * Return an RDD of grouped elements. Each group consists of a key and a sequence of elements
-     * mapping to that key. The ordering of elements within each group is not guaranteed, and
-     * may even differ each time the resulting RDD is evaluated.
-     *
-     * @note This operation may be very expensive. If you are grouping in order to perform an
-     * aggregation (such as a sum or average) over each key, using `PairRDDFunctions.aggregateByKey`
-     * or `PairRDDFunctions.reduceByKey` will provide much better performance.
-     */
-  def groupBy[K](f: T => K, numPartitions: Int)(implicit kt: ClassTag[K]): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, numPartitions))
-  
-  /**
-     * Return an RDD of grouped items. Each group consists of a key and a sequence of elements
-     * mapping to that key. The ordering of elements within each group is not guaranteed, and
-     * may even differ each time the resulting RDD is evaluated.
-     *
-     * @note This operation may be very expensive. If you are grouping in order to perform an
-     * aggregation (such as a sum or average) over each key, using `PairRDDFunctions.aggregateByKey`
-     * or `PairRDDFunctions.reduceByKey` will provide much better performance.
-     */
-  def groupBy[K](f: T => K, p: Partitioner)(implicit kt: ClassTag[K], ord: Ordering[K] = noOrdering): RDD[(K, Iterable[T])] = transformation(_.groupBy(f, p))
-  
-  /**
      * Return the intersection of this RDD and another one. The output will not contain any duplicate
      * elements, even if the input RDDs did.
      *
@@ -760,9 +727,9 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    * Methods to implement
    *
    * [[org.apache.spark.rdd.RDD.context]]
+   * [[org.apache.spark.rdd.RDD.groupBy]]
    * [[org.apache.spark.rdd.RDD.randomSplit]]
    * [[org.apache.spark.rdd.RDD.sparkContext]]
-   * [[org.apache.spark.rdd.RDD.toJavaRDD]]
    */
   
   //===============
@@ -772,6 +739,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    *
    * [[org.apache.spark.rdd.RDD.collect]]
    * [[org.apache.spark.rdd.RDD.setName]]
+   * [[org.apache.spark.rdd.RDD.toJavaRDD]]
    * [[org.apache.spark.rdd.RDD.toString]]
    */
 }

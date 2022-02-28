@@ -23,7 +23,7 @@ object MethodSpec extends DefaultRunnableSpec {
 
     test(name) {
       maybeMethod.fold(assertNever(s"can't find $name"))(m =>
-        assertTrue(m.toCode(RDDAnalysis.getMethodType(m, plan.path)).contains(generatedCode))
+        assertTrue(m.toCode(RDDAnalysis.getMethodType(m)).contains(generatedCode))
       )
     }
   }
@@ -43,7 +43,7 @@ object MethodSpec extends DefaultRunnableSpec {
       checkGen("dependencies")("dependencies: Task[Seq[Dependency[_]]]"),
       checkGen("zipWithIndex")("zipWithIndex: RDD[(T, Long)]"),
       checkGen("countByValueApprox")("Task[PartialResult[Map[T, BoundedDouble]]]"),
-      checkGen("distinct", 2)("distinct(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T]"),
+      checkGen("distinct", 2)("distinct(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T]"),
       checkGen("saveAsTextFile", 2)("saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit]")
     )
   }
@@ -56,9 +56,7 @@ object MethodSpec extends DefaultRunnableSpec {
     suite("check gen for Dataset")(
       checkGen("filter", 1, List("conditionExpr"))("filter(conditionExpr: String): TryAnalysis[Dataset[T]]"),
       checkGen("orderBy", arity = 1)("_.orderBy(sortExprs: _*)"),
-      checkGen("explode", arity = 3)(
-        "def explode[A <: Product](input: Column*)(f: Row => TraversableOnce[A])(implicit evidence$4: TypeTag[A])"
-      ) @@ ignore
+      checkGen("explode", arity = 2)("explode[A <: Product : TypeTag](input: Column*)(f: Row => TraversableOnce[A])")
     )
   }
 

@@ -1,7 +1,5 @@
 package zio.spark.internal.codegen
 
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Dataset
 import sbt.*
 import sbt.Keys.*
 
@@ -14,7 +12,6 @@ import zio.spark.internal.codegen.structure.Method
 import scala.collection.immutable
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
-import scala.meta.tokens.Token
 
 case class GenerationPlan(module: String, path: String) {
 
@@ -100,13 +97,16 @@ case class GenerationPlan(module: String, path: String) {
 
     val datasetImports =
       """
+        |import scala.reflect.runtime.universe.TypeTag
+        |
         |import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, Row, TypedColumn}
         |import org.apache.spark.storage.StorageLevel
+        |import org.apache.spark.sql.types.StructType
         |
         |import zio.Task
         |import zio.spark.impure.Impure
         |import zio.spark.impure.Impure.ImpureBox
-        |import zio.spark.sql.{Dataset, TryAnalysis}
+        |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
         |""".stripMargin
 
     planType.fold(rddImports, datasetImports)
@@ -205,7 +205,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               .filterNot(_.fullName.contains("scala.Any"))
               .filterNot(_.fullName.contains("<init>"))
 
-          val methodsWithMethodTypes = methods.groupBy(getMethodType(_, plan.path))
+          val methodsWithMethodTypes = methods.groupBy(getMethodType)
 
           val body: String =
             methodsWithMethodTypes.toList

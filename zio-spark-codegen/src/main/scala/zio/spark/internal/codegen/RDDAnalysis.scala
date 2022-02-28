@@ -58,10 +58,11 @@ object RDDAnalysis {
     case object ToImplement            extends MethodType
   }
 
-  def getMethodType(method: Method, path: String): MethodType = {
+  def getMethodType(method: Method): MethodType = {
     val cacheElements =
       Set(
         "getStorageLevel",
+        "storageLevel",
         "cache",
         "persist",
         "unpersist",
@@ -70,9 +71,27 @@ object RDDAnalysis {
         "getResourceProfile",
         "getCheckpointFile",
         "isCheckpointed",
-        "dependencies"
+        "dependencies",
+        "registerTempTable",
+        "createTempView",
+        "createOrReplaceTempView",
+        "createGlobalTempView",
+        "createOrReplaceGlobalTempView"
       )
-    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+
+    val getters =
+      Set(
+        "name",
+        "schema",
+        "dtypes",
+        "columns",
+        "isLocal",
+        "isStreaming",
+        "inputFiles"
+      )
+
+    val partitionOps =
+      Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
 
     val otherTransformation = Set("barrier")
     val pureInfo            = Set("toDebugString")
@@ -89,20 +108,57 @@ object RDDAnalysis {
         "toLocalIterator",
         "treeReduce",
         "reduce",
-        "collect"
+        "collect",
+        "tail",
+        "head",
+        "collect",
+        "isEmpty"
+      )
+
+    val methodsToImplement =
+      Set(
+        "show",         // It should be implemented using Console layer
+        "context",      // TODO: explain why
+        "sparkContext", // TODO: explain why
+        "randomSplit",  // It should be implemented using Random layer
+        "transform",    // Too specific for codegen
+        "printSchema",  // It should be implemented using Console layer
+        "explain",      // It should be implemented using Console layer
+        "na",           // TODO: DataFrameNaFunctions should be added to zio-spark
+        "stat",         // TODO: DataFrameStatFunctions should be added to zio-spark
+        "groupBy",      // TODO: RelationalGroupedDataset should be added to zio-spark
+        "rollup",       // TODO: RelationalGroupedDataset should be added to zio-spark
+        "cube",         // TODO: RelationalGroupedDataset should be added to zio-spark
+        "groupByKey",   // TODO: KeyValueGroupedDataset should be added to zio-spark
+        "write",        // TODO: DataFrameWriter should be added to zio-spark
+        "writeTo",      // TODO: DataFrameWriterV2 should be added to zio-spark
+        "writeStream"   // TODO: DataStreamWriter should be added to zio-spark
+
+      )
+
+    val methodsToIgnore =
+      Set(
+        "takeAsList",        // Java specific implementation
+        "toJavaRDD",         // Java specific implementation
+        "javaRDD",           // Java specific implementation
+        "randomSplitAsList", // Java specific implementation
+        "collectAsList",     // Java specific implementation
+        "toString",          // TODO: explain why
+        "apply",             // TODO: ignored temporarily
+        "col",               // TODO: ignored temporarily
+        "colRegex"           // TODO: ignored temporarily
       )
 
     // def checkForJavaArgs: Boolean =
     //  method.calls.exists(_.symbols.exists(_.typeSignature.toString.contains("org.apache.spark.api.java.function")))
 
     method.name match {
-      case "takeAsList"         => Ignored // return java.util.List
-      case x if x.contains("$") => Ignored
+      case name if methodsToImplement(name) => ToImplement
+      case name if methodsToIgnore(name)    => Ignored
+      case name if name.contains("$")       => Ignored
       // case _ if method.annotations.exists(_.contains("DeveloperApi")) => Ignored
       // case _ if checkForJavaArgs                                      => Ignored
       case _ if method.calls.flatMap(_.parameters.map(_.signature)).exists(_.contains("Function")) => Ignored
-      case "transform"                                     => ToImplement // codegen hard to do for an helper method
-      case "explode"                                       => ToImplement // codegen not perfect due to contextBound on A
       case name if action(name)                            => DistributedComputation
       case name if name.startsWith("take")                 => DistributedComputation
       case name if name.startsWith("foreach")              => DistributedComputation
@@ -110,21 +166,17 @@ object RDDAnalysis {
       case name if name.startsWith("saveAs")               => DistributedComputation
       case "iterator"                                      => DistributedComputation
       case name if cacheElements(name)                     => DriverAction
+      case name if getters(name)                           => DriverAction
       case name if otherTransformation(name)               => SuccessNow
       case name if pureInfo(name)                          => SuccessNow
       case name if partitionOps(name)                      => SuccessNow
-      case "sparkContext" | "context"                      => ToImplement
-      case "randomSplit"                                   => ToImplement
-      case "toJavaRDD"                                     => ToImplement
       case _ if method.path.startsWith("java.lang.Object") => Ignored
       case _ if method.path.startsWith("scala.Any")        => Ignored
-      case "toString"                                      => Ignored
       case _ if method.isSetter                            => Ignored
-      case "name"                                          => DriverAction
       case _ if method.returnType.startsWith("RDD")        => Transformation
       case _ if method.returnType.startsWith("Dataset")    => Transformation
+      case _ if method.returnType == "DataFrame"           => Transformation
       case _ if method.returnType.contains("this.type")    => Transformation
-      case _                                               => Ignored     // TODO: remove this one when dataset are handled
     }
   }
 }
