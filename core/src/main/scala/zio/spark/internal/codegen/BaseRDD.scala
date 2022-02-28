@@ -1,6 +1,5 @@
 package zio.spark.internal.codegen
 
-
 import scala.reflect._
 
 import scala.io.Codec
@@ -20,18 +19,14 @@ import zio.spark.rdd.RDD
 import scala.collection.Map
 
 
-
 @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Impure[UnderlyingRDD[T]](underlyingRDD) {
   import underlyingRDD._
 
   // scalafix:off
-  private implicit def arrayToSeq1[U](x: RDD[Array[U]]): RDD[Seq[U]] = x.map(_.toIndexedSeq)
-  private implicit def arrayToSeq2[U](x: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = x.map(_.toIndexedSeq)
   private implicit def lift[U](x:UnderlyingRDD[U]):RDD[U] = RDD(x)
   private implicit def escape[U](x:RDD[U]):UnderlyingRDD[U] = x.underlyingRDD.succeedNow(v => v)
-  private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
-  
+  private implicit def arrayToSeq2[U](x: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = x.map(_.toIndexedSeq)
   @inline private def noOrdering[U]: Ordering[U] = null
   // scalafix:on
   
@@ -64,7 +59,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * Get the array of partitions of this RDD, taking into account whether the
      * RDD is checkpointed or not.
      */
-  def partitions: Seq[Partition] = succeedNow(_.partitions)
+  def partitions: Seq[Partition] = succeedNow(_.partitions.toSeq)
   
   /**
      * Get the preferred locations of a partition, taking into account whether the
@@ -100,7 +95,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @note This method should only be used if the resulting array is expected to be small, as
      * all the data is loaded into the driver's memory.
      */
-  def collect: Task[Seq[T]] = action(_.collect())
+  def collect: Task[Seq[T]] = action(_.collect().toSeq)
   
   /**
      * Return the number of elements in the RDD.
@@ -276,7 +271,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @note Due to complications in the internal implementation, this method will raise
      * an exception if called on an RDD of `Nothing` or `Null`.
      */
-  def take(num: Int): Task[Seq[T]] = action(_.take(num))
+  def take(num: Int): Task[Seq[T]] = action(_.take(num).toSeq)
   
   /**
      * Returns the first k (smallest) elements from this RDD as defined by the specified
@@ -297,7 +292,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param ord the implicit ordering for T
      * @return an array of top elements
      */
-  def takeOrdered(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.takeOrdered(num))
+  def takeOrdered(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.takeOrdered(num).toSeq)
   
   /**
      * Return a fixed-size sampled subset of this RDD in an array
@@ -310,7 +305,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @note this method should only be used if the resulting array is expected to be small, as
      * all the data is loaded into the driver's memory.
      */
-  def takeSample(withReplacement: Boolean, num: Int, seed: Long): Task[Seq[T]] = action(_.takeSample(withReplacement, num, seed))
+  def takeSample(withReplacement: Boolean, num: Int, seed: Long): Task[Seq[T]] = action(_.takeSample(withReplacement, num, seed).toSeq)
   
   /**
      * Return an iterator that contains all of the elements in this RDD.
@@ -342,7 +337,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param ord the implicit ordering for T
      * @return an array of top elements
      */
-  def top(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.top(num))
+  def top(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.top(num).toSeq)
   
   /**
      * Aggregates the elements of this RDD in a multi-level tree pattern.
@@ -500,12 +495,12 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *  Return a new RDD by first applying a function to all elements of this
      *  RDD, and then flattening the results.
      */
-  def flatMap[U: ClassTag](f: T => TraversableOnce[U]): RDD[U] = transformation(_.flatMap(f))
+  def flatMap[U: ClassTag](f: T => IterableOnce[U]): RDD[U] = transformation(_.flatMap(f))
   
   /**
      * Return an RDD created by coalescing all elements within each partition into an array.
      */
-  def glom: RDD[Seq[T]] = transformation(_.glom())
+  def glom: RDD[Seq[T]] = transformation(_.glom().toSeq)
   
   /**
      * Return the intersection of this RDD and another one. The output will not contain any duplicate

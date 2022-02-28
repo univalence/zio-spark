@@ -1,6 +1,6 @@
 package zio.spark.internal.codegen
 
-
+import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.TypeTag
 
 import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, Row, TypedColumn}
@@ -13,19 +13,14 @@ import zio.spark.impure.Impure.ImpureBox
 import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
 
 
-
 @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]) extends Impure[UnderlyingDataset[T]](underlyingDataset) {
   import underlyingDataset._
 
   // scalafix:off
-  private implicit def arrayToSeq1[U](x: Dataset[Array[U]])(implicit enc: Encoder[Seq[U]]): Dataset[Seq[U]] = x.map(_.toIndexedSeq)
-  private implicit def arrayToSeq2[U](x: UnderlyingDataset[Array[U]])(implicit enc: Encoder[Seq[U]]): UnderlyingDataset[Seq[U]] = x.map(_.toIndexedSeq)
   private implicit def lift[U](x:UnderlyingDataset[U]):Dataset[U] = Dataset(x)
   private implicit def escape[U](x:Dataset[U]):UnderlyingDataset[U] = x.underlyingDataset.succeedNow(v => v)
-  private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
-  
-  @inline private def noOrdering[U]: Ordering[U] = null
+  private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = iterator.asScala
   // scalafix:on
   
   /** Applies an action to the underlying Dataset. */
@@ -52,7 +47,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
-  def collect: Task[Seq[T]] = action(_.collect())
+  def collect: Task[Seq[T]] = action(_.collect().toSeq)
   
   /**
      * Returns the number of rows in the Dataset.
@@ -93,7 +88,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
-  def head(n: Int): Task[Seq[T]] = action(_.head(n))
+  def head(n: Int): Task[Seq[T]] = action(_.head(n).toSeq)
   
   /**
      * Returns the first row.
@@ -129,7 +124,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 3.0.0
      */
-  def tail(n: Int): Task[Seq[T]] = action(_.tail(n))
+  def tail(n: Int): Task[Seq[T]] = action(_.tail(n).toSeq)
   
   /**
      * Returns the first `n` rows in the Dataset.
@@ -140,7 +135,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
-  def take(n: Int): Task[Seq[T]] = action(_.take(n))
+  def take(n: Int): Task[Seq[T]] = action(_.take(n).toSeq)
   
   /**
      * Returns an iterator that contains all rows in this Dataset.
@@ -194,7 +189,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
-  def columns: Task[Seq[String]] = action(_.columns)
+  def columns: Task[Seq[String]] = action(_.columns.toSeq)
   
   /**
      * Creates a global temporary view using the given name. The lifetime of this
@@ -256,7 +251,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
-  def dtypes: Task[Seq[(String, String)]] = action(_.dtypes)
+  def dtypes: Task[Seq[(String, String)]] = action(_.dtypes.toSeq)
   
   /**
      * Returns a best-effort snapshot of the files that compose this Dataset. This method simply
@@ -266,7 +261,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.0.0
      */
-  def inputFiles: Task[Seq[String]] = action(_.inputFiles)
+  def inputFiles: Task[Seq[String]] = action(_.inputFiles.toSeq)
   
   /**
      * Returns true if the `collect` and `take` methods can be run locally
@@ -711,7 +706,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
-  def explode[A <: Product : TypeTag](input: Column*)(f: Row => TraversableOnce[A]): DataFrame = transformation(_.explode(input: _*)(f))
+  def explode[A <: Product : TypeTag](input: Column*)(f: Row => IterableOnce[A]): DataFrame = transformation(_.explode(input: _*)(f))
   
   /**
      * (Scala-specific) Returns a new Dataset where a single column has been expanded to zero
@@ -734,7 +729,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
-  def explode[A, B : TypeTag](inputColumn: String, outputColumn: String)(f: A => TraversableOnce[B]): DataFrame = transformation(_.explode(inputColumn, outputColumn)(f))
+  def explode[A, B : TypeTag](inputColumn: String, outputColumn: String)(f: A => IterableOnce[B]): DataFrame = transformation(_.explode(inputColumn, outputColumn)(f))
   
   /**
      * Filters rows using the given condition.
@@ -777,7 +772,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
-  def flatMap[U : Encoder](func: T => TraversableOnce[U]): Dataset[U] = transformation(_.flatMap(func))
+  def flatMap[U : Encoder](func: T => IterableOnce[U]): Dataset[U] = transformation(_.flatMap(func))
   
   /**
      * Specifies some hint on the current Dataset. As an example, the following code specifies

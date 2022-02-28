@@ -62,7 +62,9 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
 
         val comment = if (comments.leading(df).isEmpty) "" else comments.leading(df).mkString("\n") + "\n"
 
-        s"${comment}def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments)"
+        val conversion = if (returnType.contains("Array")) ".toSeq" else ""
+
+        s"${comment}def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)"
     }
 
   def isSetter: Boolean = name.startsWith("set")

@@ -60,22 +60,28 @@ case class GenerationPlan(module: String, path: String, source: meta.Source) {
   def baseImplicits: String = {
     val encoder: String = planType.fold("", "(implicit enc: Encoder[Seq[U]])")
 
+    val rddImplicits =
+      s"""private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]])$encoder: Underlying$name[Seq[U]] = x.map(_.toIndexedSeq)
+         |@inline private def noOrdering[U]: Ordering[U] = null""".stripMargin
+
+    val datasetImplicits =
+      s"""private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = iterator.asScala""".stripMargin
+
+    val defaultImplicits =
+      s"""private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
+         |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name.succeedNow(v => v)""".stripMargin
+
+    val implicits = defaultImplicits + "\n" + planType.fold(rddImplicits, datasetImplicits)
+
     s"""// scalafix:off
-       |private implicit def arrayToSeq1[U](x: $name[Array[U]])$encoder: $name[Seq[U]] = x.map(_.toIndexedSeq)
-       |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]])$encoder: Underlying$name[Seq[U]] = x.map(_.toIndexedSeq)
-       |private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
-       |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name.succeedNow(v => v)
-       |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
-       |
-       |@inline private def noOrdering[U]: Ordering[U] = null
+       |$implicits
        |// scalafix:on
        |""".stripMargin
   }
 
   def imports: String = {
     val rddImports =
-      """
-        |import scala.reflect._
+      """import scala.reflect._
         |
         |import scala.io.Codec
         |
@@ -91,11 +97,10 @@ case class GenerationPlan(module: String, path: String, source: meta.Source) {
         |import zio.spark.impure.Impure.ImpureBox
         |import zio.spark.rdd.RDD
         |
-        |import scala.collection.Map
-        |""".stripMargin
+        |import scala.collection.Map""".stripMargin
 
     val datasetImports =
-      """
+      """import scala.jdk.CollectionConverters._
         |import scala.reflect.runtime.universe.TypeTag
         |
         |import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, Row, TypedColumn}
@@ -105,8 +110,7 @@ case class GenerationPlan(module: String, path: String, source: meta.Source) {
         |import zio.Task
         |import zio.spark.impure.Impure
         |import zio.spark.impure.Impure.ImpureBox
-        |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
-        |""".stripMargin
+        |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}""".stripMargin
 
     planType.fold(rddImports, datasetImports)
   }
@@ -146,8 +150,10 @@ object GenerationPlan {
   private def get(module: String, file: String, classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
     GetSources.getSource(module, file)(classpath).map(source => GenerationPlan(module, file, source))
 
-  def rddPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan]     = get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath)
-  def datasetPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] = get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath)
+  def rddPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
+    get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath)
+  def datasetPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
+    get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath)
 
 }
 

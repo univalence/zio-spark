@@ -7,10 +7,11 @@ import scala.meta.*
 case class Parameter(underlying: Term.Param) {
 
   val name: String                 = underlying.name.toString
-  val signature: String            = underlying.decltpe.get.toString
+  val signature: String            = underlying.decltpe.get.toString.replace("TraversableOnce", "IterableOnce")
   val maybeDefault: Option[String] = underlying.default.map(_.toString)
 
-  val modifiers: Seq[Modifier] = if (underlying.collect { case d: Mod.Implicit => d }.nonEmpty) List(Modifier.Implicit) else Nil
+  val modifiers: Seq[Modifier] =
+    if (underlying.collect { case d: Mod.Implicit => d }.nonEmpty) List(Modifier.Implicit) else Nil
 
   def toCode(isArgs: Boolean): String =
     if (isArgs) toCodeArgument
