@@ -23,7 +23,7 @@ object MethodSpec extends DefaultRunnableSpec {
 
     test(name) {
       maybeMethod.fold(assertNever(s"can't find $name"))(m =>
-        assertTrue(m.toCode(RDDAnalysis.getMethodType(m)).contains(generatedCode))
+        assertTrue(m.toCode(MethodType.getMethodType(m)).contains(generatedCode))
       )
     }
   }
@@ -60,7 +60,7 @@ object MethodSpec extends DefaultRunnableSpec {
     suite("check gen for Dataset")(
       checkGen("filter", 1, List("conditionExpr"))("filter(conditionExpr: String): TryAnalysis[Dataset[T]]"),
       checkGen("orderBy", arity = 1)("_.orderBy(sortExprs: _*)"),
-      checkGen("explode", arity = 2)("explode[A <: Product : TypeTag](input: Column*)(f: Row => TraversableOnce[A])")
+      checkGen("explode", arity = 2)("explode[A <: Product : TypeTag](input: Column*)(f: Row => IterableOnce[A])")
     )
   }
 
