@@ -62,9 +62,15 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
 
         val comment = if (comments.leading(df).isEmpty) "" else comments.leading(df).mkString("\n") + "\n"
 
-        val conversion = if (returnType.contains("Array")) ".toSeq" else ""
+        val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
 
-        s"${comment}def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)"
+        val deprecation: String =
+          df.collect { case d: Mod.Annot if d.toString.contains("deprecated") => d }
+            .headOption
+            .map(_.toString)
+            .getOrElse("")
+
+        s"$comment$deprecation\ndef $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)"
     }
 
   def isSetter: Boolean = name.startsWith("set")

@@ -47,6 +47,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def collect: Task[Seq[T]] = action(_.collect().toSeq)
   
   /**
@@ -54,6 +55,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def count: Task[Long] = action(_.count())
   
   /**
@@ -61,6 +63,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def first: Task[T] = action(_.first())
   
   /**
@@ -69,6 +72,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def foreach(f: T => Unit): Task[Unit] = action(_.foreach(f))
   
   /**
@@ -77,6 +81,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def foreachPartition(f: Iterator[T] => Unit): Task[Unit] = action(_.foreachPartition(f))
   
   /**
@@ -88,6 +93,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def head(n: Int): Task[Seq[T]] = action(_.head(n).toSeq)
   
   /**
@@ -95,6 +101,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def head: Task[T] = action(_.head())
   
   /**
@@ -103,6 +110,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.4.0
      */
+  
   def isEmpty: Task[Boolean] = action(_.isEmpty)
   
   /**
@@ -113,6 +121,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def reduce(func: (T, T) => T): Task[T] = action(_.reduce(func))
   
   /**
@@ -124,6 +133,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 3.0.0
      */
+  
   def tail(n: Int): Task[Seq[T]] = action(_.tail(n).toSeq)
   
   /**
@@ -135,6 +145,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def take(n: Int): Task[Seq[T]] = action(_.take(n).toSeq)
   
   /**
@@ -149,6 +160,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 2.0.0
      */
+  
   def toLocalIterator: Task[Iterator[T]] = action(_.toLocalIterator())
   
   //===============
@@ -159,6 +171,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def cache: Task[Dataset[T]] = action(_.cache())
   
   /**
@@ -170,6 +183,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.1.0
      */
+  
   def checkpoint: Task[Dataset[T]] = action(_.checkpoint())
   
   /**
@@ -181,6 +195,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.1.0
      */
+  
   def checkpoint(eager: Boolean): Task[Dataset[T]] = action(_.checkpoint(eager))
   
   /**
@@ -189,6 +204,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def columns: Task[Seq[String]] = action(_.columns.toSeq)
   
   /**
@@ -205,6 +221,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.1.0
      */
+  
   def createGlobalTempView(viewName: String): Task[Unit] = action(_.createGlobalTempView(viewName))
   
   /**
@@ -219,6 +236,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.2.0
      */
+  
   def createOrReplaceGlobalTempView(viewName: String): Task[Unit] = action(_.createOrReplaceGlobalTempView(viewName))
   
   /**
@@ -228,6 +246,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.0.0
      */
+  
   def createOrReplaceTempView(viewName: String): Task[Unit] = action(_.createOrReplaceTempView(viewName))
   
   /**
@@ -243,6 +262,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.0.0
      */
+  
   def createTempView(viewName: String): Task[Unit] = action(_.createTempView(viewName))
   
   /**
@@ -251,6 +271,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def dtypes: Task[Seq[(String, String)]] = action(_.dtypes.toSeq)
   
   /**
@@ -261,6 +282,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.0.0
      */
+  
   def inputFiles: Task[Seq[String]] = action(_.inputFiles.toSeq)
   
   /**
@@ -270,6 +292,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def isLocal: Task[Boolean] = action(_.isLocal)
   
   /**
@@ -283,6 +306,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group streaming
      * @since 2.0.0
      */
+  
   def isStreaming: Task[Boolean] = action(_.isStreaming)
   
   /**
@@ -294,6 +318,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.3.0
      */
+  
   def localCheckpoint: Task[Dataset[T]] = action(_.localCheckpoint())
   
   /**
@@ -305,6 +330,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.3.0
      */
+  
   def localCheckpoint(eager: Boolean): Task[Dataset[T]] = action(_.localCheckpoint(eager))
   
   /**
@@ -313,6 +339,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def persist: Task[Dataset[T]] = action(_.persist())
   
   /**
@@ -324,6 +351,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def persist(newLevel: StorageLevel): Task[Dataset[T]] = action(_.persist(newLevel))
   
   /**
@@ -333,6 +361,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  @deprecated("Use createOrReplaceTempView(viewName) instead.", "2.0.0")
   def registerTempTable(tableName: String): Task[Unit] = action(_.registerTempTable(tableName))
   
   /**
@@ -341,6 +370,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def schema: Task[StructType] = action(_.schema)
   
   /**
@@ -349,6 +379,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.1.0
      */
+  
   def storageLevel: Task[StorageLevel] = action(_.storageLevel)
   
   /**
@@ -360,6 +391,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def unpersist(blocking: Boolean): Task[Dataset[T]] = action(_.unpersist(blocking))
   
   /**
@@ -369,6 +401,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def unpersist: Task[Dataset[T]] = action(_.unpersist())
   
   //===============
@@ -384,6 +417,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def agg(aggExpr: (String, String), aggExprs: (String, String)*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(aggExpr, aggExprs: _*))
   
   /**
@@ -397,6 +431,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def agg(exprs: Map[String, String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(exprs))
   
   /**
@@ -410,6 +445,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def agg(exprs: java.util.Map[String, String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(exprs))
   
   /**
@@ -423,6 +459,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def agg(expr: Column, exprs: Column*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(expr, exprs: _*))
   
   /**
@@ -431,6 +468,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def alias(alias: String): Dataset[T] = transformation(_.alias(alias))
   
   /**
@@ -439,6 +477,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def alias(alias: Symbol): Dataset[T] = transformation(_.alias(alias))
   
   /**
@@ -463,6 +502,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 1.6.0
      */
+  
   def as[U : Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as)
   
   /**
@@ -471,6 +511,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def as(alias: String): Dataset[T] = transformation(_.as(alias))
   
   /**
@@ -479,6 +520,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def as(alias: Symbol): Dataset[T] = transformation(_.as(alias))
   
   /**
@@ -498,6 +540,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def coalesce(numPartitions: Int): Dataset[T] = transformation(_.coalesce(numPartitions))
   
   /**
@@ -510,6 +553,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.1.0
      */
+  
   def crossJoin(right: Dataset[_]): DataFrame = transformation(_.crossJoin(right))
   
   /**
@@ -540,6 +584,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 1.6.0
      */
+  
   def describe(cols: String*): DataFrame = transformation(_.describe(cols: _*))
   
   /**
@@ -556,6 +601,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def distinct: Dataset[T] = transformation(_.distinct())
   
   /**
@@ -568,6 +614,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def drop(colName: String): DataFrame = transformation(_.drop(colName))
   
   /**
@@ -580,6 +627,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
   
   /**
@@ -591,6 +639,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def drop(col: Column): DataFrame = transformation(_.drop(col))
   
   /**
@@ -606,6 +655,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def dropDuplicates: Dataset[T] = transformation(_.dropDuplicates())
   
   /**
@@ -621,6 +671,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def dropDuplicates(colNames: Seq[String]): Dataset[T] = transformation(_.dropDuplicates(colNames))
   
   /**
@@ -636,6 +687,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def dropDuplicates(colNames: Array[String]): Dataset[T] = transformation(_.dropDuplicates(colNames))
   
   /**
@@ -651,6 +703,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def dropDuplicates(col1: String, cols: String*): Dataset[T] = transformation(_.dropDuplicates(col1, cols: _*))
   
   /**
@@ -663,6 +716,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def except(other: Dataset[T]): Dataset[T] = transformation(_.except(other))
   
   /**
@@ -677,6 +731,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.4.0
      */
+  
   def exceptAll(other: Dataset[T]): Dataset[T] = transformation(_.exceptAll(other))
   
   /**
@@ -706,6 +761,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
   def explode[A <: Product : TypeTag](input: Column*)(f: Row => IterableOnce[A]): DataFrame = transformation(_.explode(input: _*)(f))
   
   /**
@@ -729,6 +785,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
   def explode[A, B : TypeTag](inputColumn: String, outputColumn: String)(f: A => IterableOnce[B]): DataFrame = transformation(_.explode(inputColumn, outputColumn)(f))
   
   /**
@@ -742,6 +799,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def filter(condition: Column): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(condition))
   
   /**
@@ -753,6 +811,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def filter(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(conditionExpr))
   
   /**
@@ -762,6 +821,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def filter(func: T => Boolean): Dataset[T] = transformation(_.filter(func))
   
   /**
@@ -772,6 +832,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def flatMap[U : Encoder](func: T => IterableOnce[U]): Dataset[U] = transformation(_.flatMap(func))
   
   /**
@@ -785,6 +846,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.2.0
      */
+  
   def hint(name: String, parameters: Any*): Dataset[T] = transformation(_.hint(name, parameters: _*))
   
   /**
@@ -797,6 +859,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def intersect(other: Dataset[T]): Dataset[T] = transformation(_.intersect(other))
   
   /**
@@ -811,6 +874,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.4.0
      */
+  
   def intersectAll(other: Dataset[T]): Dataset[T] = transformation(_.intersectAll(other))
   
   /**
@@ -823,6 +887,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def join(right: Dataset[_]): DataFrame = transformation(_.join(right))
   
   /**
@@ -846,6 +911,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def join(right: Dataset[_], usingColumn: String): DataFrame = transformation(_.join(right, usingColumn))
   
   /**
@@ -869,6 +935,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def join(right: Dataset[_], usingColumns: Seq[String]): DataFrame = transformation(_.join(right, usingColumns))
   
   /**
@@ -893,6 +960,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def join(right: Dataset[_], usingColumns: Seq[String], joinType: String): DataFrame = transformation(_.join(right, usingColumns, joinType))
   
   /**
@@ -907,6 +975,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def join(right: Dataset[_], joinExprs: Column): TryAnalysis[DataFrame] = transformationWithAnalysis(_.join(right, joinExprs))
   
   /**
@@ -933,6 +1002,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def join(right: Dataset[_], joinExprs: Column, joinType: String): TryAnalysis[DataFrame] = transformationWithAnalysis(_.join(right, joinExprs, joinType))
   
   /**
@@ -956,6 +1026,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def joinWith[U](other: Dataset[U], condition: Column, joinType: String): TryAnalysis[Dataset[(T, U)]] = transformationWithAnalysis(_.joinWith(other, condition, joinType))
   
   /**
@@ -968,6 +1039,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def joinWith[U](other: Dataset[U], condition: Column): TryAnalysis[Dataset[(T, U)]] = transformationWithAnalysis(_.joinWith(other, condition))
   
   /**
@@ -978,6 +1050,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def limit(n: Int): Dataset[T] = transformation(_.limit(n))
   
   /**
@@ -987,6 +1060,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def map[U : Encoder](func: T => U): Dataset[U] = transformation(_.map(func))
   
   /**
@@ -996,6 +1070,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def mapPartitions[U : Encoder](func: Iterator[T] => Iterator[U]): Dataset[U] = transformation(_.mapPartitions(func))
   
   /**
@@ -1045,6 +1120,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
     * @group typedrel
     * @since 3.0.0
     */
+  
   def observe(name: String, expr: Column, exprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.observe(name, expr, exprs: _*))
   
   /**
@@ -1054,6 +1130,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def orderBy(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.orderBy(sortCol, sortCols: _*))
   
   /**
@@ -1063,6 +1140,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def orderBy(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.orderBy(sortExprs: _*))
   
   /**
@@ -1071,6 +1149,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def repartition(numPartitions: Int): Dataset[T] = transformation(_.repartition(numPartitions))
   
   /**
@@ -1082,6 +1161,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def repartition(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartition(numPartitions, partitionExprs: _*))
   
   /**
@@ -1094,6 +1174,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def repartition(partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartition(partitionExprs: _*))
   
   /**
@@ -1113,6 +1194,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.3.0
      */
+  
   def repartitionByRange(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartitionByRange(numPartitions, partitionExprs: _*))
   
   /**
@@ -1132,6 +1214,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.3.0
      */
+  
   def repartitionByRange(partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartitionByRange(partitionExprs: _*))
   
   /**
@@ -1147,6 +1230,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.3.0
      */
+  
   def sample(fraction: Double, seed: Long): Dataset[T] = transformation(_.sample(fraction, seed))
   
   /**
@@ -1161,6 +1245,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.3.0
      */
+  
   def sample(fraction: Double): Dataset[T] = transformation(_.sample(fraction))
   
   /**
@@ -1176,6 +1261,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def sample(withReplacement: Boolean, fraction: Double, seed: Long): Dataset[T] = transformation(_.sample(withReplacement, fraction, seed))
   
   /**
@@ -1190,6 +1276,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def sample(withReplacement: Boolean, fraction: Double): Dataset[T] = transformation(_.sample(withReplacement, fraction))
   
   /**
@@ -1201,6 +1288,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def select(cols: Column*): DataFrame = transformation(_.select(cols: _*))
   
   /**
@@ -1216,6 +1304,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def select(col: String, cols: String*): DataFrame = transformation(_.select(col, cols: _*))
   
   /**
@@ -1229,6 +1318,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def select[U1](c1: TypedColumn[T, U1]): Dataset[U1] = transformation(_.select(c1))
   
   /**
@@ -1237,6 +1327,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def select[U1, U2](c1: TypedColumn[T, U1], c2: TypedColumn[T, U2]): Dataset[(U1, U2)] = transformation(_.select(c1, c2))
   
   /**
@@ -1245,6 +1336,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def select[U1, U2, U3](c1: TypedColumn[T, U1], c2: TypedColumn[T, U2], c3: TypedColumn[T, U3]): Dataset[(U1, U2, U3)] = transformation(_.select(c1, c2, c3))
   
   /**
@@ -1253,6 +1345,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def select[U1, U2, U3, U4](c1: TypedColumn[T, U1], c2: TypedColumn[T, U2], c3: TypedColumn[T, U3], c4: TypedColumn[T, U4]): Dataset[(U1, U2, U3, U4)] = transformation(_.select(c1, c2, c3, c4))
   
   /**
@@ -1261,6 +1354,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def select[U1, U2, U3, U4, U5](c1: TypedColumn[T, U1], c2: TypedColumn[T, U2], c3: TypedColumn[T, U3], c4: TypedColumn[T, U4], c5: TypedColumn[T, U5]): Dataset[(U1, U2, U3, U4, U5)] = transformation(_.select(c1, c2, c3, c4, c5))
   
   /**
@@ -1276,6 +1370,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def selectExpr(exprs: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.selectExpr(exprs: _*))
   
   /**
@@ -1290,6 +1385,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def sort(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.sort(sortCol, sortCols: _*))
   
   /**
@@ -1301,6 +1397,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def sort(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.sort(sortExprs: _*))
   
   /**
@@ -1311,6 +1408,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def sortWithinPartitions(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.sortWithinPartitions(sortCol, sortCols: _*))
   
   /**
@@ -1321,6 +1419,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def sortWithinPartitions(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.sortWithinPartitions(sortExprs: _*))
   
   /**
@@ -1397,6 +1496,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group action
      * @since 2.3.0
      */
+  
   def summary(statistics: String*): DataFrame = transformation(_.summary(statistics: _*))
   
   /**
@@ -1409,6 +1509,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      */
   // This is declared with parentheses to prevent the Scala compiler from treating
   // `ds.toDF("1")` as invoking this toDF and then apply on the returned DataFrame.
+  
   def toDF: DataFrame = transformation(_.toDF())
   
   /**
@@ -1424,12 +1525,14 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group basic
      * @since 2.0.0
      */
+  
   def toDF(colNames: String*): DataFrame = transformation(_.toDF(colNames: _*))
   
   /**
      * Returns the content of the Dataset as a Dataset of JSON strings.
      * @since 2.0.0
      */
+  
   def toJSON: Dataset[String] = transformation(_.toJSON)
   
   /**
@@ -1462,6 +1565,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def union(other: Dataset[T]): Dataset[T] = transformation(_.union(other))
   
   /**
@@ -1476,6 +1580,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
+  
   def unionAll(other: Dataset[T]): Dataset[T] = transformation(_.unionAll(other))
   
   /**
@@ -1504,6 +1609,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.3.0
      */
+  
   def unionByName(other: Dataset[T]): Dataset[T] = transformation(_.unionByName(other))
   
   /**
@@ -1548,6 +1654,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 3.1.0
      */
+  
   def unionByName(other: Dataset[T], allowMissingColumns: Boolean): Dataset[T] = transformation(_.unionByName(other, allowMissingColumns))
   
   /**
@@ -1561,6 +1668,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def where(condition: Column): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(condition))
   
   /**
@@ -1572,6 +1680,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
+  
   def where(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(conditionExpr))
   
   /**
@@ -1589,6 +1698,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] = transformationWithAnalysis(_.withColumn(colName, col))
   
   /**
@@ -1598,6 +1708,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group untypedrel
      * @since 2.0.0
      */
+  
   def withColumnRenamed(existingName: String, newName: String): DataFrame = transformation(_.withColumnRenamed(existingName, newName))
   
   /**
@@ -1627,6 +1738,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      */
   // We only accept an existing column name, not a derived column here as a watermark that is
   // defined on a derived column cannot referenced elsewhere in the plan.
+  
   def withWatermark(eventTime: String, delayThreshold: String): Dataset[T] = transformation(_.withWatermark(eventTime, delayThreshold))
   
   //===============
