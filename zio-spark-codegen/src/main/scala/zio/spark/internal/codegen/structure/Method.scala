@@ -1,14 +1,13 @@
 package zio.spark.internal.codegen.structure
 
-import zio.spark.internal.codegen.RDDAnalysis
 import zio.spark.internal.codegen.RDDAnalysis.MethodType
 import zio.spark.internal.codegen.structure.TypeUtils.*
 
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
-import scala.meta.tokens.Token
 
 case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
+  self =>
 
   val calls: List[ParameterGroup] = df.paramss.map(ParameterGroup.fromScalaMeta)
 
@@ -16,6 +15,19 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
   val returnType: String             = df.decltpe.get.toString()
   val fullName: String               = s"$path.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
+  val hasAnalysisException: Boolean = {
+    val functionsThrowingAnalysisException =
+      List(
+        "createTempView",
+        "createGlobalTempView"
+      )
+    self match {
+      case _ if calls.flatMap(_.parameters).exists(_.name.toLowerCase.contains("expr"))      => true
+      case _ if calls.flatMap(_.parameters).exists(_.name.toLowerCase.contains("condition")) => true
+      case _ if functionsThrowingAnalysisException.contains(name)                            => true
+      case _                                                                                 => false
+    }
+  }
 
   def toCode(methodType: MethodType): String =
     methodType match {
@@ -27,10 +39,11 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
 
         val transformation =
           methodType match {
-            case MethodType.DriverAction           => "action"
-            case MethodType.DistributedComputation => "action"
-            case MethodType.Transformation         => "transformation"
-            case _                                 => "succeedNow"
+            case MethodType.DriverAction                           => "action"
+            case MethodType.DistributedComputation                 => "action"
+            case MethodType.Transformation if hasAnalysisException => "transformationWithAnalysis"
+            case MethodType.Transformation                         => "transformation"
+            case _                                                 => "succeedNow"
           }
 
         val cleanReturnType = cleanType(returnType, path)
@@ -39,6 +52,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
           methodType match {
             case MethodType.DriverAction           => s"Task[$cleanReturnType]"
             case MethodType.DistributedComputation => s"Task[$cleanReturnType]"
+            case _ if hasAnalysisException         => s"TryAnalysis[$cleanReturnType]"
             case _                                 => cleanReturnType
           }
 

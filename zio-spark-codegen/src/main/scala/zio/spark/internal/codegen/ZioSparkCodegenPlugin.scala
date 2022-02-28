@@ -103,10 +103,30 @@ case class GenerationPlan(module: String, path: String) {
         |import zio.Task
         |import zio.spark.impure.Impure
         |import zio.spark.impure.Impure.ImpureBox
-        |import zio.spark.sql.Dataset
+        |import zio.spark.sql.{Dataset, TryAnalysis}
         |""".stripMargin
 
     planType.fold(rddImports, datasetImports)
+  }
+
+  def helpers: String = {
+    val defaultHelpers =
+      s"""/** Applies an action to the underlying ${name}. */
+         |def action[U](f: Underlying${name}[T] => U): Task[U] = attemptBlocking(f)
+         |
+         |/** Applies a transformation to the underlying ${name}. */
+         |def transformation[U](f: Underlying${name}[T] => Underlying${name}[U]): ${name}[U] = succeedNow(f.andThen(x => ${name}(x)))""".stripMargin
+
+    val datasetHelpers =
+      """/**
+        | * Applies a transformation to the underlying dataset, it is used for
+        | * transformations that can fail due to an AnalysisException.
+        | */
+        |def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
+        |  TryAnalysis(transformation(f))
+        |""".stripMargin
+
+    defaultHelpers + "\n\n" + planType.fold("", datasetHelpers)
   }
 }
 
@@ -223,11 +243,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |
                |${prefixAllLines(plan.baseImplicits, "  ")}
                |  
-               |  /** Applies an action to the underlying ${plan.name}. */
-               |  def action[U](f: Underlying${plan.name}[T] => U): Task[U] = attemptBlocking(f)
-               |
-               |  /** Applies a transformation to the underlying ${plan.name}. */
-               |  def transformation[U](f: Underlying${plan.name}[T] => Underlying${plan.name}[U]): ${plan.name}[U] = succeedNow(f.andThen(x => ${plan.name}(x)))
+               |${prefixAllLines(plan.helpers, "  ")}
                |
                |${prefixAllLines(body, "  ")}
                |}

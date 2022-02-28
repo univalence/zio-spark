@@ -7,7 +7,7 @@ import org.apache.spark.storage.StorageLevel
 import zio.Task
 import zio.spark.impure.Impure
 import zio.spark.impure.Impure.ImpureBox
-import zio.spark.sql.Dataset
+import zio.spark.sql.{Dataset, TryAnalysis}
 
 
 abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]) extends Impure[UnderlyingDataset[T]](underlyingDataset) {
@@ -22,9 +22,16 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   
   /** Applies an action to the underlying Dataset. */
   def action[U](f: UnderlyingDataset[T] => U): Task[U] = attemptBlocking(f)
-
+  
   /** Applies a transformation to the underlying Dataset. */
   def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = succeedNow(f.andThen(x => Dataset(x)))
+  
+  /**
+   * Applies a transformation to the underlying dataset, it is used for
+   * transformations that can fail due to an AnalysisException.
+   */
+  def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
+    TryAnalysis(transformation(f))
 
   /**
      * Returns an array that contains all rows in this Dataset.
@@ -406,7 +413,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
-  def filter(conditionExpr: String): Dataset[T] = transformation(_.filter(conditionExpr))
+  def filter(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(conditionExpr))
   
   /**
      * (Scala-specific)
@@ -576,7 +583,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
     * @group typedrel
     * @since 3.0.0
     */
-  def observe(name: String, expr: Column, exprs: Column*): Dataset[T] = transformation(_.observe(name, expr, exprs: _*))
+  def observe(name: String, expr: Column, exprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.observe(name, expr, exprs: _*))
   
   /**
      * Returns a new Dataset sorted by the given expressions.
@@ -594,7 +601,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
-  def orderBy(sortExprs: Column*): Dataset[T] = transformation(_.orderBy(sortExprs: _*))
+  def orderBy(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.orderBy(sortExprs: _*))
   
   /**
      * Returns a new Dataset that has exactly `numPartitions` partitions.
@@ -613,7 +620,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
-  def repartition(numPartitions: Int, partitionExprs: Column*): Dataset[T] = transformation(_.repartition(numPartitions, partitionExprs: _*))
+  def repartition(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartition(numPartitions, partitionExprs: _*))
   
   /**
      * Returns a new Dataset partitioned by the given partitioning expressions, using
@@ -625,7 +632,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
-  def repartition(partitionExprs: Column*): Dataset[T] = transformation(_.repartition(partitionExprs: _*))
+  def repartition(partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartition(partitionExprs: _*))
   
   /**
      * Returns a new Dataset partitioned by the given partitioning expressions into
@@ -644,7 +651,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.3.0
      */
-  def repartitionByRange(numPartitions: Int, partitionExprs: Column*): Dataset[T] = transformation(_.repartitionByRange(numPartitions, partitionExprs: _*))
+  def repartitionByRange(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartitionByRange(numPartitions, partitionExprs: _*))
   
   /**
      * Returns a new Dataset partitioned by the given partitioning expressions, using
@@ -663,7 +670,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.3.0
      */
-  def repartitionByRange(partitionExprs: Column*): Dataset[T] = transformation(_.repartitionByRange(partitionExprs: _*))
+  def repartitionByRange(partitionExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.repartitionByRange(partitionExprs: _*))
   
   /**
      * Returns a new [[Dataset]] by sampling a fraction of rows (without replacement),
@@ -791,7 +798,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
-  def sort(sortExprs: Column*): Dataset[T] = transformation(_.sort(sortExprs: _*))
+  def sort(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.sort(sortExprs: _*))
   
   /**
      * Returns a new Dataset with each partition sorted by the given expressions.
@@ -811,7 +818,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 2.0.0
      */
-  def sortWithinPartitions(sortExprs: Column*): Dataset[T] = transformation(_.sortWithinPartitions(sortExprs: _*))
+  def sortWithinPartitions(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.sortWithinPartitions(sortExprs: _*))
   
   /**
      * Returns the content of the Dataset as a Dataset of JSON strings.
@@ -959,7 +966,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
      * @group typedrel
      * @since 1.6.0
      */
-  def where(conditionExpr: String): Dataset[T] = transformation(_.where(conditionExpr))
+  def where(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(conditionExpr))
   
   /**
      * Defines an event time watermark for this [[Dataset]]. A watermark tracks a point in time
