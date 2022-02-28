@@ -64,12 +64,15 @@ case class GenerationPlan(module: String, path: String) {
   def baseImplicits: String = {
     val encoder: String = planType.fold("", "(implicit enc: Encoder[Seq[U]])")
 
-    s"""private implicit def arrayToSeq1[U](x: $name[Array[U]])$encoder: $name[Seq[U]] = x.map(_.toSeq)
-       |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]])$encoder: Underlying$name[Seq[U]] = x.map(_.toSeq)
+    s"""// scalafix:off
+       |private implicit def arrayToSeq1[U](x: $name[Array[U]])$encoder: $name[Seq[U]] = x.map(_.toIndexedSeq)
+       |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]])$encoder: Underlying$name[Seq[U]] = x.map(_.toIndexedSeq)
        |private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
        |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name.succeedNow(v => v)
+       |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
        |
-       |private implicit def iteratorConversion[T](iterator: java.util.Iterator[T]):Iterator[T] = scala.collection.JavaConverters.asScalaIteratorConverter(iterator).asScala
+       |@inline private def noOrdering[U]: Ordering[U] = null
+       |// scalafix:on
        |""".stripMargin
   }
 
@@ -177,6 +180,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
     Seq(
       Compile / sourceGenerators += Def.task {
 
+        // TODO : use to get source jar
+        val jars = (Compile / dependencyClasspathAsJars).value
+
         val generationPlans =
           List(
             GenerationPlan.rddPlan,
@@ -238,6 +244,8 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |
                |${plan.imports}
                |
+               |
+               |@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
                |abstract class Base${plan.name}[T](underlying${plan.name}: ImpureBox[Underlying${plan.name}[T]]) extends Impure[Underlying${plan.name}[T]](underlying${plan.name}) {
                |  import underlying${plan.name}._
                |
