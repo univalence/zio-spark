@@ -24,13 +24,19 @@ object GetSources {
       /* val sparkSourceJar =
        * "/Users/dylandoamaral/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark/spark-core_2.12/3.2.1/spark-core_2.12-3.2.1-sources.jar" */
 
+      @deprecated
       val hardSourceJar: String =
         System.getProperty(
           "user.home"
         ) + s"/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark/${module}_2.12/3.2.1/${module}_2.12-3.2.1-sources.jar"
 
+      // TODO fix when running sbt test from command line
+      val jar = classpath.find(_.data.getAbsolutePath.contains("/" + module + "_"))
+
+      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).getOrElse(hardSourceJar)
+
       ZManaged
-        .acquireReleaseAttemptWith(new JarFile(hardSourceJar))(_.close())
+        .acquireReleaseAttemptWith(new JarFile(sourceJar))(_.close())
         .use(jarFile =>
           Task {
             val entry: ZipEntry         = jarFile.getEntry(file)

@@ -3,7 +3,7 @@ package zio.spark.internal.codegen
 
 import scala.reflect.runtime.universe.TypeTag
 
-import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, TypedColumn}
+import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, Row, TypedColumn}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.types.StructType
 
