@@ -19,12 +19,14 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
     val functionsThrowingAnalysisException =
       List(
         "createTempView",
-        "createGlobalTempView"
+        "createGlobalTempView",
+        "withColumn"
       )
     self match {
       case _ if calls.flatMap(_.parameters).exists(_.name.toLowerCase.contains("expr"))      => true
       case _ if calls.flatMap(_.parameters).exists(_.name.toLowerCase.contains("condition")) => true
       case _ if functionsThrowingAnalysisException.contains(name)                            => true
+      case _ if calls.flatMap(_.parameters).isEmpty && name == "as"                          => true
       case _                                                                                 => false
     }
   }

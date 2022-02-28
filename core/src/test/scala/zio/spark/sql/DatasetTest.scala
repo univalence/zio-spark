@@ -245,14 +245,14 @@ object DatasetTest {
       },
       test("Dataset should implement withColumnRenamed correctly") {
         for {
-          df <- read
-          colnames = df.withColumnRenamed("name", "firstname").columns
+          df       <- read
+          colnames <- df.withColumnRenamed("name", "firstname").columns
         } yield assertTrue(colnames == Seq("firstname", "age"))
       },
       test("Dataset should implement withColumn correctly") {
         for {
-          df <- read
-          colnames = df.withColumn("firstname", $"name").columns
+          df       <- read
+          colnames <- df.withColumn("firstname", $"name").columns
         } yield assertTrue(colnames == Seq("name", "age", "firstname"))
       }
     )
