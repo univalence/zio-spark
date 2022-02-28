@@ -1,8 +1,30 @@
 package zio.spark.internal.codegen
 
+import sbt.*
+
 import zio.spark.internal.codegen.structure.Method
 
-object ImportUtils {
+import scala.reflect.runtime.universe
+
+object Unused {
+
+  // TODO Check implementation
+  // val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
+
+  private def readFinalClassRDD(scalaSource: File): Set[String] = {
+    val file: File = scalaSource / "zio" / "spark" / "rdd" / "RDD.scala"
+
+    import scala.meta.*
+    val parsed: Source = IO.read(file).parse[Source].get
+
+    val methods = scala.collection.mutable.TreeSet.empty[String]
+    parsed.traverse {
+      case m: Decl.Def if !m.mods.contains(Mod.Private) => methods.add(m.name.value)
+      case _                                            => Unit
+    }
+    methods.toSet
+  }
+
   import scala.meta.*
 
   val importedPackages =
@@ -43,5 +65,14 @@ object ImportUtils {
       else "{" + augmentedObjs.mkString(", ") + "}"
 
     s"$pkg.$strObjs"
+  }
+
+  import scala.reflect.runtime.universe.*
+
+  def readMethodsApacheSparkRDD: Seq[universe.MethodSymbol] = {
+    val tt = typeTag[org.apache.spark.rdd.RDD[Any]]
+    tt.tpe.members.collect {
+      case m: MethodSymbol if m.isMethod && m.isPublic => m
+    }.toSeq
   }
 }

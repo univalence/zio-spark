@@ -1,37 +1,16 @@
 package zio.spark.internal.codegen
 
-import zio.spark.internal.codegen.RDDAnalysis.MethodType.*
 import zio.spark.internal.codegen.structure.Method
 
-import scala.reflect.runtime.universe
+sealed trait MethodType
 
-object RDDAnalysis {
-
-  // TODO : IGNORE
-  // def foreachPartition(func: ForeachPartitionFunction[T]): Task[Unit] = action(_.foreachPartition(func))
-
-  val listOfMethodsWithImplicitNullOrdering =
-    Seq(
-      "distinct",
-      "repartition",
-      "coalesce",
-      "intersection",
-      "groupBy",
-      "groupBy",
-      "subtract",
-      "countByValue",
-      "countByValueApprox"
-    )
-  // rddToPairRDDFunctions
-
-  import scala.reflect.runtime.universe.*
-
-  def readMethodsApacheSparkRDD: Seq[universe.MethodSymbol] = {
-    val tt = typeTag[org.apache.spark.rdd.RDD[Any]]
-    tt.tpe.members.collect {
-      case m: MethodSymbol if m.isMethod && m.isPublic => m
-    }.toSeq
-  }
+object MethodType {
+  case object Ignored                extends MethodType
+  case object Transformation         extends MethodType
+  case object SuccessNow             extends MethodType
+  case object DriverAction           extends MethodType
+  case object DistributedComputation extends MethodType
+  case object ToImplement            extends MethodType
 
   implicit val orderingMethodType: Ordering[MethodType] =
     (x: MethodType, y: MethodType) => {
@@ -47,16 +26,6 @@ object RDDAnalysis {
 
       Ordering[Int].compare(methodTypeToInt(x), methodTypeToInt(y))
     }
-
-  sealed trait MethodType
-  object MethodType {
-    case object Ignored                extends MethodType
-    case object Transformation         extends MethodType
-    case object SuccessNow             extends MethodType
-    case object DriverAction           extends MethodType
-    case object DistributedComputation extends MethodType
-    case object ToImplement            extends MethodType
-  }
 
   def getMethodType(method: Method): MethodType = {
     val cacheElements =

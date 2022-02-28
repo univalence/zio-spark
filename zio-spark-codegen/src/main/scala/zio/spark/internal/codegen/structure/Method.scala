@@ -1,6 +1,6 @@
 package zio.spark.internal.codegen.structure
 
-import zio.spark.internal.codegen.RDDAnalysis.MethodType
+import zio.spark.internal.codegen.MethodType
 import zio.spark.internal.codegen.structure.TypeUtils.*
 
 import scala.meta.*
