@@ -900,56 +900,10 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   /**
    * Methods that need to be implemented
    *
-   * /** * Return an RDD of grouped items. Each group consists of a key
-   * and a sequence of elements * mapping to that key. The ordering of
-   * elements within each group is not guaranteed, and * may even differ
-   * each time the resulting RDD is evaluated. * * @note This operation
-   * may be very expensive. If you are grouping in order to perform an *
-   * aggregation (such as a sum or average) over each key, using
-   * `PairRDDFunctions.aggregateByKey` * or
-   * `PairRDDFunctions.reduceByKey` will provide much better
-   * performance. */ def groupBy[K](f: T => K)(implicit kt:
-   * ClassTag[K]): RDD[(K, Iterable[T])] = succeedNow(_.groupBy(f)) /**
-   * * Return an RDD of grouped elements. Each group consists of a key
-   * and a sequence of elements * mapping to that key. The ordering of
-   * elements within each group is not guaranteed, and * may even differ
-   * each time the resulting RDD is evaluated. * * @note This operation
-   * may be very expensive. If you are grouping in order to perform an *
-   * aggregation (such as a sum or average) over each key, using
-   * `PairRDDFunctions.aggregateByKey` * or
-   * `PairRDDFunctions.reduceByKey` will provide much better
-   * performance. */ def groupBy[K](f: T => K, numPartitions:
-   * Int)(implicit kt: ClassTag[K]): RDD[(K, Iterable[T])] =
-   * succeedNow(_.groupBy(f, numPartitions)) /** * Return an RDD of
-   * grouped items. Each group consists of a key and a sequence of
-   * elements * mapping to that key. The ordering of elements within
-   * each group is not guaranteed, and * may even differ each time the
-   * resulting RDD is evaluated. * * @note This operation may be very
-   * expensive. If you are grouping in order to perform an * aggregation
-   * (such as a sum or average) over each key, using
-   * `PairRDDFunctions.aggregateByKey` * or
-   * `PairRDDFunctions.reduceByKey` will provide much better
-   * performance. */ def groupBy[K](f: T => K, p: Partitioner)(implicit
-   * kt: ClassTag[K], ord: Ordering[K] = noOrdering): RDD[(K,
-   * Iterable[T])] = succeedNow(_.groupBy(f, p)) /** * Randomly splits
-   * this RDD with the provided weights. * * @param weights weights for
-   * splits, will be normalized if they don't sum to 1 * @param seed
-   * random seed * * @return split RDDs in an array */ def
-   * randomSplit(weights: Array[Double], seed: Long): Seq[RDD[T]] =
-   * succeedNow(_.randomSplit(weights, seed).toSeq) //
-   * =======================================================================
-   * // Methods and fields available on all RDDs //
-   * =======================================================================
-   * /** The SparkContext that created this RDD. */ def sparkContext:
-   * SparkContext = succeedNow(_.sparkContext)
-   */
-
-  // ===============
-
-  /**
-   * Methods with handmade implementation
-   *
    * [[org.apache.spark.rdd.RDD.context]]
+   * [[org.apache.spark.rdd.RDD.groupBy]]
+   * [[org.apache.spark.rdd.RDD.randomSplit]]
+   * [[org.apache.spark.rdd.RDD.sparkContext]]
    */
 
   // ===============

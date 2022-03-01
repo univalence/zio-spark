@@ -35,6 +35,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
     methodType match {
       case MethodType.Ignored     => s"[[$fullName]]"
       case MethodType.ToImplement => s"[[$fullName]]"
+      case MethodType.TODO        => s"[[$fullName]]"
       case _ =>
         val parameters = calls.map(_.toCode(isArgs = false)).mkString("")
         val arguments  = calls.map(_.toCode(isArgs = true)).mkString("")

@@ -90,7 +90,6 @@ object MethodType {
       Set(
         "show",      // It should be implemented using Console layer,
         "transform", // Too specific for codegen
-        "context",   // TODO: explain why
         "write"      // TODO: DataFrameWriter should be added to zio-spark
       )
 

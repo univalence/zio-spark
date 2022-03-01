@@ -101,9 +101,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                   }
 
                 val allMethods = methods.sortBy(_.fullName).map(_.toCode(methodType)).distinct.mkString(sep)
+
                 methodType match {
-                  case MethodType.ToImplement => commentMethods(allMethods, "Methods with handmade implementation")
-                  case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")
+                  case MethodType.ToImplement => commentMethods(allMethods, "Methods with handmade implementations")
+                  case MethodType.Ignored     => commentMethods(allMethods, "Ignored methods")
                   case MethodType.TODO        => commentMethods(allMethods, "Methods that need to be implemented")
                   case _                      => allMethods
                 }
