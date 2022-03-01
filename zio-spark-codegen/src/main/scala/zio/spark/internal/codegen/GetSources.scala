@@ -33,7 +33,7 @@ object GetSources {
       // TODO fix when running sbt test from command line
       val jar = classpath.find(_.data.getAbsolutePath.contains("/" + module + "_"))
 
-      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).get
+      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).getOrElse(hardSourceJar)
 
       ZManaged
         .acquireReleaseAttemptWith(new JarFile(sourceJar))(_.close())
