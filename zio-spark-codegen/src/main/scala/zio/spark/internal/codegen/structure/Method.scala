@@ -60,7 +60,16 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
 
         val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode).mkString(", ")}]" else ""
 
-        val comment = if (comments.leading(df).isEmpty) "" else comments.leading(df).mkString("\n")
+        val comment =
+          if (comments.leading(df).isEmpty) ""
+          else
+            comments
+              .leading(df)
+              .mkString("\n")
+              .replace( // TODO: remove this line when https://github.com/scalameta/sbt-scalafmt/issues/218 is resolved
+                ", e.g. to numPartitions = 1",
+                ""
+              )
 
         val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
 

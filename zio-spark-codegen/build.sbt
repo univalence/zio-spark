@@ -11,7 +11,7 @@ lazy val plugin =
         "dev.zio"       %% "zio"              % "2.0.0-RC2",
         "dev.zio"       %% "zio-test"         % "2.0.0-RC2" % Test,
         "dev.zio"       %% "zio-test-sbt"     % "2.0.0-RC2" % Test,
-        "org.scalameta" %% "scalafmt-dynamic" % "3.4.3",
+        "org.scalameta" %% "scalafmt-dynamic" % "3.3.0", // equals to sbt-scalafmt's scalfmt-dynamic version
         "org.scalameta" %% "scalameta"        % "4.4.35",
         sparkModule("core"),
         sparkModule("sql")
