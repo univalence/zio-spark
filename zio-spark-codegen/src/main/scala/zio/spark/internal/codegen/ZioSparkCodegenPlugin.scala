@@ -40,15 +40,53 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             (Compile / scalaSource).value / "zio" / "spark" / "internal" / "codegen" / s"Base${plan.name}.scala"
           }
 
-        generationPlans.zip(generatedFiles).foreach { case (plan, file) =>
-          val methods =
-            plan.methods
-              .filterNot(_.fullName.contains("$"))
-              .filterNot(_.fullName.contains("java.lang.Object"))
-              .filterNot(_.fullName.contains("scala.Any"))
-              .filterNot(_.fullName.contains("<init>"))
+        /**
+         * Checks that all methods that need to be implemented are
+         * indeed implemented in zio-spark.
+         *
+         * It throws an exception if one of them is not implemented.
+         *
+         * @param plans
+         *   The plans
+         */
+        def checkAllMethodsAreImplemented(plans: Seq[GenerationPlan]): Unit = {
+          val missingMethodsPerPlans: Seq[(String, Set[String])] =
+            plans.map { plan =>
+              val allMethods = plan.getFinalClassMethods((Compile / scalaSource).value)
 
-          val methodsWithMethodTypes = methods.groupBy(getMethodType)
+              val missingMethods: Set[String] =
+                plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet -- allMethods
+
+              plan.name -> missingMethods
+            }
+
+          if (missingMethodsPerPlans.flatMap(_._2).nonEmpty) {
+            val introduction = "The following methods should be implemented:"
+
+            val explication =
+              """If this method should be implemented later on 
+                |consider identifying this method as 'Todo' and 
+                |not 'ToImplement' using 'getMethodType' function.""".stripMargin.replace("\n", "")
+
+            val errors =
+              missingMethodsPerPlans
+                .collect {
+                  case (name, missingMethods) if missingMethods.nonEmpty =>
+                    val missingMethodsStr = missingMethods.map(" - " + _).mkString("\n")
+                    s"""  $name:
+                       |  $missingMethodsStr""".stripMargin
+                }
+                .mkString("\n")
+
+            throw new NotImplementedError(s"""
+                                             |$introduction
+                                             |$errors
+                                             |$explication""".stripMargin)
+          }
+        }
+
+        generationPlans.zip(generatedFiles).foreach { case (plan, file) =>
+          val methodsWithMethodTypes = plan.methodsWithTypes
 
           val body: String =
             methodsWithMethodTypes.toList
@@ -58,13 +96,15 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                   methodType match {
                     case MethodType.ToImplement => "\n"
                     case MethodType.Ignored     => "\n"
+                    case MethodType.TODO        => "\n"
                     case _                      => "\n\n"
                   }
 
                 val allMethods = methods.sortBy(_.fullName).map(_.toCode(methodType)).distinct.mkString(sep)
                 methodType match {
-                  case MethodType.ToImplement => commentMethods(allMethods, "Methods to implement")
+                  case MethodType.ToImplement => commentMethods(allMethods, "Methods with handmade implementation")
                   case MethodType.Ignored     => commentMethods(allMethods, "Ignored method")
+                  case MethodType.TODO        => commentMethods(allMethods, "Methods that need to be implemented")
                   case _                      => allMethods
                 }
               }
@@ -101,6 +141,8 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
           IO.write(file, formattedCode)
         }
+
+        checkAllMethodsAreImplemented(generationPlans)
 
         generatedFiles
       }.taskValue

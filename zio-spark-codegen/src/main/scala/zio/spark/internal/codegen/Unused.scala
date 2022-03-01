@@ -11,20 +11,6 @@ object Unused {
   // TODO Check implementation
   // val zioSparkMethodNames: Set[String] = readFinalClassRDD((Compile / scalaSource).value)
 
-  private def readFinalClassRDD(scalaSource: File): Set[String] = {
-    val file: File = scalaSource / "zio" / "spark" / "rdd" / "RDD.scala"
-
-    import scala.meta.*
-    val parsed: Source = IO.read(file).parse[Source].get
-
-    val methods = scala.collection.mutable.TreeSet.empty[String]
-    parsed.traverse {
-      case m: Decl.Def if !m.mods.contains(Mod.Private) => methods.add(m.name.value)
-      case _                                            => Unit
-    }
-    methods.toSet
-  }
-
   import scala.meta.*
 
   val importedPackages =

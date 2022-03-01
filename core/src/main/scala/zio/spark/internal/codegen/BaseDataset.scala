@@ -1,5 +1,5 @@
 /**
- * Warning /!\
+ * /!\ Warning /!\
  *
  * This file is generated using zio-spark-codegen, you should not edit
  * this file directly.
@@ -1829,22 +1829,145 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // ===============
 
   /**
-   * Methods to implement
+   * Methods that need to be implemented
    *
-   * [[org.apache.spark.sql.Dataset.cube]]
-   * [[org.apache.spark.sql.Dataset.explain]]
-   * [[org.apache.spark.sql.Dataset.groupBy]]
-   * [[org.apache.spark.sql.Dataset.groupByKey]]
-   * [[org.apache.spark.sql.Dataset.na]]
-   * [[org.apache.spark.sql.Dataset.printSchema]]
-   * [[org.apache.spark.sql.Dataset.randomSplit]]
-   * [[org.apache.spark.sql.Dataset.rollup]]
+   * /** * Create a multi-dimensional cube for the current Dataset using
+   * the specified columns, * so we can run aggregation on them. * See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions. * * {{{ * // Compute the average for all numeric columns
+   * cubed by department and group. * ds.cube($"department",
+   * $"group").avg() * * // Compute the max age and average salary,
+   * cubed by department and gender. * ds.cube($"department",
+   * $"gender").agg(Map( * "salary" -> "avg", * "age" -> "max" * )) *
+   * }}} * * @group untypedrel * @since 2.0.0 */ def cube(cols:
+   * Column*): RelationalGroupedDataset = succeedNow(_.cube(cols: _*))
+   * /** * Create a multi-dimensional cube for the current Dataset using
+   * the specified columns, * so we can run aggregation on them. * See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions. * * This is a variant of cube that can only group by
+   * existing columns using column names * (i.e. cannot construct
+   * expressions). * * {{{ * // Compute the average for all numeric
+   * columns cubed by department and group. * ds.cube("department",
+   * "group").avg() * * // Compute the max age and average salary, cubed
+   * by department and gender. * ds.cube($"department",
+   * $"gender").agg(Map( * "salary" -> "avg", * "age" -> "max" * )) *
+   * }}} * @group untypedrel * @since 2.0.0 */ def cube(col1: String,
+   * cols: String*): RelationalGroupedDataset = succeedNow(_.cube(col1,
+   * cols: _*)) // scalastyle:on println /** * Prints the plans (logical
+   * and physical) with a format specified by a given explain mode. * *
+   * @param mode specifies the expected output format of plans. * <ul> *
+   * <li>`simple` Print only a physical plan.</li> * <li>`extended`:
+   * Print both logical and physical plans.</li> * <li>`codegen`: Print
+   * a physical plan and generated codes if they are * available.</li> *
+   * <li>`cost`: Print a logical plan and statistics if they are
+   * available.</li> * <li>`formatted`: Split explain output into two
+   * sections: a physical plan outline * and node details.</li> * </ul>
+   * * @group basic * @since 3.0.0 */ def explain(mode: String): Unit =
+   * succeedNow(_.explain(mode)) /** * Prints the plans (logical and
+   * physical) to the console for debugging purposes. * * @param
+   * extended default `false`. If `false`, prints only the physical
+   * plan. * * @group basic * @since 1.6.0 */ def explain(extended:
+   * Boolean): Unit = succeedNow(_.explain(extended)) /** * Prints the
+   * physical plan to the console for debugging purposes. * * @group
+   * basic * @since 1.6.0 */ def explain: Unit = succeedNow(_.explain())
+   * /** * Groups the Dataset using the specified columns, so we can run
+   * aggregation on them. See * [[RelationalGroupedDataset]] for all the
+   * available aggregate functions. * * {{{ * // Compute the average for
+   * all numeric columns grouped by department. *
+   * ds.groupBy($"department").avg() * * // Compute the max age and
+   * average salary, grouped by department and gender. *
+   * ds.groupBy($"department", $"gender").agg(Map( * "salary" -> "avg",
+   * * "age" -> "max" * )) * }}} * * @group untypedrel * @since 2.0.0 */
+   * def groupBy(cols: Column*): RelationalGroupedDataset =
+   * succeedNow(_.groupBy(cols: _*)) /** * Groups the Dataset using the
+   * specified columns, so that we can run aggregation on them. * See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions. * * This is a variant of groupBy that can only group by
+   * existing columns using column names * (i.e. cannot construct
+   * expressions). * * {{{ * // Compute the average for all numeric
+   * columns grouped by department. * ds.groupBy("department").avg() * *
+   * // Compute the max age and average salary, grouped by department
+   * and gender. * ds.groupBy($"department", $"gender").agg(Map( *
+   * "salary" -> "avg", * "age" -> "max" * )) * }}} * @group untypedrel
+   * * @since 2.0.0 */ def groupBy(col1: String, cols: String*):
+   * RelationalGroupedDataset = succeedNow(_.groupBy(col1, cols: _*))
+   * /** * (Scala-specific) * Returns a [[KeyValueGroupedDataset]] where
+   * the data is grouped by the given key `func`. * * @group typedrel *
+   * @since 2.0.0 */ def groupByKey[K: Encoder](func: T => K):
+   * KeyValueGroupedDataset[K, T] = succeedNow(_.groupByKey(func)) /** *
+   * (Java-specific) * Returns a [[KeyValueGroupedDataset]] where the
+   * data is grouped by the given key `func`. * * @group typedrel *
+   * @since 2.0.0 */ def groupByKey[K](func: MapFunction[T, K], encoder:
+   * Encoder[K]): KeyValueGroupedDataset[K, T] =
+   * succeedNow(_.groupByKey(func, encoder)) // scalastyle:on println
+   * /** * Returns a [[DataFrameNaFunctions]] for working with missing
+   * data. * {{{ * // Dropping rows containing any null values. *
+   * ds.na.drop() * }}} * * @group untypedrel * @since 1.6.0 */ def na:
+   * DataFrameNaFunctions = succeedNow(_.na) /** * Prints the schema to
+   * the console in a nice tree format. * * @group basic * @since 1.6.0
+   * */ def printSchema: Unit = succeedNow(_.printSchema()) //
+   * scalastyle:off println /** * Prints the schema up to the given
+   * level to the console in a nice tree format. * * @group basic *
+   * @since 3.0.0 */ def printSchema(level: Int): Unit =
+   * succeedNow(_.printSchema(level)) /** * Randomly splits this Dataset
+   * with the provided weights. * * @param weights weights for splits,
+   * will be normalized if they don't sum to 1. * @param seed Seed for
+   * sampling. * * For Java API, use [[randomSplitAsList]]. * * @group
+   * typedrel * @since 2.0.0 */ def randomSplit(weights: Array[Double],
+   * seed: Long): Seq[Dataset[T]] = succeedNow(_.randomSplit(weights,
+   * seed).toSeq) /** * Randomly splits this Dataset with the provided
+   * weights. * * @param weights weights for splits, will be normalized
+   * if they don't sum to 1. * @group typedrel * @since 2.0.0 */ def
+   * randomSplit(weights: Array[Double]): Seq[Dataset[T]] =
+   * succeedNow(_.randomSplit(weights).toSeq) /** * Create a
+   * multi-dimensional rollup for the current Dataset using the
+   * specified columns, * so we can run aggregation on them. * See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions. * * {{{ * // Compute the average for all numeric columns
+   * rolled up by department and group. * ds.rollup($"department",
+   * $"group").avg() * * // Compute the max age and average salary,
+   * rolled up by department and gender. * ds.rollup($"department",
+   * $"gender").agg(Map( * "salary" -> "avg", * "age" -> "max" * )) *
+   * }}} * * @group untypedrel * @since 2.0.0 */ def rollup(cols:
+   * Column*): RelationalGroupedDataset = succeedNow(_.rollup(cols: _*))
+   * /** * Create a multi-dimensional rollup for the current Dataset
+   * using the specified columns, * so we can run aggregation on them. *
+   * See [[RelationalGroupedDataset]] for all the available aggregate
+   * functions. * * This is a variant of rollup that can only group by
+   * existing columns using column names * (i.e. cannot construct
+   * expressions). * * {{{ * // Compute the average for all numeric
+   * columns rolled up by department and group. *
+   * ds.rollup("department", "group").avg() * * // Compute the max age
+   * and average salary, rolled up by department and gender. *
+   * ds.rollup($"department", $"gender").agg(Map( * "salary" -> "avg", *
+   * "age" -> "max" * )) * }}} * * @group untypedrel * @since 2.0.0 */
+   * def rollup(col1: String, cols: String*): RelationalGroupedDataset =
+   * succeedNow(_.rollup(col1, cols: _*)) /** * Returns a
+   * [[DataFrameStatFunctions]] for working statistic functions support.
+   * * {{{ * // Finding frequent items in column with name 'a'. *
+   * ds.stat.freqItems(Seq("a")) * }}} * * @group untypedrel * @since
+   * 1.6.0 */ def stat: DataFrameStatFunctions = succeedNow(_.stat) /**
+   * * Interface for saving the content of the streaming Dataset out
+   * into external storage. * * @group basic * @since 2.0.0 */ def
+   * writeStream: DataStreamWriter[T] = succeedNow(_.writeStream) /** *
+   * Create a write configuration builder for v2 sources. * * This
+   * builder is used to configure and execute write operations. For
+   * example, to append to an * existing table, run: * * {{{ *
+   * df.writeTo("catalog.db.table").append() * }}} * * This can also be
+   * used to create or replace existing tables: * * {{{ *
+   * df.writeTo("catalog.db.table").partitionedBy($"col").createOrReplace()
+   * * }}} * * @group basic * @since 3.0.0 */ def writeTo(table:
+   * String): DataFrameWriterV2[T] = succeedNow(_.writeTo(table))
+   */
+
+  // ===============
+
+  /**
+   * Methods with handmade implementation
+   *
    * [[org.apache.spark.sql.Dataset.show]]
-   * [[org.apache.spark.sql.Dataset.stat]]
    * [[org.apache.spark.sql.Dataset.transform]]
    * [[org.apache.spark.sql.Dataset.write]]
-   * [[org.apache.spark.sql.Dataset.writeStream]]
-   * [[org.apache.spark.sql.Dataset.writeTo]]
    */
 
   // ===============
