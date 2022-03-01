@@ -1,3 +1,10 @@
+/**
+ * /!\ Warning /!\
+ *
+ * This file is generated using zio-spark-codegen, you should not edit
+ * this file directly.
+ */
+
 package zio.spark.internal.codegen
 
 import org.apache.hadoop.io.compress.CompressionCodec

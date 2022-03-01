@@ -74,10 +74,16 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           val config   = Paths.get(".scalafmt.conf")
 
           val code =
-            s"""package zio.spark.internal.codegen
+            s"""/** 
+               | * /!\\ Warning /!\\
+               | *
+               | * This file is generated using zio-spark-codegen, you should not edit 
+               | * this file directly.
+               | */
+               |
+               |package zio.spark.internal.codegen
                |
                |${plan.imports}
-               |
                |
                |@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
                |abstract class Base${plan.name}[T](underlying${plan.name}: ImpureBox[Underlying${plan.name}[T]]) extends Impure[Underlying${plan.name}[T]](underlying${plan.name}) {
