@@ -33,7 +33,7 @@ object GetSources {
       // TODO fix when running sbt test from command line
       val jar = classpath.find(_.data.getAbsolutePath.contains("/" + module + "_"))
 
-      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).getOrElse(hardSourceJar)
+      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).get
 
       ZManaged
         .acquireReleaseAttemptWith(new JarFile(sourceJar))(_.close())
@@ -50,11 +50,13 @@ object GetSources {
 
   type Classpath = Seq[Attributed[File]]
 
-  val defaultClasspath: Classpath = System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
+  val defaultClasspath: Classpath =
+    System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
 
   def main(args: Array[String]): Unit = {
 
-    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(defaultClasspath))
+    val rddFileSource =
+      zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(defaultClasspath))
 
     // source -> packages -> statements (imports | class | object)
     val rddTemplate: Template =
@@ -95,8 +97,9 @@ object GetSources {
     val allDefinitions = allMethods.map(dfn => dfn.toString().replace(s" = ${dfn.body.toString()}", ""))
 
     val allReturnTypes =
-      allDefinitions.map(_.parse[Stat].get).collect { case q"..$mods def $ename[..$tparams](...$paramss): $tpeopt = $expr" =>
-        expr.pos
+      allDefinitions.map(_.parse[Stat].get).collect {
+        case q"..$mods def $ename[..$tparams](...$paramss): $tpeopt = $expr" =>
+          expr.pos
       }
     val a = 1
   }
