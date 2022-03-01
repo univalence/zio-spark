@@ -1,11 +1,14 @@
 package zio.spark.internal.codegen
 
+import org.scalafmt.interfaces.Scalafmt
 import sbt.*
 import sbt.Keys.*
 
 import zio.spark.internal.codegen.MethodType.*
 
 import scala.collection.immutable
+
+import java.nio.file.*
 
 object ZioSparkCodegenPlugin extends AutoPlugin {
   object autoImport {
@@ -67,8 +70,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               }
               .mkString("\n\n//===============\n\n")
 
-          IO.write(
-            file,
+          val scalafmt = Scalafmt.create(this.getClass.getClassLoader)
+          val config   = Paths.get(".scalafmt.conf")
+
+          val code =
             s"""package zio.spark.internal.codegen
                |
                |${plan.imports}
@@ -85,7 +90,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |${prefixAllLines(body, "  ")}
                |}
                |""".stripMargin
-          )
+
+          val formattedCode = scalafmt.format(config, file.toPath, code)
+
+          IO.write(file, formattedCode)
         }
 
         generatedFiles
