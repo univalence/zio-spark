@@ -59,8 +59,7 @@ object MethodType {
         "inputFiles"
       )
 
-    val partitionOps =
-      Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
 
     val otherTransformation = Set("barrier")
     val pureInfo            = Set("toDebugString")
@@ -128,24 +127,24 @@ object MethodType {
       // case _ if method.annotations.exists(_.contains("DeveloperApi")) => Ignored
       // case _ if checkForJavaArgs                                      => Ignored
       case _ if method.calls.flatMap(_.parameters.map(_.signature)).exists(_.contains("Function")) => Ignored
-      case name if action(name)                            => DistributedComputation
-      case name if name.startsWith("take")                 => DistributedComputation
-      case name if name.startsWith("foreach")              => DistributedComputation
-      case name if name.startsWith("count")                => DistributedComputation
-      case name if name.startsWith("saveAs")               => DistributedComputation
-      case "iterator"                                      => DistributedComputation
-      case name if cacheElements(name)                     => DriverAction
-      case name if getters(name)                           => DriverAction
-      case name if otherTransformation(name)               => SuccessNow
-      case name if pureInfo(name)                          => SuccessNow
-      case name if partitionOps(name)                      => SuccessNow
-      case _ if method.path.startsWith("java.lang.Object") => Ignored
-      case _ if method.path.startsWith("scala.Any")        => Ignored
-      case _ if method.isSetter                            => Ignored
-      case _ if method.returnType.startsWith("RDD")        => Transformation
-      case _ if method.returnType.startsWith("Dataset")    => Transformation
-      case _ if method.returnType == "DataFrame"           => Transformation
-      case _ if method.returnType.contains("this.type")    => Transformation
+      case name if action(name)                                                                    => DistributedComputation
+      case name if name.startsWith("take")                                                         => DistributedComputation
+      case name if name.startsWith("foreach")                                                      => DistributedComputation
+      case name if name.startsWith("count")                                                        => DistributedComputation
+      case name if name.startsWith("saveAs")                                                       => DistributedComputation
+      case "iterator"                                                                              => DistributedComputation
+      case name if cacheElements(name)                                                             => DriverAction
+      case name if getters(name)                                                                   => DriverAction
+      case name if otherTransformation(name)                                                       => SuccessNow
+      case name if pureInfo(name)                                                                  => SuccessNow
+      case name if partitionOps(name)                                                              => SuccessNow
+      case _ if method.path.startsWith("java.lang.Object")                                         => Ignored
+      case _ if method.path.startsWith("scala.Any")                                                => Ignored
+      case _ if method.isSetter                                                                    => Ignored
+      case _ if method.returnType.startsWith("RDD")                                                => Transformation
+      case _ if method.returnType.startsWith("Dataset")                                            => Transformation
+      case _ if method.returnType == "DataFrame"                                                   => Transformation
+      case _ if method.returnType.contains("this.type")                                            => Transformation
     }
   }
 }

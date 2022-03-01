@@ -143,9 +143,7 @@ object GenerationPlan {
   private def get(module: String, file: String, classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
     GetSources.getSource(module, file)(classpath).map(source => GenerationPlan(module, file, source))
 
-  def rddPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
-    get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath)
-  def datasetPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
-    get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath)
+  def rddPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan]     = get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath)
+  def datasetPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] = get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath)
 
 }
