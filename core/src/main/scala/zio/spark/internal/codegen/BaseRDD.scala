@@ -1,15 +1,11 @@
 package zio.spark.internal.codegen
 
-import scala.reflect._
-
-import scala.io.Codec
-
-import org.apache.spark.partial.{PartialResult, BoundedDouble}
-import org.apache.spark.rdd.{RDD => UnderlyingRDD, RDDBarrier, PartitionCoalescer}
+import org.apache.hadoop.io.compress.CompressionCodec
+import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
+import org.apache.spark.partial.{BoundedDouble, PartialResult}
+import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD, RDDBarrier}
 import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.{Partition, TaskContext, Dependency, Partitioner}
-import org.apache.hadoop.io.compress.CompressionCodec
 
 import zio.Task
 import zio.spark.impure.Impure
@@ -17,6 +13,8 @@ import zio.spark.impure.Impure.ImpureBox
 import zio.spark.rdd.RDD
 
 import scala.collection.Map
+import scala.io.Codec
+import scala.reflect._
 
 
 @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
@@ -48,31 +46,26 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @see <a href="https://jira.apache.org/jira/browse/SPARK-24374">SPIP: Barrier Execution Mode</a>
      * @see <a href="https://jira.apache.org/jira/browse/SPARK-24582">Design Doc</a>
      */
-  
   def barrier: RDDBarrier[T] = succeedNow(_.barrier())
   
   /**
      * Returns the number of partitions of this RDD.
      */
-  
   def getNumPartitions: Int = succeedNow(_.getNumPartitions)
   
   /**
      * Get the array of partitions of this RDD, taking into account whether the
      * RDD is checkpointed or not.
      */
-  
   def partitions: Seq[Partition] = succeedNow(_.partitions.toSeq)
   
   /**
      * Get the preferred locations of a partition, taking into account whether the
      * RDD is checkpointed.
      */
-  
   def preferredLocations(split: Partition): Seq[String] = succeedNow(_.preferredLocations(split))
   
   /** A description of this RDD and its recursive dependencies for debugging. */
-  
   def toDebugString: String = succeedNow(_.toDebugString)
   
   //===============
@@ -92,7 +85,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param seqOp an operator used to accumulate results within a partition
      * @param combOp an associative operator used to combine results from different partitions
      */
-  
   def aggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U): Task[U] = action(_.aggregate(zeroValue)(seqOp, combOp))
   
   /**
@@ -101,13 +93,11 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @note This method should only be used if the resulting array is expected to be small, as
      * all the data is loaded into the driver's memory.
      */
-  
   def collect: Task[Seq[T]] = action(_.collect().toSeq)
   
   /**
      * Return the number of elements in the RDD.
      */
-  
   def count: Task[Long] = action(_.count())
   
   /**
@@ -124,7 +114,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param confidence the desired statistical confidence in the result
      * @return a potentially incomplete result, with error bounds
      */
-  
   def countApprox(timeout: Long, confidence: Double = 0.95): Task[PartialResult[BoundedDouble]] = action(_.countApprox(timeout, confidence))
   
   /**
@@ -143,7 +132,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param sp The precision value for the sparse set, between 0 and 32.
      *           If `sp` equals 0, the sparse representation is skipped.
      */
-  
   def countApproxDistinct(p: Int, sp: Int): Task[Long] = action(_.countApproxDistinct(p, sp))
   
   /**
@@ -156,7 +144,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param relativeSD Relative accuracy. Smaller values create counters that require more space.
      *                   It must be greater than 0.000017.
      */
-  
   def countApproxDistinct(relativeSD: Double = 0.05): Task[Long] = action(_.countApproxDistinct(relativeSD))
   
   /**
@@ -172,7 +159,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * , which returns an RDD[T, Long] instead of a map.
      */
-  
   def countByValue(implicit ord: Ordering[T] = noOrdering): Task[Map[T, Long]] = action(_.countByValue())
   
   /**
@@ -182,13 +168,11 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param confidence the desired statistical confidence in the result
      * @return a potentially incomplete result, with error bounds
      */
-  
   def countByValueApprox(timeout: Long, confidence: Double = 0.95)(implicit ord: Ordering[T] = noOrdering): Task[PartialResult[Map[T, BoundedDouble]]] = action(_.countByValueApprox(timeout, confidence))
   
   /**
      * Return the first element in this RDD.
      */
-  
   def first: Task[T] = action(_.first())
   
   /**
@@ -211,20 +195,17 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param op an operator used to both accumulate results within a partition and combine results
      *                  from different partitions
      */
-  
   def fold(zeroValue: T)(op: (T, T) => T): Task[T] = action(_.fold(zeroValue)(op))
   
   // Actions (launch a job to return a value to the user program)
   /**
      * Applies a function f to all elements of this RDD.
      */
-  
   def foreach(f: T => Unit): Task[Unit] = action(_.foreach(f))
   
   /**
      * Applies a function f to each partition of this RDD.
      */
-  
   def foreachPartition(f: Iterator[T] => Unit): Task[Unit] = action(_.foreachPartition(f))
   
   /**
@@ -235,7 +216,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @return true if and only if the RDD contains no elements at all. Note that an RDD
      *         may be empty even when it has at least 1 partition.
      */
-  
   def isEmpty: Task[Boolean] = action(_.isEmpty())
   
   /**
@@ -243,46 +223,39 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * This should ''not'' be called by users directly, but is available for implementers of custom
      * subclasses of RDD.
      */
-  
   def iterator(split: Partition, context: TaskContext): Task[Iterator[T]] = action(_.iterator(split, context))
   
   /**
      * Returns the max of this RDD as defined by the implicit Ordering[T].
      * @return the maximum element of the RDD
      * */
-  
   def max(implicit ord: Ordering[T]): Task[T] = action(_.max())
   
   /**
      * Returns the min of this RDD as defined by the implicit Ordering[T].
      * @return the minimum element of the RDD
      * */
-  
   def min(implicit ord: Ordering[T]): Task[T] = action(_.min())
   
   /**
      * Reduces the elements of this RDD using the specified commutative and
      * associative binary operator.
      */
-  
   def reduce(f: (T, T) => T): Task[T] = action(_.reduce(f))
   
   /**
      * Save this RDD as a SequenceFile of serialized objects.
      */
-  
   def saveAsObjectFile(path: String): Task[Unit] = action(_.saveAsObjectFile(path))
   
   /**
      * Save this RDD as a text file, using string representations of elements.
      */
-  
   def saveAsTextFile(path: String): Task[Unit] = action(_.saveAsTextFile(path))
   
   /**
      * Save this RDD as a compressed text file, using string representations of elements.
      */
-  
   def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit] = action(_.saveAsTextFile(path, codec))
   
   /**
@@ -296,7 +269,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @note Due to complications in the internal implementation, this method will raise
      * an exception if called on an RDD of `Nothing` or `Null`.
      */
-  
   def take(num: Int): Task[Seq[T]] = action(_.take(num).toSeq)
   
   /**
@@ -318,7 +290,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param ord the implicit ordering for T
      * @return an array of top elements
      */
-  
   def takeOrdered(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.takeOrdered(num).toSeq)
   
   /**
@@ -332,7 +303,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @note this method should only be used if the resulting array is expected to be small, as
      * all the data is loaded into the driver's memory.
      */
-  
   def takeSample(withReplacement: Boolean, num: Int, seed: Long): Task[Seq[T]] = action(_.takeSample(withReplacement, num, seed).toSeq)
   
   /**
@@ -344,7 +314,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * of a wide transformation (e.g. join with different partitioners), to avoid
      * recomputing the input RDD should be cached first.
      */
-  
   def toLocalIterator: Task[Iterator[T]] = action(_.toLocalIterator)
   
   /**
@@ -366,7 +335,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param ord the implicit ordering for T
      * @return an array of top elements
      */
-  
   def top(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.top(num).toSeq)
   
   /**
@@ -375,7 +343,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * @param depth suggested depth of the tree (default: 2)
      */
-  
   def treeAggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U, depth: Int = 2): Task[U] = action(_.treeAggregate(zeroValue)(seqOp, combOp, depth))
   
   /**
@@ -384,7 +351,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param depth suggested depth of the tree (default: 2)
      * @see [[org.apache.spark.rdd.RDD#reduce]]
      */
-  
   def treeReduce(f: (T, T) => T, depth: Int = 2): Task[T] = action(_.treeReduce(f, depth))
   
   //===============
@@ -392,7 +358,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   /**
      * Persist this RDD with the default storage level (`MEMORY_ONLY`).
      */
-  
   def cache: Task[RDD[T]] = action(_.cache())
   
   /**
@@ -402,21 +367,18 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * executed on this RDD. It is strongly recommended that this RDD is persisted in
      * memory, otherwise saving it on a file will require recomputation.
      */
-  
   def checkpoint: Task[Unit] = action(_.checkpoint())
   
   /**
      * Get the list of dependencies of this RDD, taking into account whether the
      * RDD is checkpointed or not.
      */
-  
   def dependencies: Task[Seq[Dependency[_]]] = action(_.dependencies)
   
   /**
      * Gets the name of the directory to which this RDD was checkpointed.
      * This is not defined if the RDD is checkpointed locally.
      */
-  
   def getCheckpointFile: Task[Option[String]] = action(_.getCheckpointFile)
   
   /**
@@ -424,17 +386,14 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @return the user specified ResourceProfile or null (for Java compatibility) if
      *         none was specified
      */
-  
   def getResourceProfile: Task[ResourceProfile] = action(_.getResourceProfile())
   
   /** Get the RDD's current storage level, or StorageLevel.NONE if none is set. */
-  
   def getStorageLevel: Task[StorageLevel] = action(_.getStorageLevel)
   
   /**
      * Return whether this RDD is checkpointed and materialized, either reliably or locally.
      */
-  
   def isCheckpointed: Task[Boolean] = action(_.isCheckpointed)
   
   /**
@@ -455,7 +414,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * The checkpoint directory set through `SparkContext#setCheckpointDir` is not used.
      */
-  
   def localCheckpoint: Task[RDD[T]] = action(_.localCheckpoint())
   
   /**
@@ -463,13 +421,11 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * it is computed. This can only be used to assign a new storage level if the RDD does not
      * have a storage level set yet. Local checkpointing is an exception.
      */
-  
   def persist(newLevel: StorageLevel): Task[RDD[T]] = action(_.persist(newLevel))
   
   /**
      * Persist this RDD with the default storage level (`MEMORY_ONLY`).
      */
-  
   def persist: Task[RDD[T]] = action(_.persist())
   
   /**
@@ -478,7 +434,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @param blocking Whether to block until all blocks are deleted (default: false)
      * @return This RDD.
      */
-  
   def unpersist(blocking: Boolean = false): Task[RDD[T]] = action(_.unpersist(blocking))
   
   //===============
@@ -487,14 +442,12 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * Return the union of this RDD and another one. Any identical elements will appear multiple
      * times (use `.distinct()` to eliminate them).
      */
-  
   def ++(other: RDD[T]): RDD[T] = transformation(_.++(other))
   
   /**
      * Return the Cartesian product of this RDD and another one, that is, the RDD of all pairs of
      * elements (a, b) where a is in `this` and b is in `other`.
      */
-  
   def cartesian[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.cartesian(other))
   
   /**
@@ -519,38 +472,32 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * data distributed using a hash partitioner. The optional partition coalescer
      * passed in must be serializable.
      */
-  
   def coalesce(numPartitions: Int, shuffle: Boolean = false, partitionCoalescer: Option[PartitionCoalescer] = Option.empty)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.coalesce(numPartitions, shuffle, partitionCoalescer))
   
   /**
      * Return a new RDD containing the distinct elements in this RDD.
      */
-  
   def distinct(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.distinct(numPartitions))
   
   /**
      * Return a new RDD containing the distinct elements in this RDD.
      */
-  
   def distinct: RDD[T] = transformation(_.distinct())
   
   /**
      * Return a new RDD containing only the elements that satisfy a predicate.
      */
-  
   def filter(f: T => Boolean): RDD[T] = transformation(_.filter(f))
   
   /**
      *  Return a new RDD by first applying a function to all elements of this
      *  RDD, and then flattening the results.
      */
-  
   def flatMap[U: ClassTag](f: T => IterableOnce[U]): RDD[U] = transformation(_.flatMap(f))
   
   /**
      * Return an RDD created by coalescing all elements within each partition into an array.
      */
-  
   def glom: RDD[Seq[T]] = transformation(_.glom())
   
   /**
@@ -559,7 +506,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * @note This method performs a shuffle internally.
      */
-  
   def intersection(other: RDD[T]): RDD[T] = transformation(_.intersection(other))
   
   /**
@@ -570,7 +516,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * @param partitioner Partitioner to use for the resulting RDD
      */
-  
   def intersection(other: RDD[T], partitioner: Partitioner)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.intersection(other, partitioner))
   
   /**
@@ -581,20 +526,17 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *
      * @param numPartitions How many partitions to use in the resulting RDD
      */
-  
   def intersection(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.intersection(other, numPartitions))
   
   /**
      * Creates tuples of the elements in this RDD by applying `f`.
      */
-  
   def keyBy[K](f: T => K): RDD[(K, T)] = transformation(_.keyBy(f))
   
   // Transformations (return a new RDD)
   /**
      * Return a new RDD by applying a function to all elements of this RDD.
      */
-  
   def map[U: ClassTag](f: T => U): RDD[U] = transformation(_.map(f))
   
   /**
@@ -603,7 +545,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * `preservesPartitioning` indicates whether the input function preserves the partitioner, which
      * should be `false` unless this is a pair RDD and the input function doesn't modify the keys.
      */
-  
   def mapPartitions[U: ClassTag](f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = transformation(_.mapPartitions(f, preservesPartitioning))
   
   /**
@@ -613,19 +554,16 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * `preservesPartitioning` indicates whether the input function preserves the partitioner, which
      * should be `false` unless this is a pair RDD and the input function doesn't modify the keys.
      */
-  
   def mapPartitionsWithIndex[U: ClassTag](f: (Int, Iterator[T]) => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = transformation(_.mapPartitionsWithIndex(f, preservesPartitioning))
   
   /**
      * Return an RDD created by piping elements to a forked external process.
      */
-  
   def pipe(command: String): RDD[String] = transformation(_.pipe(command))
   
   /**
      * Return an RDD created by piping elements to a forked external process.
      */
-  
   def pipe(command: String, env: Map[String, String]): RDD[String] = transformation(_.pipe(command, env))
   
   /**
@@ -658,7 +596,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      *                 the piped process
      * @return the result RDD
      */
-  
   def pipe(command: Seq[String], env: Map[String, String] = Map(), printPipeContext: (String => Unit) => Unit = null, printRDDElement: (T, String => Unit) => Unit = null, separateWorkingDir: Boolean = false, bufferSize: Int = 8192, encoding: String = Codec.defaultCharsetCodec.name): RDD[String] = transformation(_.pipe(command, env, printPipeContext, printRDDElement, separateWorkingDir, bufferSize, encoding))
   
   /**
@@ -670,7 +607,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * If you are decreasing the number of partitions in this RDD, consider using `coalesce`,
      * which can avoid performing a shuffle.
      */
-  
   def repartition(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.repartition(numPartitions))
   
   /**
@@ -686,13 +622,11 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * @note This is NOT guaranteed to provide exactly the fraction of the count
      * of the given [[RDD]].
      */
-  
   def sample(withReplacement: Boolean, fraction: Double, seed: Long): RDD[T] = transformation(_.sample(withReplacement, fraction, seed))
   
   /**
      * Return this RDD sorted by the given key function.
      */
-  
   def sortBy[K](f: (T) => K, ascending: Boolean = true, numPartitions: Int = this.partitions.length)(implicit ord: Ordering[K], ctag: ClassTag[K]): RDD[T] = transformation(_.sortBy(f, ascending, numPartitions))
   
   /**
@@ -701,26 +635,22 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * Uses `this` partitioner/partition size, because even if `other` is huge, the resulting
      * RDD will be &lt;= us.
      */
-  
   def subtract(other: RDD[T]): RDD[T] = transformation(_.subtract(other))
   
   /**
      * Return an RDD with the elements from `this` that are not in `other`.
      */
-  
   def subtract(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.subtract(other, numPartitions))
   
   /**
      * Return an RDD with the elements from `this` that are not in `other`.
      */
-  
   def subtract(other: RDD[T], p: Partitioner)(implicit ord: Ordering[T] = noOrdering): RDD[T] = transformation(_.subtract(other, p))
   
   /**
      * Return the union of this RDD and another one. Any identical elements will appear multiple
      * times (use `.distinct()` to eliminate them).
      */
-  
   def union(other: RDD[T]): RDD[T] = transformation(_.union(other))
   
   /**
@@ -729,7 +659,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * It will result in new executors with the resources specified being acquired to
      * calculate the RDD.
      */
-  
   def withResources(rp: ResourceProfile): RDD[T] = transformation(_.withResources(rp))
   
   /**
@@ -738,7 +667,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * partitions* and the *same number of elements in each partition* (e.g. one was made through
      * a map on the other).
      */
-  
   def zip[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.zip(other))
   
   /**
@@ -747,7 +675,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * *same number of partitions*, but does *not* require them to have the same number
      * of elements in each partition.
      */
-  
   def zipPartitions[B: ClassTag, V: ClassTag](rdd2: RDD[B], preservesPartitioning: Boolean)(f: (Iterator[T], Iterator[B]) => Iterator[V]): RDD[V] = transformation(_.zipPartitions(rdd2, preservesPartitioning)(f))
   
   
@@ -778,7 +705,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * and may even change if the RDD is reevaluated. If a fixed ordering is required to guarantee
      * the same index assignments, you should sort the RDD with sortByKey() or save it to a file.
      */
-  
   def zipWithIndex: RDD[(T, Long)] = transformation(_.zipWithIndex())
   
   /**
@@ -791,7 +717,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
      * and may even change if the RDD is reevaluated. If a fixed ordering is required to guarantee
      * the same index assignments, you should sort the RDD with sortByKey() or save it to a file.
      */
-  
   def zipWithUniqueId: RDD[(T, Long)] = transformation(_.zipWithUniqueId())
   
   //===============

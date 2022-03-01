@@ -76,36 +76,34 @@ case class GenerationPlan(module: String, path: String, source: meta.Source) {
 
   def imports: String = {
     val rddImports =
-      """import scala.reflect._
-        |
-        |import scala.io.Codec
-        |
-        |import org.apache.spark.partial.{PartialResult, BoundedDouble}
-        |import org.apache.spark.rdd.{RDD => UnderlyingRDD, RDDBarrier, PartitionCoalescer}
+      """import org.apache.hadoop.io.compress.CompressionCodec
+        |import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
+        |import org.apache.spark.partial.{BoundedDouble, PartialResult}
+        |import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD, RDDBarrier}
         |import org.apache.spark.resource.ResourceProfile
         |import org.apache.spark.storage.StorageLevel
-        |import org.apache.spark.{Partition, TaskContext, Dependency, Partitioner}
-        |import org.apache.hadoop.io.compress.CompressionCodec
         |
         |import zio.Task
         |import zio.spark.impure.Impure
         |import zio.spark.impure.Impure.ImpureBox
         |import zio.spark.rdd.RDD
         |
-        |import scala.collection.Map""".stripMargin
+        |import scala.collection.Map
+        |import scala.io.Codec
+        |import scala.reflect._""".stripMargin
 
     val datasetImports =
-      """import scala.jdk.CollectionConverters._
-        |import scala.reflect.runtime.universe.TypeTag
-        |
-        |import org.apache.spark.sql.{Dataset => UnderlyingDataset, Column, Encoder, Row, TypedColumn}
-        |import org.apache.spark.storage.StorageLevel
+      """import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row, TypedColumn}
         |import org.apache.spark.sql.types.StructType
+        |import org.apache.spark.storage.StorageLevel
         |
         |import zio.Task
         |import zio.spark.impure.Impure
         |import zio.spark.impure.Impure.ImpureBox
-        |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}""".stripMargin
+        |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
+        |
+        |import scala.jdk.CollectionConverters._
+        |import scala.reflect.runtime.universe.TypeTag""".stripMargin
 
     planType.fold(rddImports, datasetImports)
   }

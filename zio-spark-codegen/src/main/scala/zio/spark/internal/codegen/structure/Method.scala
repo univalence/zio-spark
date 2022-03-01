@@ -60,7 +60,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
 
         val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode).mkString(", ")}]" else ""
 
-        val comment = if (comments.leading(df).isEmpty) "" else comments.leading(df).mkString("\n") + "\n"
+        val comment = if (comments.leading(df).isEmpty) "" else comments.leading(df).mkString("\n")
 
         val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
 
