@@ -148,7 +148,12 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |""".stripMargin
           }
 
-          val formattedCode = scalafmt.format(config, file.toPath, code)
+          val formattedCode: String = scalafmt.format(config, file.toPath, code)
+
+          val check: Option[String] = "\n//(.*?)\n".r.findFirstIn(formattedCode)
+          check.foreach { line =>
+            throw new AssertionError(s"generated file should not contain non-indented single-line comments $line")
+          }
 
           IO.write(file, formattedCode)
         }
