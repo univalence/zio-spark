@@ -57,7 +57,7 @@ jobs:
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
       - name: Download sources
-        run: sbt ++${{ matrix.scala }}! "project core" updateClassifiers
+        run: sbt updateClassifiers
       - name: Publish the library
         run: sbt ci-release
         env:
