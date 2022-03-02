@@ -15,21 +15,6 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
   val returnType: String             = df.decltpe.get.toString()
   val fullName: String               = s"$path.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
-  val hasAnalysisException: Boolean = {
-    val functionsThrowingAnalysisException =
-      List(
-        "createTempView",
-        "createGlobalTempView",
-        "withColumn"
-      )
-    self match {
-      case _ if calls.flatMap(_.parameters).exists(_.name.toLowerCase.contains("expr"))      => true
-      case _ if calls.flatMap(_.parameters).exists(_.name.toLowerCase.contains("condition")) => true
-      case _ if functionsThrowingAnalysisException.contains(name)                            => true
-      case _ if calls.flatMap(_.parameters).isEmpty && name == "as"                          => true
-      case _                                                                                 => false
-    }
-  }
 
   def toCode(methodType: MethodType): String =
     methodType match {
@@ -44,7 +29,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
           methodType match {
             case MethodType.DriverAction                           => "action"
             case MethodType.DistributedComputation                 => "action"
-            case MethodType.Transformation if hasAnalysisException => "transformationWithAnalysis"
+            case MethodType.SuccessWithAnalysis => "withAnalysis"
+            case MethodType.TransformationWithAnalysis => "transformationWithAnalysis"
             case MethodType.Transformation                         => "transformation"
             case _                                                 => "succeedNow"
           }
@@ -55,7 +41,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
           methodType match {
             case MethodType.DriverAction           => s"Task[$cleanReturnType]"
             case MethodType.DistributedComputation => s"Task[$cleanReturnType]"
-            case _ if hasAnalysisException         => s"TryAnalysis[$cleanReturnType]"
+            case MethodType.SuccessWithAnalysis => s"TryAnalysis[$cleanReturnType]"
+            case MethodType.TransformationWithAnalysis       => s"TryAnalysis[$cleanReturnType]"
             case _                                 => cleanReturnType
           }
 
@@ -67,9 +54,9 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
             comments
               .leading(df)
               .mkString("\n")
-              .replace( // TODO: remove this line when https://github.com/scalameta/sbt-scalafmt/issues/218 is resolved
-                ", e.g. to numPartitions = 1",
-                ""
+              .replace(
+                "numPartitions = 1",
+                "{{{ numPartitions = 1 }}}"
               )
 
         val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""

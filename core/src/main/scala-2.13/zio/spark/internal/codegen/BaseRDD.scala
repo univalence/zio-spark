@@ -41,28 +41,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   /** Applies a transformation to the underlying RDD. */
   def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = succeedNow(f.andThen(x => RDD(x)))
 
-  /**
-   * :: Experimental :: Marks the current stage as a barrier stage,
-   * where Spark must launch all tasks together. In case of a task
-   * failure, instead of only restarting the failed task, Spark will
-   * abort the entire stage and re-launch all tasks for this stage. The
-   * barrier execution mode feature is experimental and it only handles
-   * limited scenarios. Please read the linked SPIP and design docs to
-   * understand the limitations and future plans.
-   * @return
-   *   an [[RDDBarrier]] instance that provides actions within a barrier
-   *   stage
-   * @see
-   *   [[org.apache.spark.BarrierTaskContext]]
-   * @see
-   *   <a href="https://jira.apache.org/jira/browse/SPARK-24374">SPIP:
-   *   Barrier Execution Mode</a>
-   * @see
-   *   <a href="https://jira.apache.org/jira/browse/SPARK-24582">Design
-   *   Doc</a>
-   */
-  def barrier: RDDBarrier[T] = succeedNow(_.barrier())
-
   /** Returns the number of partitions of this RDD. */
   def getNumPartitions: Int = succeedNow(_.getNumPartitions)
 
@@ -434,6 +412,28 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   // ===============
 
   /**
+   * :: Experimental :: Marks the current stage as a barrier stage,
+   * where Spark must launch all tasks together. In case of a task
+   * failure, instead of only restarting the failed task, Spark will
+   * abort the entire stage and re-launch all tasks for this stage. The
+   * barrier execution mode feature is experimental and it only handles
+   * limited scenarios. Please read the linked SPIP and design docs to
+   * understand the limitations and future plans.
+   * @return
+   *   an [[RDDBarrier]] instance that provides actions within a barrier
+   *   stage
+   * @see
+   *   [[org.apache.spark.BarrierTaskContext]]
+   * @see
+   *   <a href="https://jira.apache.org/jira/browse/SPARK-24374">SPIP:
+   *   Barrier Execution Mode</a>
+   * @see
+   *   <a href="https://jira.apache.org/jira/browse/SPARK-24582">Design
+   *   Doc</a>
+   */
+  def barrier: Task[RDDBarrier[T]] = action(_.barrier())
+
+  /**
    * Persist this RDD with the default storage level (`MEMORY_ONLY`).
    */
   def cache: Task[RDD[T]] = action(_.cache())
@@ -557,12 +557,13 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    * partitions. If a larger number of partitions is requested, it will
    * stay at the current number of partitions.
    *
-   * However, if you're doing a drastic coalesce, this may result in
-   * your computation taking place on fewer nodes than you like (e.g.
-   * one node in the case of numPartitions = 1). To avoid this, you can
-   * pass shuffle = true. This will add a shuffle step, but means the
-   * current upstream partitions will be executed in parallel (per
-   * whatever the current partitioning is).
+   * However, if you're doing a drastic coalesce, e.g. to
+   * {{{numPartitions = 1}}}, this may result in your computation taking
+   * place on fewer nodes than you like (e.g. one node in the case of
+   * {{{numPartitions = 1}}}). To avoid this, you can pass shuffle =
+   * true. This will add a shuffle step, but means the current upstream
+   * partitions will be executed in parallel (per whatever the current
+   * partitioning is).
    *
    * @note
    *   With shuffle = true, you can actually coalesce to a larger number

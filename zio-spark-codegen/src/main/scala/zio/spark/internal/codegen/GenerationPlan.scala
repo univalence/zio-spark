@@ -192,6 +192,12 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
         | */
         |def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
         |  TryAnalysis(transformation(f))
+        |
+        |/**
+        | * Wraps a function into a TryAnalysis.
+        | */
+        |def withAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] =
+        |  TryAnalysis(succeedNow(f))
         |""".stripMargin
 
     defaultHelpers + "\n\n" + planType.fold("", datasetHelpers)
