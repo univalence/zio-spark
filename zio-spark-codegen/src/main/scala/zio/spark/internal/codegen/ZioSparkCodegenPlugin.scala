@@ -116,7 +116,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                   case _                      => allMethods
                 }
               }
-              .mkString("\n\n/* === */\n\n")
+              .mkString("\n\n  // ===============\n\n")
 
           val scalafmt = Scalafmt.create(this.getClass.getClassLoader)
           val config   = Paths.get(".scalafmt.conf")

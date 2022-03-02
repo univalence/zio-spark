@@ -1913,4 +1913,5 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * [[org.apache.spark.sql.Dataset.toJavaRDD]]
    * [[org.apache.spark.sql.Dataset.toString]]
    */
+
 }
