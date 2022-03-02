@@ -7,11 +7,44 @@ import zio.{Task, ZManaged}
 import scala.collection.immutable
 import scala.meta.*
 import scala.meta.tokens.Token
+import scala.util.matching.Regex
 
 import java.io.File
 import java.net.URLClassLoader
-
+import java.nio.file.{Files, Path, Paths}
+import java.util.function.Predicate
+import java.util.jar.JarFile
 object GetSources {
+
+  val RootSparkPattern: Regex = "($(.*)/org/apache/spark)".r
+
+  def findSourceJar(module: String, hints: String*): zio.Task[JarFile] =
+    Task {
+
+      val paths =
+        hints.flatMap(RootSparkPattern.findFirstIn) ++ Seq(
+          System.getProperty(
+            "user.home"
+          ) + "/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark",
+          "/home/runner/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/spark"
+        )
+
+      val root = paths.map(s => new File(s)).find(x => x.exists() && x.isDirectory).get
+
+      val path =
+        Files
+          .walk(root.toPath)
+          .filter { (t: Path) =>
+            val absolutePath = t.toAbsolutePath.toString
+            absolutePath.contains(module) && absolutePath.endsWith("-sources.jar")
+          }
+          .findFirst()
+          .get()
+
+      new JarFile(path.toFile)
+
+    }
+
   def red(text: String): String = "\u001B[31m" + text + "\u001B[0m"
 
   def getSource(module: String, file: String)(classpath: sbt.Def.Classpath): zio.Task[meta.Source] =
@@ -33,12 +66,10 @@ object GetSources {
         ) + s"/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark/${module}_2.12/3.2.1/${module}_2.12-3.2.1-sources.jar"
 
       // TODO fix when running sbt test from command line
-      val jar = classpath.find(_.data.getAbsolutePath.contains("/" + module + "_"))
-
-      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).get // .getOrElse(hardSourceJar)
+      val jar: Option[String] = classpath.map(_.data.getAbsolutePath).collectFirst { case RootSparkPattern(x) => x }
 
       ZManaged
-        .acquireReleaseAttemptWith(new JarFile(sourceJar))(_.close())
+        .acquireReleaseWith(findSourceJar(module, jar.toSeq: _*))(x => Task(x.close()).ignore)
         .use(jarFile =>
           Task {
             val entry: ZipEntry         = jarFile.getEntry(file)
@@ -54,16 +85,14 @@ object GetSources {
 
   type Classpath = Seq[Attributed[File]]
 
-  val defaultClasspath: Classpath =
-    System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
+  val defaultClasspath: Classpath = System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
 
   def classLoaderToClasspath(classLoader: ClassLoader): Classpath =
     classLoader.asInstanceOf[URLClassLoader].getURLs.map(_.getFile).map(x => Attributed.blank(new File(x)))
 
-  def main(args: Array[String]): Unit = {
+  def mainExplore(args: Array[String]): Unit = {
 
-    val rddFileSource =
-      zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(defaultClasspath))
+    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(defaultClasspath))
 
     // source -> packages -> statements (imports | class | object)
     val rddTemplate: Template =
@@ -104,9 +133,8 @@ object GetSources {
     val allDefinitions = allMethods.map(dfn => dfn.toString().replace(s" = ${dfn.body.toString()}", ""))
 
     val allReturnTypes =
-      allDefinitions.map(_.parse[Stat].get).collect {
-        case q"..$mods def $ename[..$tparams](...$paramss): $tpeopt = $expr" =>
-          expr.pos
+      allDefinitions.map(_.parse[Stat].get).collect { case q"..$mods def $ename[..$tparams](...$paramss): $tpeopt = $expr" =>
+        expr.pos
       }
     val a = 1
   }
