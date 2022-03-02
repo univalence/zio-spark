@@ -909,7 +909,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
   // ===============
 
   /**
-   * Ignored method
+   * Ignored methods
    *
    * [[org.apache.spark.rdd.RDD.collect]]
    * [[org.apache.spark.rdd.RDD.setName]]

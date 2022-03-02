@@ -13,21 +13,18 @@ object MethodType {
   case object TODO                   extends MethodType
   case object ToImplement            extends MethodType
 
-  implicit val orderingMethodType: Ordering[MethodType] =
-    (x: MethodType, y: MethodType) => {
-      def methodTypeToInt(methodType: MethodType): Int =
-        methodType match {
-          case MethodType.SuccessNow             => 0
-          case MethodType.DistributedComputation => 1
-          case MethodType.DriverAction           => 2
-          case MethodType.Transformation         => 3
-          case MethodType.TODO                   => 4
-          case MethodType.ToImplement            => 5
-          case MethodType.Ignored                => 6
-        }
-
-      Ordering[Int].compare(methodTypeToInt(x), methodTypeToInt(y))
+  def methodTypeOrdering(methodType: MethodType): Int =
+    methodType match {
+      case MethodType.SuccessNow             => 0
+      case MethodType.DistributedComputation => 1
+      case MethodType.DriverAction           => 2
+      case MethodType.Transformation         => 3
+      case MethodType.TODO                   => 4
+      case MethodType.ToImplement            => 5
+      case MethodType.Ignored                => 6
     }
+
+  implicit val orderingMethodType: Ordering[MethodType] = Ordering.by(methodTypeOrdering)
 
   def getMethodType(method: Method): MethodType = {
     val cacheElements =

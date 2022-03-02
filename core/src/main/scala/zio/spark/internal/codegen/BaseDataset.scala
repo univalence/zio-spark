@@ -1847,7 +1847,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // ===============
 
   /**
-   * Methods with handmade implementation
+   * Methods with handmade implementations
    *
    * [[org.apache.spark.sql.Dataset.show]]
    * [[org.apache.spark.sql.Dataset.transform]]
@@ -1857,7 +1857,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // ===============
 
   /**
-   * Ignored method
+   * Ignored methods
    *
    * [[org.apache.spark.sql.Dataset.apply]]
    * [[org.apache.spark.sql.Dataset.col]]
