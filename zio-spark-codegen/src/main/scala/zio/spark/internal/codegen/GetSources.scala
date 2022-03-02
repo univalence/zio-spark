@@ -11,8 +11,7 @@ import scala.util.matching.Regex
 
 import java.io.File
 import java.net.URLClassLoader
-import java.nio.file.{Files, Path, Paths}
-import java.util.function.Predicate
+import java.nio.file.{Files, Path}
 import java.util.jar.JarFile
 object GetSources {
 
@@ -51,25 +50,13 @@ object GetSources {
     Task {
       import scala.io.{BufferedSource, Source}
       import java.io.InputStream
-      import java.util.jar.JarFile
       import java.util.zip.ZipEntry
 
-      // val sparkCoreJar: String   = System.getProperty("java.class.path").split(':').find(_.contains(module)).get
-      // val sparkSourceJar: String = sparkCoreJar.replace(".jar", "-sources.jar")
-      /* val sparkSourceJar =
-       * "/Users/dylandoamaral/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark/spark-core_2.12/3.2.1/spark-core_2.12-3.2.1-sources.jar" */
 
-      @deprecated
-      val hardSourceJar: String =
-        System.getProperty(
-          "user.home"
-        ) + s"/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark/${module}_2.12/3.2.1/${module}_2.12-3.2.1-sources.jar"
-
-      // TODO fix when running sbt test from command line
-      val jar: Option[String] = classpath.map(_.data.getAbsolutePath).collectFirst { case RootSparkPattern(x) => x }
+      val rootSpark: Option[String] = classpath.map(_.data.getAbsolutePath).collectFirst { case RootSparkPattern(x) => x }
 
       ZManaged
-        .acquireReleaseWith(findSourceJar(module, jar.toSeq: _*))(x => Task(x.close()).ignore)
+        .acquireReleaseWith(findSourceJar(module, rootSpark.toSeq: _*))(x => Task(x.close()).ignore)
         .use(jarFile =>
           Task {
             val entry: ZipEntry         = jarFile.getEntry(file)
