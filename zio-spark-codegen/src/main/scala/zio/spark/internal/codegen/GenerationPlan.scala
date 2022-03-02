@@ -110,9 +110,9 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
 
     val implicits = defaultImplicits + "\n" + planType.fold(rddImplicits, datasetImplicits)
 
-    s"""// scalafix:off
+    s"""  // scalafix:off
        |$implicits
-       |// scalafix:on
+       |  // scalafix:on
        |""".stripMargin
   }
 

@@ -53,7 +53,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
           else
             comments
               .leading(df)
-              .mkString("\n")
+              .mkString("  ", "\n  ", "")
               .replace(
                 "numPartitions = 1",
                 "{{{ numPartitions = 1 }}}"

@@ -116,13 +116,14 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                   case _                      => allMethods
                 }
               }
-              .mkString("\n\n//===============\n\n")
+              .mkString("\n\n/* === */\n\n")
 
           val scalafmt = Scalafmt.create(this.getClass.getClassLoader)
           val config   = Paths.get(".scalafmt.conf")
 
-          val code =
-            s"""/** 
+          val code = {
+            import plan.*
+            s"""/**
                | * /!\\ Warning /!\\
                | *
                | * This file is generated using zio-spark-codegen, you should not edit 
@@ -131,19 +132,21 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |
                |package zio.spark.internal.codegen
                |
-               |${plan.imports}
+               |$imports
                |
-               |${plan.suppressWarnings}
-               |abstract class Base${plan.name}[T](underlying${plan.name}: ImpureBox[Underlying${plan.name}[T]]) extends Impure[Underlying${plan.name}[T]](underlying${plan.name}) {
-               |  import underlying${plan.name}._
+               |$suppressWarnings
+               |abstract class Base$name[T](underlying$name: ImpureBox[Underlying$name[T]]) extends Impure[Underlying$name[T]](underlying$name) {
+               |  import underlying$name._
                |
-               |${prefixAllLines(plan.baseImplicits, "  ")}
-               |  
-               |${prefixAllLines(plan.helpers, "  ")}
+               |$baseImplicits
                |
-               |${prefixAllLines(body, "  ")}
+               |$helpers
+               |
+               |$body
+               |
                |}
                |""".stripMargin
+          }
 
           val formattedCode = scalafmt.format(config, file.toPath, code)
 
