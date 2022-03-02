@@ -16,8 +16,10 @@ jobs:
         uses: olafurpg/setup-scala@v13
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
+      - name: Download sources
+        run: sbt updateClassifiers
       - name: Check formatting and linting
-        run: sbt "-Dfatal-warnings=true" updateClassifiers check
+        run: sbt "-Dfatal-warnings=true" check
 
   test:
     runs-on: ubuntu-20.04
@@ -47,6 +49,10 @@ jobs:
   publish:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        scala: [ "2.11.12", "2.12.15", "2.13.8" ]
     needs: [check, test]
     if: github.event_name != 'pull_request'
     steps:
@@ -57,14 +63,16 @@ jobs:
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
       - name: Download sources
-        run: sbt updateClassifiers
+        run: sbt ++${{ matrix.scala }}! "project core" updateClassifiers
       - name: Publish the library
-        run: sbt ci-release
+        run: sbt ++${{ matrix.scala }}! "project core" ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          CI_RELEASE: publishSigned
+          CI_SNAPSHOT_RELEASE: publish
 
   release:
     runs-on: ubuntu-20.04
