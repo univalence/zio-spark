@@ -1833,7 +1833,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    *
    * [[org.apache.spark.sql.Dataset.cube]]
    * [[org.apache.spark.sql.Dataset.explain]]
-   * [[org.apache.spark.sql.Dataset.groupBy]]
    * [[org.apache.spark.sql.Dataset.groupByKey]]
    * [[org.apache.spark.sql.Dataset.na]]
    * [[org.apache.spark.sql.Dataset.printSchema]]
@@ -1849,8 +1848,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   /**
    * Methods with handmade implementations
    *
+   * [[org.apache.spark.sql.Dataset.groupBy]]
    * [[org.apache.spark.sql.Dataset.show]]
-   * [[org.apache.spark.sql.Dataset.takeAsList]]
    * [[org.apache.spark.sql.Dataset.transform]]
    * [[org.apache.spark.sql.Dataset.write]]
    */
@@ -1873,6 +1872,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * [[org.apache.spark.sql.Dataset.mapPartitions]]
    * [[org.apache.spark.sql.Dataset.randomSplitAsList]]
    * [[org.apache.spark.sql.Dataset.reduce]]
+   * [[org.apache.spark.sql.Dataset.takeAsList]]
    * [[org.apache.spark.sql.Dataset.toJavaRDD]]
    * [[org.apache.spark.sql.Dataset.toString]]
    */

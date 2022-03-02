@@ -1,6 +1,11 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{Dataset => UnderlyingDataset, Sniffer}
+import org.apache.spark.sql.{
+  Column,
+  Dataset => UnderlyingDataset,
+  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
+  Sniffer
+}
 
 import zio._
 import zio.spark.impure.Impure.ImpureBox
@@ -9,6 +14,10 @@ import zio.spark.rdd.RDD
 final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     extends ExtraDatasetFeature[T](underlyingDataset) {
   import underlyingDataset._
+
+  /** Transforms the Dataset into a RelationalGroupedDataset. */
+  def group(f: UnderlyingDataset[T] => UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
+    succeedNow(f.andThen(x => RelationalGroupedDataset(x)))
 
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)
@@ -46,6 +55,14 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     val stringifiedDf = underlyingDataset.succeedNow(d => Sniffer.datasetShowString(d, numRows, truncate = trunc))
     Console.printLine(stringifiedDf)
   }
+
+  /**
+   * Groups the Dataset using the specified columns, so we ca run
+   * aggregations on them.
+   *
+   * See [[UnderlyingDataset.groupBy]] for more information.
+   */
+  def groupBy(cols: Column*): RelationalGroupedDataset = group(_.groupBy(cols: _*))
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it

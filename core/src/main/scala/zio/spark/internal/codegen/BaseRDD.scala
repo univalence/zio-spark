@@ -901,7 +901,6 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    * Methods that need to be implemented
    *
    * [[org.apache.spark.rdd.RDD.context]]
-   * [[org.apache.spark.rdd.RDD.groupBy]]
    * [[org.apache.spark.rdd.RDD.randomSplit]]
    * [[org.apache.spark.rdd.RDD.sparkContext]]
    */
@@ -912,6 +911,7 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    * Ignored methods
    *
    * [[org.apache.spark.rdd.RDD.collect]]
+   * [[org.apache.spark.rdd.RDD.groupBy]]
    * [[org.apache.spark.rdd.RDD.setName]]
    * [[org.apache.spark.rdd.RDD.toJavaRDD]]
    * [[org.apache.spark.rdd.RDD.toString]]
