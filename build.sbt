@@ -62,7 +62,7 @@ ThisBuild / coverageMinimumStmtPerPackage   := 80
 ThisBuild / coverageMinimumBranchPerPackage := 80
 ThisBuild / coverageMinimumStmtPerFile      := 50
 ThisBuild / coverageMinimumBranchPerFile    := 50
-ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*"
+ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*"
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
@@ -121,7 +121,7 @@ def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core"   % sparkVersion   % Provided withSources(),
+    "org.apache.spark" %% "spark-core"   % sparkVersion   % Provided withSources (),
     "org.apache.spark" %% "spark-sql"    % sparkVersion   % Provided,
     "dev.zio"          %% "zio-test"     % libVersion.zio % Test,
     "dev.zio"          %% "zio-test-sbt" % libVersion.zio % Test,
