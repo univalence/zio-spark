@@ -5,16 +5,14 @@ import sbt.internal.util.Attributed
 import zio.{Task, ZManaged}
 
 import scala.collection.immutable
-import scala.meta._
+import scala.meta.*
 import scala.meta.tokens.Token
 
 import java.io.File
 import java.net.URLClassLoader
 
-
 object GetSources {
   def red(text: String): String = "\u001B[31m" + text + "\u001B[0m"
-
 
   def getSource(module: String, file: String)(classpath: sbt.Def.Classpath): zio.Task[meta.Source] =
     Task {
@@ -51,7 +49,6 @@ object GetSources {
           }
         )
     }.flatten.onError { _ =>
-
       zio.UIO(println(s"[${red("error")}] can't find $file in $module from $classpath"))
     }
 
@@ -59,6 +56,9 @@ object GetSources {
 
   val defaultClasspath: Classpath =
     System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
+
+  def classLoaderToClasspath(classLoader: ClassLoader): Classpath =
+    classLoader.asInstanceOf[URLClassLoader].getURLs.map(_.getFile).map(x => Attributed.blank(new File(x)))
 
   def main(args: Array[String]): Unit = {
 
@@ -109,27 +109,6 @@ object GetSources {
           expr.pos
       }
     val a = 1
-  }
-
-}
-
-
-object ExploreClasspath {
-
-  def main(args: Array[String]): Unit = {
-    val rootClassloader: ClassLoader = ClassLoader.getSystemClassLoader
-
-    def explain(classLoader: ClassLoader): Unit = {
-      classLoader match {
-        case urlClassLoader: URLClassLoader => urlClassLoader.getURLs.map(_.toString).map(s => if(s.contains("spark")) GetSources.red(s) else s).foreach(println)
-
-        case _ =>
-      }
-
-
-
-    }
-    explain(rootClassloader)
   }
 
 }

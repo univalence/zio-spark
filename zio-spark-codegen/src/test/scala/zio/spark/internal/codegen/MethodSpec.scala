@@ -4,6 +4,9 @@ import zio.spark.internal.codegen.structure.Method
 import zio.test.*
 import zio.test.TestAspect.*
 
+import java.io.File
+import java.net.URLClassLoader
+
 object MethodSpec extends DefaultRunnableSpec {
   def genTest2(
       plan: GenerationPlan
@@ -22,12 +25,17 @@ object MethodSpec extends DefaultRunnableSpec {
     val maybeMethod = findMethod(name, arity)
 
     test(name) {
-      maybeMethod.fold(assertNever(s"can't find $name"))(m => assertTrue(m.toCode(MethodType.getMethodType(m)).contains(generatedCode)))
+      maybeMethod.fold(assertNever(s"can't find $name"))(m =>
+        assertTrue(m.toCode(MethodType.getMethodType(m)).contains(generatedCode))
+      )
     }
   }
 
   val rddMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
-    val plan = zio.Runtime.default.unsafeRun(GenerationPlan.rddPlan(GetSources.defaultClasspath))
+    val plan =
+      zio.Runtime.default.unsafeRun(
+        GenerationPlan.rddPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader))
+      )
 
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         genCodeFragment: String
@@ -49,7 +57,10 @@ object MethodSpec extends DefaultRunnableSpec {
   }
 
   val datasetMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
-    val plan = zio.Runtime.default.unsafeRun(GenerationPlan.datasetPlan(GetSources.defaultClasspath))
+    val plan =
+      zio.Runtime.default.unsafeRun(
+        GenerationPlan.datasetPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader))
+      )
 
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         genCodeFragment: String
