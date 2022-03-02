@@ -37,7 +37,8 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
         val generatedFiles =
           generationPlans.map { plan =>
-            (Compile / scalaSource).value / "zio" / "spark" / "internal" / "codegen" / s"Base${plan.name}.scala"
+            val scalaDir: File = (Compile / scalaSource).value
+            new File(scalaDir.getPath + "-" + scalaBinaryVersion.value) / "zio" / "spark" / "internal" / "codegen" / s"Base${plan.name}.scala"
           }
 
         /**

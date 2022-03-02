@@ -79,7 +79,8 @@ object GetSources {
 
   def mainExplore(args: Array[String]): Unit = {
 
-    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(classLoaderToClasspath(getClass.getClassLoader)))
+    val rddFileSource =
+      zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(classLoaderToClasspath(getClass.getClassLoader)))
 
     // source -> packages -> statements (imports | class | object)
     val rddTemplate: Template =
