@@ -71,8 +71,6 @@ object GetSources {
 
   type Classpath = Seq[Attributed[File]]
 
-  val defaultClasspath: Classpath = System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
-
   def classLoaderToClasspath(classLoader: ClassLoader): Classpath =
     classLoader match {
       case classLoader: URLClassLoader => classLoader.getURLs.map(_.getFile).map(x => Attributed.blank(new File(x)))
@@ -81,7 +79,7 @@ object GetSources {
 
   def mainExplore(args: Array[String]): Unit = {
 
-    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(defaultClasspath))
+    val rddFileSource = zio.Runtime.default.unsafeRun(getSource("spark-core", "org/apache/spark/rdd/RDD.scala")(classLoaderToClasspath(getClass.getClassLoader)))
 
     // source -> packages -> statements (imports | class | object)
     val rddTemplate: Template =
