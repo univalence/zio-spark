@@ -1,7 +1,6 @@
 package zio.spark.internal.codegen.structure
 
 object TypeUtils {
-
   def cleanPrefixPackage(type_ : String): String = {
     import scala.meta.*
 

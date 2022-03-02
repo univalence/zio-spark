@@ -50,17 +50,18 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
          *   The plans
          */
         def checkAllMethodsAreImplemented(plans: Seq[GenerationPlan]): Unit = {
-          val missingMethodsPerPlans: Seq[(String, Set[String])] =
+          val plansWithMissingMethods: Seq[(String, Set[String])] =
             plans.map { plan =>
               val allMethods = plan.getFinalClassMethods((Compile / scalaSource).value)
-
-              val missingMethods: Set[String] =
-                plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet -- allMethods
-
+              val methodsToImplement =
+                plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet
+              val missingMethods: Set[String] = methodsToImplement -- allMethods
               plan.name -> missingMethods
             }
 
-          if (missingMethodsPerPlans.flatMap(_._2).nonEmpty) {
+          val plansWithMissingMethodsNonEmpty = plansWithMissingMethods.filter(_._2.nonEmpty)
+
+          if (plansWithMissingMethodsNonEmpty.nonEmpty) {
             val introduction = "The following methods should be implemented:"
 
             val explication =
@@ -69,12 +70,11 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                 |not 'ToImplement' using 'getMethodType' function.""".stripMargin.replace("\n", "")
 
             val errors =
-              missingMethodsPerPlans
-                .collect {
-                  case (name, missingMethods) if missingMethods.nonEmpty =>
-                    val missingMethodsStr = missingMethods.map(" - " + _).mkString("\n")
-                    s"""  $name:
-                       |  $missingMethodsStr""".stripMargin
+              plansWithMissingMethodsNonEmpty
+                .map { case (name, missingMethods) =>
+                  val missingMethodsStr = missingMethods.map(" - " + _).mkString("\n")
+                  s"""  $name:
+                     |  $missingMethodsStr""".stripMargin
                 }
                 .mkString("\n")
 
