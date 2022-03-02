@@ -9,7 +9,14 @@ import scala.collection.immutable
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
 
-case class GenerationPlan(module: String, path: String, source: meta.Source) {
+sealed trait ScalaBinaryVersion
+object ScalaBinaryVersion {
+  case object V2_11 extends ScalaBinaryVersion
+  case object V2_12 extends ScalaBinaryVersion
+  case object V2_13 extends ScalaBinaryVersion
+}
+
+case class GenerationPlan(module: String, path: String, source: meta.Source, scalaBinaryVersion: ScalaBinaryVersion) {
   import GenerationPlan.*
 
   /** @return the plan type according to the path. */
@@ -190,11 +197,13 @@ object GenerationPlan {
    * @return
    *   The generation plan
    */
-  private def get(module: String, file: String, classpath: GetSources.Classpath): zio.Task[GenerationPlan] =
-    GetSources.getSource(module, file)(classpath).map(source => GenerationPlan(module, file, source))
+  private def get(module: String, file: String, classpath: GetSources.Classpath, scalaBinaryVersion: ScalaBinaryVersion): zio.Task[GenerationPlan] =
+    GetSources.getSource(module, file)(classpath).map(source => GenerationPlan(module, file, source, scalaBinaryVersion))
 
-  def rddPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] = get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath)
+  def rddPlan(classpath: GetSources.Classpath, scalaBinaryVersion: ScalaBinaryVersion): zio.Task[GenerationPlan] =
+    get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath, scalaBinaryVersion)
 
-  def datasetPlan(classpath: GetSources.Classpath): zio.Task[GenerationPlan] = get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath)
+  def datasetPlan(classpath: GetSources.Classpath, scalaBinaryVersion: ScalaBinaryVersion): zio.Task[GenerationPlan] =
+    get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath, scalaBinaryVersion)
 
 }

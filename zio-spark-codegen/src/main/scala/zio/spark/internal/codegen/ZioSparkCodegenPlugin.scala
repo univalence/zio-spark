@@ -29,10 +29,17 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
       Compile / sourceGenerators += Def.task {
         val jars = (Compile / dependencyClasspathAsJars).value
 
+        val version =
+          scalaBinaryVersion.value match {
+            case "2.11" => ScalaBinaryVersion.V2_11
+            case "2.12" => ScalaBinaryVersion.V2_12
+            case "2.13" => ScalaBinaryVersion.V2_13
+          }
+
         val generationPlans: immutable.Seq[GenerationPlan] =
           List(
-            GenerationPlan.rddPlan(jars),
-            GenerationPlan.datasetPlan(jars)
+            GenerationPlan.rddPlan(jars, version),
+            GenerationPlan.datasetPlan(jars, version)
           ).map(zio.Runtime.default.unsafeRun)
 
         val generatedFiles =

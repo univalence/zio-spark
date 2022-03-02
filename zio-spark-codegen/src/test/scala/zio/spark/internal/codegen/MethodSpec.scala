@@ -32,7 +32,7 @@ object MethodSpec extends DefaultRunnableSpec {
   val rddMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
     val plan =
       zio.Runtime.default.unsafeRun(
-        GenerationPlan.rddPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader))
+        GenerationPlan.rddPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader), ScalaBinaryVersion.V2_12)
       )
 
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
@@ -57,7 +57,7 @@ object MethodSpec extends DefaultRunnableSpec {
   val datasetMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
     val plan =
       zio.Runtime.default.unsafeRun(
-        GenerationPlan.datasetPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader))
+        GenerationPlan.datasetPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader), ScalaBinaryVersion.V2_12)
       )
 
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
