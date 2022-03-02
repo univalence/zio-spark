@@ -2,7 +2,7 @@ package zio.spark.internal.codegen
 
 import sbt.internal.util.Attributed
 
-import zio.{Task, ZManaged}
+import zio.{Task, UIO, ZManaged}
 
 import scala.collection.immutable
 import scala.meta.*
@@ -17,32 +17,34 @@ object GetSources {
 
   val RootSparkPattern: Regex = "($(.*)/org/apache/spark)".r
 
-  def findSourceJar(module: String, hints: String*): zio.Task[JarFile] =
+  def findSourceJar(module: String, classpath: Classpath): zio.Task[JarFile] =
     Task {
 
-      val paths =
-        hints.flatMap(RootSparkPattern.findFirstIn) ++ Seq(
-          System.getProperty(
-            "user.home"
-          ) + "/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark",
-          "/home/runner/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/spark"
-        )
-
-      val root = paths.map(s => new File(s)).find(x => x.exists() && x.isDirectory).get
-
-      val path =
-        Files
-          .walk(root.toPath)
-          .filter { (t: Path) =>
-            val absolutePath = t.toAbsolutePath.toString
-            absolutePath.contains(module) && absolutePath.endsWith("-sources.jar")
+      val path: String =
+        classpath
+          .map(_.data)
+          .collectFirst {
+            case f if f.getAbsolutePath.contains(module) =>
+              f.getAbsolutePath.replaceFirst("\\.jar$", "-sources.jar")
           }
-          .findFirst()
-          .get()
+          .get
 
-      new JarFile(path.toFile)
+      new JarFile(new File(path))
 
-    }
+      /* val paths =
+       * hints.flatMap(RootSparkPattern.findFirstIn) ++ Seq( System.getProperty( "user.home" ) +
+       * "/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/spark",
+       * "/home/runner/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/spark" )
+       *
+       * val root = paths.map(s => new File(s)).find(x => x.exists() && x.isDirectory).get
+       *
+       * val path =
+       * Files .walk(root.toPath) .filter { (t: Path) => val absolutePath = t.toAbsolutePath.toString absolutePath.contains(module) &&
+       * absolutePath.contains(scalaVersion) && absolutePath.endsWith("-sources.jar") } .findFirst() .get()
+       *
+       * new JarFile(path.toFile) */
+
+    }.tap(jar => UIO(println(s"found $module in ${jar.getName}")))
 
   def red(text: String): String = "\u001B[31m" + text + "\u001B[0m"
 
@@ -52,11 +54,8 @@ object GetSources {
       import java.io.InputStream
       import java.util.zip.ZipEntry
 
-
-      val rootSpark: Option[String] = classpath.map(_.data.getAbsolutePath).collectFirst { case RootSparkPattern(x) => x }
-
       ZManaged
-        .acquireReleaseWith(findSourceJar(module, rootSpark.toSeq: _*))(x => Task(x.close()).ignore)
+        .acquireReleaseWith(findSourceJar(module, classpath))(x => Task(x.close()).ignore)
         .use(jarFile =>
           Task {
             val entry: ZipEntry         = jarFile.getEntry(file)
@@ -75,7 +74,10 @@ object GetSources {
   val defaultClasspath: Classpath = System.getProperty("java.class.path").split(':').map(x => Attributed.blank(new File(x)))
 
   def classLoaderToClasspath(classLoader: ClassLoader): Classpath =
-    classLoader.asInstanceOf[URLClassLoader].getURLs.map(_.getFile).map(x => Attributed.blank(new File(x)))
+    classLoader match {
+      case classLoader: URLClassLoader => classLoader.getURLs.map(_.getFile).map(x => Attributed.blank(new File(x)))
+      case _                           => Seq.empty
+    }
 
   def mainExplore(args: Array[String]): Unit = {
 
