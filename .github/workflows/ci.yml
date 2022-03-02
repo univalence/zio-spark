@@ -56,6 +56,8 @@ jobs:
           fetch-depth: 0
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
+      - name: Download sources
+        run: sbt ++${{ matrix.scala }}! "project core" updateClassifiers
       - name: Publish the library
         run: sbt ci-release
         env:
