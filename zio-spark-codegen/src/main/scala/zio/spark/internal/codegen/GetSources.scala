@@ -33,7 +33,7 @@ object GetSources {
       // TODO fix when running sbt test from command line
       val jar = classpath.find(_.data.getAbsolutePath.contains("/" + module + "_"))
 
-      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).getOrElse(hardSourceJar)
+      val sourceJar = jar.map(_.data.getAbsolutePath.replace(".jar", "-sources.jar")).get // .getOrElse(hardSourceJar)
 
       ZManaged
         .acquireReleaseAttemptWith(new JarFile(sourceJar))(_.close())
@@ -46,7 +46,11 @@ object GetSources {
             content.getLines().mkString("\n").parse[meta.Source].get
           }
         )
-    }.flatten
+    }.flatten.onError { _ =>
+      def red(text: String) = "\u001B[31m" + text + "\u001B[0m"
+
+      zio.UIO(println(s"[${red("error")}] can't find $file in $module from $classpath"))
+    }
 
   type Classpath = Seq[Attributed[File]]
 

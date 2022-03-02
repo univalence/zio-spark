@@ -22,9 +22,7 @@ object MethodSpec extends DefaultRunnableSpec {
     val maybeMethod = findMethod(name, arity)
 
     test(name) {
-      maybeMethod.fold(assertNever(s"can't find $name"))(m =>
-        assertTrue(m.toCode(MethodType.getMethodType(m)).contains(generatedCode))
-      )
+      maybeMethod.fold(assertNever(s"can't find $name"))(m => assertTrue(m.toCode(MethodType.getMethodType(m)).contains(generatedCode)))
     }
   }
 

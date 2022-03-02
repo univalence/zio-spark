@@ -52,9 +52,8 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
         def checkAllMethodsAreImplemented(plans: Seq[GenerationPlan]): Unit = {
           val plansWithMissingMethods: Seq[(String, Set[String])] =
             plans.map { plan =>
-              val allMethods = plan.getFinalClassMethods((Compile / scalaSource).value)
-              val methodsToImplement =
-                plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet
+              val allMethods                  = plan.getFinalClassMethods((Compile / scalaSource).value)
+              val methodsToImplement          = plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet
               val missingMethods: Set[String] = methodsToImplement -- allMethods
               plan.name -> missingMethods
             }
