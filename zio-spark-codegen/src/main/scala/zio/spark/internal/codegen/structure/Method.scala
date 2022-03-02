@@ -27,23 +27,23 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
 
         val transformation =
           methodType match {
-            case MethodType.DriverAction                           => "action"
-            case MethodType.DistributedComputation                 => "action"
-            case MethodType.SuccessWithAnalysis => "withAnalysis"
+            case MethodType.DriverAction               => "action"
+            case MethodType.DistributedComputation     => "action"
+            case MethodType.SuccessWithAnalysis        => "withAnalysis"
             case MethodType.TransformationWithAnalysis => "transformationWithAnalysis"
-            case MethodType.Transformation                         => "transformation"
-            case _                                                 => "succeedNow"
+            case MethodType.Transformation             => "transformation"
+            case _                                     => "succeedNow"
           }
 
         val cleanReturnType = cleanType(returnType, path)
 
         val trueReturnType =
           methodType match {
-            case MethodType.DriverAction           => s"Task[$cleanReturnType]"
-            case MethodType.DistributedComputation => s"Task[$cleanReturnType]"
-            case MethodType.SuccessWithAnalysis => s"TryAnalysis[$cleanReturnType]"
-            case MethodType.TransformationWithAnalysis       => s"TryAnalysis[$cleanReturnType]"
-            case _                                 => cleanReturnType
+            case MethodType.DriverAction               => s"Task[$cleanReturnType]"
+            case MethodType.DistributedComputation     => s"Task[$cleanReturnType]"
+            case MethodType.SuccessWithAnalysis        => s"TryAnalysis[$cleanReturnType]"
+            case MethodType.TransformationWithAnalysis => s"TryAnalysis[$cleanReturnType]"
+            case _                                     => cleanReturnType
           }
 
         val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode).mkString(", ")}]" else ""
