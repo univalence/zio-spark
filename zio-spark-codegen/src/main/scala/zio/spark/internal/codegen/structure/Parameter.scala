@@ -1,13 +1,19 @@
 package zio.spark.internal.codegen.structure
 
+import zio.spark.internal.codegen.ScalaBinaryVersion
 import zio.spark.internal.codegen.structure.Parameter.Modifier
 
 import scala.meta.*
 
-case class Parameter(underlying: Term.Param) {
+case class Parameter(underlying: Term.Param, scalaVersion: ScalaBinaryVersion) {
 
-  val name: String                 = underlying.name.toString
-  val signature: String            = underlying.decltpe.get.toString.replace("TraversableOnce", "IterableOnce")
+  val name: String = underlying.name.toString
+  val signature: String =
+    scalaVersion match {
+      case ScalaBinaryVersion.V2_13 => underlying.decltpe.get.toString.replace("TraversableOnce", "IterableOnce")
+      case _                        => underlying.decltpe.get.toString
+    }
+
   val maybeDefault: Option[String] = underlying.default.map(_.toString)
 
   val modifiers: Seq[Modifier] = if (underlying.collect { case d: Mod.Implicit => d }.nonEmpty) List(Modifier.Implicit) else Nil
@@ -39,5 +45,5 @@ object Parameter {
     final case object Implicit extends Modifier
   }
 
-  def fromScalaMeta(param: Term.Param): Parameter = Parameter(param)
+  def fromScalaMeta(param: Term.Param, scalaVersion: ScalaBinaryVersion): Parameter = Parameter(param, scalaVersion)
 }

@@ -1,10 +1,12 @@
 package zio.spark.internal.codegen.structure
 
+import zio.spark.internal.codegen.ScalaBinaryVersion
+
 import scala.meta.*
 
-case class ParameterGroup(underlying: Seq[Term.Param]) {
+case class ParameterGroup(underlying: Seq[Term.Param], scalaVersion: ScalaBinaryVersion) {
 
-  val parameters: Seq[Parameter] = underlying.map(Parameter.fromScalaMeta)
+  val parameters: Seq[Parameter] = underlying.map(p => Parameter.fromScalaMeta(p, scalaVersion))
 
   def toCode(isArgs: Boolean): String = {
     val hasImplicit: Boolean = parameters.exists(_.isImplicit)
@@ -24,5 +26,5 @@ case class ParameterGroup(underlying: Seq[Term.Param]) {
 }
 
 object ParameterGroup {
-  def fromScalaMeta(params: Seq[Term.Param]): ParameterGroup = ParameterGroup(params)
+  def fromScalaMeta(params: Seq[Term.Param], scalaVersion: ScalaBinaryVersion): ParameterGroup = ParameterGroup(params, scalaVersion)
 }

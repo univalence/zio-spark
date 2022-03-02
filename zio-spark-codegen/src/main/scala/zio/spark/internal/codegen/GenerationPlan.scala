@@ -82,7 +82,7 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
     val allMethods                   = collectFunctionsFromTemplate(template)
     val comments: AssociatedComments = contrib.AssociatedComments(template)
 
-    allMethods.map(m => Method.fromScalaMeta(m, comments, path.replace('/', '.').replace(".scala", "")))
+    allMethods.map(m => Method.fromScalaMeta(m, comments, path.replace('/', '.').replace(".scala", ""), scalaBinaryVersion))
   }
 
   lazy val methodsWithTypes: Map[MethodType, Seq[Method]] =
@@ -197,8 +197,15 @@ object GenerationPlan {
    * @return
    *   The generation plan
    */
-  private def get(module: String, file: String, classpath: GetSources.Classpath, scalaBinaryVersion: ScalaBinaryVersion): zio.Task[GenerationPlan] =
-    GetSources.getSource(module, file)(classpath).map(source => GenerationPlan(module, file, source, scalaBinaryVersion))
+  private def get(
+      module: String,
+      file: String,
+      classpath: GetSources.Classpath,
+      scalaBinaryVersion: ScalaBinaryVersion
+  ): zio.Task[GenerationPlan] =
+    GetSources
+      .getSource(module, file)(classpath)
+      .map(source => GenerationPlan(module, file, source, scalaBinaryVersion))
 
   def rddPlan(classpath: GetSources.Classpath, scalaBinaryVersion: ScalaBinaryVersion): zio.Task[GenerationPlan] =
     get("spark-core", "org/apache/spark/rdd/RDD.scala", classpath, scalaBinaryVersion)

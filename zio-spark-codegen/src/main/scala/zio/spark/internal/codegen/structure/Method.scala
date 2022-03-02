@@ -1,15 +1,15 @@
 package zio.spark.internal.codegen.structure
 
-import zio.spark.internal.codegen.MethodType
+import zio.spark.internal.codegen.{MethodType, ScalaBinaryVersion}
 import zio.spark.internal.codegen.structure.TypeUtils.*
 
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
 
-case class Method(df: Defn.Def, comments: AssociatedComments, path: String) {
+case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scalaVersion: ScalaBinaryVersion) {
   self =>
 
-  val calls: List[ParameterGroup] = df.paramss.map(ParameterGroup.fromScalaMeta)
+  val calls: List[ParameterGroup] = df.paramss.map(pg => ParameterGroup.fromScalaMeta(pg, scalaVersion))
 
   val name: String                   = df.name.value
   val returnType: String             = df.decltpe.get.toString()
@@ -93,5 +93,10 @@ object Method {
     final case object Setter   extends Kind
   }
 
-  def fromScalaMeta(df: Defn.Def, comments: AssociatedComments, path: String): Method = Method(df, comments, path)
+  def fromScalaMeta(
+      df: Defn.Def,
+      comments: AssociatedComments,
+      path: String,
+      scalaVersion: ScalaBinaryVersion
+  ): Method = Method(df, comments, path, scalaVersion)
 }
