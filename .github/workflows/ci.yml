@@ -17,7 +17,7 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Check formatting and linting
-        run: sbt "-Dfatal-warnings=true" check
+        run: sbt "-Dfatal-warnings=true" updateClassifiers check
 
   test:
     runs-on: ubuntu-20.04
@@ -33,6 +33,8 @@ jobs:
         uses: olafurpg/setup-scala@v13
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
+      - name: Download sources
+        run: sbt ++${{ matrix.scala }}! "project core" updateClassifiers
       - name: Run tests 2.11.X and 2.12.X
         if: ${{ !startsWith(matrix.scala, '2.13.') }}
         run: sbt ++${{ matrix.scala }}! "project core" testSpecific

@@ -3,19 +3,11 @@ package zio.spark.sql
 import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 
 import zio.Task
-import zio.spark.impure.Impure
 import zio.spark.impure.Impure.ImpureBox
+import zio.spark.internal.codegen.BaseDataset
 
 abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
-    extends Impure[UnderlyingDataset[T]](underlyingDataset) {
-  import underlyingDataset._
-
-  /**
-   * Takes the n last elements of a dataset.
-   *
-   * See [[UnderlyingDataset.tail]] for more information.
-   */
-  final def tail(n: Int): Task[Seq[T]] = attemptBlocking(_.tail(n).toSeq)
+    extends BaseDataset(underlyingDataset) {
 
   /** Alias for [[tail]]. */
   def last: Task[T] = tail
@@ -35,13 +27,6 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
 
   /** Alias for [[tail]]. */
   def takeRight(n: Int): Task[Seq[T]] = tail(n)
-
-  /**
-   * Computes specified statistics for numeric and string columns.
-   *
-   * See [[UnderlyingDataset.summary]] for more information.
-   */
-  def summary(statistics: String*): DataFrame = Dataset(succeedNow(_.summary(statistics: _*)))
 
   /**
    * Computes specified statistics for numeric and string columns.

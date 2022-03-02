@@ -62,7 +62,7 @@ ThisBuild / coverageMinimumStmtPerPackage   := 80
 ThisBuild / coverageMinimumBranchPerPackage := 80
 ThisBuild / coverageMinimumStmtPerFile      := 50
 ThisBuild / coverageMinimumBranchPerFile    := 50
-ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*"
+ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*"
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
@@ -96,32 +96,36 @@ lazy val core =
       name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
       scalaVersion       := scala.v213,
-      libraryDependencies ++= generateLibraryDependencies(
-        CrossVersion.partialVersion(scalaVersion.value).get._2
-      ),
+      libraryDependencies ++= generateLibraryDependencies(CrossVersion.partialVersion(scalaVersion.value).get._2),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       scalacOptions ~= fatalWarningsAsProperties
     )
+    .enablePlugins(ZioSparkCodegenPlugin)
 
 lazy val examples =
   (project in file("examples"))
     .settings(
       scalaVersion   := scala.v213,
       publish / skip := true,
-      libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % "3.2.1",
-        "org.apache.spark" %% "spark-sql"  % "3.2.1"
-      )
+      libraryDependencies ++= generateSparkLibraryDependencies( CrossVersion.partialVersion(scalaVersion.value).get._2)
     )
     .dependsOn(core)
 
-/** Generates required libraries for a particular project. */
-def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
+/** Generates required libraries for spark. */
+def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
     "org.apache.spark" %% "spark-core"   % sparkVersion   % Provided,
-    "org.apache.spark" %% "spark-sql"    % sparkVersion   % Provided,
+    "org.apache.spark" %% "spark-sql"    % sparkVersion   % Provided
+  )
+}
+
+/** Generates required libraries for a particular project. */
+def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
+  val sparkLibraries = generateSparkLibraryDependencies(scalaMinor)
+
+  sparkLibraries ++ Seq(
     "dev.zio"          %% "zio-test"     % libVersion.zio % Test,
     "dev.zio"          %% "zio-test-sbt" % libVersion.zio % Test,
     "dev.zio"          %% "zio"          % libVersion.zio

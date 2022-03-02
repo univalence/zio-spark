@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+cd $(dirname "$0")
+cd zio-spark-codegen
+sbt scalafmtAll
+cd ..
+sbt prepare

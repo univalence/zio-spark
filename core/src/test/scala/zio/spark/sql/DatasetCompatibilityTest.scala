@@ -11,6 +11,7 @@ object DatasetCompatibilityTest
           "transformation",
           "unpersistBlocking",
           "transformationWithAnalysis",
+          "withAnalysis",
           "action",
           "headOption",
           "firstOption",
