@@ -2,7 +2,6 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 
-import zio.Task
 import zio.spark.impure.Impure.ImpureBox
 import zio.spark.internal.codegen.BaseDataset
 

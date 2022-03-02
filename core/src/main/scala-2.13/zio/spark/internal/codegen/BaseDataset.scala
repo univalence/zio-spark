@@ -19,7 +19,6 @@ import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
 import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.TypeTag
 
-@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     extends Impure[UnderlyingDataset[T]](underlyingDataset) {
   import underlyingDataset._

@@ -133,7 +133,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |
                |${plan.imports}
                |
-               |@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
+               |${plan.suppressWarnings}
                |abstract class Base${plan.name}[T](underlying${plan.name}: ImpureBox[Underlying${plan.name}[T]]) extends Impure[Underlying${plan.name}[T]](underlying${plan.name}) {
                |  import underlying${plan.name}._
                |

@@ -11,6 +11,7 @@ import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
 import org.apache.spark.partial.{BoundedDouble, PartialResult}
 import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD}
+import org.apache.spark.rdd.RDDBarrier
 import org.apache.spark.storage.StorageLevel
 
 import zio.Task
@@ -38,6 +39,28 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
 
   /** Applies a transformation to the underlying RDD. */
   def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = succeedNow(f.andThen(x => RDD(x)))
+
+  /**
+   * :: Experimental :: Marks the current stage as a barrier stage,
+   * where Spark must launch all tasks together. In case of a task
+   * failure, instead of only restarting the failed task, Spark will
+   * abort the entire stage and re-launch all tasks for this stage. The
+   * barrier execution mode feature is experimental and it only handles
+   * limited scenarios. Please read the linked SPIP and design docs to
+   * understand the limitations and future plans.
+   * @return
+   *   an [[RDDBarrier]] instance that provides actions within a barrier
+   *   stage
+   * @see
+   *   [[org.apache.spark.BarrierTaskContext]]
+   * @see
+   *   <a href="https://jira.apache.org/jira/browse/SPARK-24374">SPIP:
+   *   Barrier Execution Mode</a>
+   * @see
+   *   <a href="https://jira.apache.org/jira/browse/SPARK-24582">Design
+   *   Doc</a>
+   */
+  def barrier: RDDBarrier[T] = succeedNow(_.barrier())
 
   /** Returns the number of partitions of this RDD. */
   def getNumPartitions: Int = succeedNow(_.getNumPartitions)
@@ -388,11 +411,11 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
 
   /**
    * Aggregates the elements of this RDD in a multi-level tree pattern.
+   * This method is semantically identical to
+   * [[org.apache.spark.rdd.RDD#aggregate]].
    *
    * @param depth
    *   suggested depth of the tree (default: 2)
-   * @see
-   *   [[org.apache.spark.rdd.RDD#aggregate]]
    */
   def treeAggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U, depth: Int = 2): Task[U] =
     action(_.treeAggregate(zeroValue)(seqOp, combOp, depth))
@@ -714,6 +737,9 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    *
    * If you are decreasing the number of partitions in this RDD,
    * consider using `coalesce`, which can avoid performing a shuffle.
+   *
+   * TODO Fix the Shuffle+Repartition data loss issue described in
+   * SPARK-23207.
    */
   def repartition(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T] =
     transformation(_.repartition(numPartitions))

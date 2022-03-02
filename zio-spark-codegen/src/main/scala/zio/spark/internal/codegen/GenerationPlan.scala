@@ -118,12 +118,11 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
 
   /** @return the imports needed for each plans. */
   def imports: String = {
-    val rddImports =
+    val rddCommonImports =
       """import org.apache.hadoop.io.compress.CompressionCodec
         |import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
         |import org.apache.spark.partial.{BoundedDouble, PartialResult}
-        |import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD, RDDBarrier}
-        |import org.apache.spark.resource.ResourceProfile
+        |import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD}
         |import org.apache.spark.storage.StorageLevel
         |
         |import zio.Task
@@ -133,9 +132,10 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
         |
         |import scala.collection.Map
         |import scala.io.Codec
-        |import scala.reflect._""".stripMargin
+        |import scala.reflect._
+        |""".stripMargin
 
-    val datasetImports =
+    val datasetCommonImports =
       """import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row, TypedColumn}
         |import org.apache.spark.sql.types.StructType
         |import org.apache.spark.storage.StorageLevel
@@ -145,8 +145,33 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
         |import zio.spark.impure.Impure.ImpureBox
         |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
         |
-        |import scala.jdk.CollectionConverters._
-        |import scala.reflect.runtime.universe.TypeTag""".stripMargin
+        |import scala.reflect.runtime.universe.TypeTag
+        |""".stripMargin
+
+    val rddSpecificImports =
+      scalaBinaryVersion match {
+        case ScalaBinaryVersion.V2_13 =>
+          s"""import org.apache.spark.rdd.RDDBarrier
+             |import org.apache.spark.resource.ResourceProfile
+             |""".stripMargin
+        case ScalaBinaryVersion.V2_12 =>
+          s"""import org.apache.spark.rdd.RDDBarrier
+             |""".stripMargin
+        case _ => ""
+      }
+
+    val datasetSpecificImports =
+      scalaBinaryVersion match {
+        case ScalaBinaryVersion.V2_13 =>
+          s"""import scala.jdk.CollectionConverters._
+             |""".stripMargin
+        case _ =>
+          s"""import scala.collection.JavaConverters._
+             |""".stripMargin
+      }
+
+    val rddImports     = rddCommonImports + rddSpecificImports
+    val datasetImports = datasetCommonImports + datasetSpecificImports
 
     planType.fold(rddImports, datasetImports)
   }
@@ -170,6 +195,12 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
         |""".stripMargin
 
     defaultHelpers + "\n\n" + planType.fold("", datasetHelpers)
+  }
+
+  val suppressWarnings: String = {
+    val rddSuppressWarnings = "@SuppressWarnings(Array(\"scalafix:DisableSyntax.defaultArgs\", \"scalafix:DisableSyntax.null\"))"
+
+    planType.fold(rddSuppressWarnings, "")
   }
 }
 
