@@ -67,8 +67,11 @@ object DataFrameWriterTest {
           readAgain = path => readCsv(path),
           write     = path => _.write.withHeader.csv(path)
         ),
-        /* WriterTest( extension = "parquet", readAgain = path => SparkSession.read.parquet(path), write = path =>
-         * _.write.parquet(path) ), */
+        WriterTest(
+          extension = "parquet",
+          readAgain = path => SparkSession.read.parquet(path),
+          write     = path => _.write.parquet(path)
+        ),
         WriterTest(
           extension = "json",
           readAgain = path => SparkSession.read.json(path),
