@@ -1,6 +1,6 @@
 package zio.spark.effect
 
-import zio.{IO, UIO, ZManaged}
+import zio.{IO, UIO, ZIO, ZManaged}
 import zio.spark.rdd.RDD
 import zio.stream.ZStream
 
@@ -13,24 +13,7 @@ object MapWithEffect {
       onRejected: E2,
       maxErrorRatio: Ratio = Ratio.p05,
       decayScale: Int = 1000
-  ): RDD[Either[E2, A]] =
-    rdd.mapPartitions(
-      { it =>
-        val createCircuit: UIO[CircuitTap[E2, E2]] =
-          CircuitTap.make[E2, E2](maxErrorRatio, _ => true, onRejected, decayScale)
-
-        def iterator(circuitTap: CircuitTap[E2, E2]): ZManaged[Any, Nothing, Iterator[Either[E2, A]]] = {
-          val in: ZStream[Any, Nothing, IO[E1, A]]      = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
-          val out: ZStream[Any, Nothing, Either[E2, A]] = in.mapZIO(x => circuitTap(x).either)
-          out.toIterator.map(_.map(_.merge))
-        }
-
-        val managed: ZManaged[Any, Nothing, Iterator[Either[E2, A]]] = createCircuit.toManaged flatMap iterator
-
-        zio.Runtime.global.unsafeRun(managed.use(x => UIO(x)))
-      },
-      true
-    )
+  ): RDD[Either[E2, A]] = rdd.mapZIO(identity, _ => onRejected, maxErrorRatio, decayScale)
 
   implicit class RDDOps[T](private val rdd: RDD[T]) extends AnyVal {
     @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs"))
@@ -39,6 +22,27 @@ object MapWithEffect {
         onRejection: T => E,
         maxErrorRatio: Ratio = Ratio.p05,
         decayScale: Int = 1000
-    ): RDD[Either[E, B]] = ???
+    ): RDD[Either[E, B]] =
+      rdd.mapPartitions(
+        { it =>
+          type EE = Option[E]
+          val createCircuit: UIO[CircuitTap[EE, EE]] =
+            CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale)
+
+          def iterator(circuitTap: CircuitTap[EE, EE]): ZManaged[Any, Nothing, Iterator[Either[E, B]]] = {
+            val in: ZStream[Any, Nothing, T] = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
+            val out: ZStream[Any, Nothing, Either[E, B]] =
+              in.mapZIO { x =>
+                val exe: ZIO[Any, Option[E], B] = circuitTap(effect(x).asSomeError)
+                exe.mapError(_.getOrElse(onRejection(x))).either
+              }
+            out.toIterator.map(_.map(_.merge))
+          }
+
+          val managed: ZManaged[Any, Nothing, Iterator[Either[E, B]]] = createCircuit.toManaged flatMap iterator
+          zio.Runtime.global.unsafeRun(managed.use(x => UIO(x)))
+        },
+        true
+      )
   }
 }
