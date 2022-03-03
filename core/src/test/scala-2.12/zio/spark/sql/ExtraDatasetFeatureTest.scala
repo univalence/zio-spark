@@ -6,6 +6,7 @@ import zio.Task
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
+import zio.test.TestAspect._
 
 object ExtraDatasetFeatureTest {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
