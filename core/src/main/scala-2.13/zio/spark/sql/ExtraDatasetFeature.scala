@@ -67,4 +67,20 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
       _    <- Console.printLine(plan)
     } yield ()
 
+  /**
+   * Prints the schema to the console in a nice tree format.
+   *
+   * @group basic
+   * @since 1.6.0
+   */
+  def printSchema: RIO[Console, Unit] = printSchema(Int.MaxValue)
+
+  /**
+   * Prints the schema up to the given level to the console in a nice
+   * tree format.
+   *
+   * @group basic
+   * @since 3.0.0
+   */
+  def printSchema(level: Int): RIO[Console, Unit] = Console.printLine(schema.treeString(level))
 }

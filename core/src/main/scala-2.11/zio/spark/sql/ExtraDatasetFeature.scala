@@ -33,4 +33,12 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
    * @since 1.6.0
    */
   def explain: RIO[SparkSession with Console, Unit] = explain(extended = false)
+
+  /**
+   * Prints the schema to the console in a nice tree format.
+   *
+   * @group basic
+   * @since 1.6.0
+   */
+  def printSchema: RIO[Console, Unit] = Console.printLine(schema.treeString)
 }
