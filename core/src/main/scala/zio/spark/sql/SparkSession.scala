@@ -1,15 +1,13 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
-
 import zio._
-import zio.spark.internal.Impure
 import zio.spark.internal.Impure.ImpureBox
 import zio.spark.parameter._
 import zio.spark.sql.SparkSession.Conf
 
 final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkSession])
-    extends Impure(underlyingSparkSession) {
+    extends ExtraSparkSessionFeature(underlyingSparkSession) {
   import underlyingSparkSession._
 
   /** Closes the current SparkSession. */
@@ -22,7 +20,6 @@ final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkS
     new Conf {
       override def getAll: UIO[Map[String, String]] = succeed(_.conf.getAll)
     }
-
 }
 
 object SparkSession extends Accessible[SparkSession] {

@@ -1390,7 +1390,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * Methods that need to be implemented
    *
    * [[org.apache.spark.sql.Dataset.cube]]
-   * [[org.apache.spark.sql.Dataset.explain]]
    * [[org.apache.spark.sql.Dataset.groupByKey]]
    * [[org.apache.spark.sql.Dataset.na]]
    * [[org.apache.spark.sql.Dataset.printSchema]]
@@ -1405,6 +1404,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   /**
    * Methods with handmade implementations
    *
+   * [[org.apache.spark.sql.Dataset.explain]]
    * [[org.apache.spark.sql.Dataset.groupBy]]
    * [[org.apache.spark.sql.Dataset.show]]
    * [[org.apache.spark.sql.Dataset.transform]]
