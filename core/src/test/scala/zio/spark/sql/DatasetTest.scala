@@ -91,6 +91,19 @@ object DatasetTest {
           output <- TestConsole.output
           representation = output.mkString("\n")
         } yield assertTrue(representation == result)
+      } @@ silent,
+      test("Dataset should implement printSchema correctly") {
+        val result =
+          """root
+            > |-- name: string (nullable = true)
+            > |-- age: integer (nullable = true)""".stripMargin('>')
+
+        for {
+          df     <- read
+          _      <- df.printSchema
+          output <- TestConsole.output
+          representation = output.mkString("\n")
+        } yield assertTrue(representation.contains(result))
       } @@ silent
     )
 
@@ -125,7 +138,6 @@ object DatasetTest {
         pipeline.check(x => assertTrue(x == 4L))
       },
       test("Dataset can be converted from the first Analysis error") {
-
         val process: DataFrame => Try[DataFrame] = x => x.selectExpr("yolo").filter("tata = titi").toTry
 
         read.map(process).map(x => assertTrue(x.isFailure))
