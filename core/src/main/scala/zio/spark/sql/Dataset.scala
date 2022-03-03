@@ -8,7 +8,7 @@ import org.apache.spark.sql.{
 }
 
 import zio._
-import zio.spark.impure.Impure.ImpureBox
+import zio.spark.internal.Impure.ImpureBox
 import zio.spark.rdd.RDD
 
 final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
