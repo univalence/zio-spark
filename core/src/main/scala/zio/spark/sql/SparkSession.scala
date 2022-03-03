@@ -42,8 +42,8 @@ object SparkSession extends Accessible[SparkSession] {
    */
   def builder: Builder = Builder(UnderlyingSparkSession.builder(), Map.empty)
 
-  /** Use the SparkSession to generate a [[Dataset]]. */
-  def use[T](f: SparkSession => Spark[Dataset[T]]): Spark[Dataset[T]] = ZIO.service[SparkSession].flatMap(f)
+  def attempt[Out](f: UnderlyingSparkSession => Out): Spark[Out] =
+    ZIO.serviceWithZIO[SparkSession](_.attemptBlocking(f))
 
   final case class Builder(builder: UnderlyingSparkSession.Builder, extraConfigs: Map[String, String]) {
     self =>

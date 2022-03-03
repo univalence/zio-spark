@@ -6,6 +6,7 @@ import zio.spark.sql._
 
 object BasicETL extends ZIOAppDefault {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+  import zio.spark.sql.implicits._
 
   val inputPath: String  = "examples/src/main/resources/data.csv"
   val outputPath: String = "examples/src/main/resources/output"
