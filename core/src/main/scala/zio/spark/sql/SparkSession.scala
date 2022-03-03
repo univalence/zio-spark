@@ -27,6 +27,9 @@ final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkS
 
 object SparkSession extends Accessible[SparkSession] {
 
+  def apply(underlyingSparkSession: UnderlyingSparkSession): SparkSession =
+    SparkSession(ImpureBox(underlyingSparkSession))
+
   trait Conf {
     def getAll: UIO[Map[String, String]]
   }

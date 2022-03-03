@@ -95,3 +95,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
   /** Create a DataFrameWrite from this dataset. */
   def write: DataFrameWriter[T] = DataFrameWriter(this)
 }
+
+object Dataset {
+  def apply[T](underlyingDataset: UnderlyingDataset[T]): Dataset[T] = Dataset(ImpureBox(underlyingDataset))
+}

@@ -16,7 +16,7 @@ abstract class Impure[+A](underlying: ImpureBox[A]) {
 
 object Impure {
 
-  implicit final class ImpureBox[+A](private val value: A) extends AnyVal {
+  final case class ImpureBox[+A](private val value: A) {
     def attempt[B](f: A => B): Task[B] = Task(f(value))
 
     def attemptBlocking[B](f: A => B): Task[B] = Task.attemptBlocking(f(value))

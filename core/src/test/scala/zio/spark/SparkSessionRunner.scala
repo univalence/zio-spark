@@ -23,7 +23,8 @@ object SparkSessionRunner extends DefaultRunnableSpec {
     SparkSession.builder
       .master(localAllNodes)
       .appName("zio-spark")
-      .getOrCreateLayer
+      .getOrCreate
+      .toLayer
       .orDie
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {

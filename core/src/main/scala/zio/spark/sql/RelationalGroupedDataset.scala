@@ -8,6 +8,11 @@ import org.apache.spark.sql.{
 import zio.spark.internal.Impure
 import zio.spark.internal.Impure.ImpureBox
 
+object RelationalGroupedDataset {
+  def apply(underlyingRelationalGroupedDataset: UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
+    RelationalGroupedDataset(ImpureBox(underlyingRelationalGroupedDataset))
+}
+
 final case class RelationalGroupedDataset(underlyingRelationalDataset: ImpureBox[UnderlyingRelationalGroupedDataset])
     extends Impure(underlyingRelationalDataset) {
   import underlyingRelationalDataset._

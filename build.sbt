@@ -107,7 +107,7 @@ lazy val examples =
     .settings(
       scalaVersion   := scala.v213,
       publish / skip := true,
-      libraryDependencies ++= generateSparkLibraryDependencies( CrossVersion.partialVersion(scalaVersion.value).get._2)
+      libraryDependencies ++= generateSparkLibraryDependencies(CrossVersion.partialVersion(scalaVersion.value).get._2)
     )
     .dependsOn(core)
 
@@ -116,8 +116,8 @@ def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core"   % sparkVersion   % Provided,
-    "org.apache.spark" %% "spark-sql"    % sparkVersion   % Provided
+    "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
+    "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided
   )
 }
 
@@ -126,9 +126,9 @@ def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkLibraries = generateSparkLibraryDependencies(scalaMinor)
 
   sparkLibraries ++ Seq(
-    "dev.zio"          %% "zio-test"     % libVersion.zio % Test,
-    "dev.zio"          %% "zio-test-sbt" % libVersion.zio % Test,
-    "dev.zio"          %% "zio"          % libVersion.zio
+    "dev.zio" %% "zio-test"     % libVersion.zio % Test,
+    "dev.zio" %% "zio-test-sbt" % libVersion.zio % Test,
+    "dev.zio" %% "zio"          % libVersion.zio
   )
 }
 
