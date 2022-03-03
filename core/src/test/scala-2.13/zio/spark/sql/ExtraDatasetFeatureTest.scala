@@ -48,13 +48,13 @@ object ExtraDatasetFeatureTest {
       },
       test("Dataset should implement explain correctly") {
         for {
-          df     <- read
+          df <- read
           transformedDf = df.withColumnRenamed("name", "fullname").filter($"age" > 30)
           _      <- transformedDf.explain("simple")
           output <- TestConsole.output
           representation = output.mkString("\n")
         } yield assertTrue(representation.contains("== Physical Plan =="))
-      } @@ silent,
+      } @@ silent
     )
 
   final case class Person(name: String, age: Int)

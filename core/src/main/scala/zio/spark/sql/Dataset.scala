@@ -1,6 +1,12 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{Column, Sniffer, Dataset => UnderlyingDataset, RelationalGroupedDataset => UnderlyingRelationalGroupedDataset}
+import org.apache.spark.sql.{
+  Column,
+  Dataset => UnderlyingDataset,
+  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
+  Sniffer
+}
+
 import zio._
 import zio.spark.internal.Impure.ImpureBox
 import zio.spark.rdd.RDD

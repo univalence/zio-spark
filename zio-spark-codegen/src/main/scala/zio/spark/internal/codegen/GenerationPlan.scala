@@ -10,11 +10,12 @@ import scala.meta.*
 import scala.meta.contrib.AssociatedComments
 
 sealed trait ScalaBinaryVersion { self =>
-  override def toString: String = self match {
-    case ScalaBinaryVersion.V2_11 => "2.11"
-    case ScalaBinaryVersion.V2_12 => "2.12"
-    case ScalaBinaryVersion.V2_13 => "2.13"
-  }
+  override def toString: String =
+    self match {
+      case ScalaBinaryVersion.V2_11 => "2.11"
+      case ScalaBinaryVersion.V2_12 => "2.12"
+      case ScalaBinaryVersion.V2_13 => "2.13"
+    }
 }
 object ScalaBinaryVersion {
   case object V2_11 extends ScalaBinaryVersion
@@ -44,8 +45,10 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
   /**
    * Retrieves all function's names from a file.
    *
-   * @param file The file to retrieve functions from
-   * @return The names of the functions
+   * @param file
+   *   The file to retrieve functions from
+   * @return
+   *   The names of the functions
    */
   def functionsFromFile(file: File): Set[String] = {
     val source: Source = IO.read(file).parse[Source].get
@@ -53,6 +56,7 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
     collectFunctionsFromTemplate(template).map(_.name.value).toSet
 
   }
+
   /**
    * Returns the final methods resulting from the fusion of the
    * generated functions and the handmade functions.
@@ -92,9 +96,9 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
     source.children
       .flatMap(_.children)
       .collectFirst {
-        case c: Defn.Class if c.name.toString == "RDD"     => c.templ
-        case c: Defn.Class if c.name.toString == "Dataset" => c.templ
-        case c: Defn.Class if c.name.toString == "ExtraDatasetFeature"     => c.templ
+        case c: Defn.Class if c.name.toString == "RDD"                 => c.templ
+        case c: Defn.Class if c.name.toString == "Dataset"             => c.templ
+        case c: Defn.Class if c.name.toString == "ExtraDatasetFeature" => c.templ
       }
       .get
 

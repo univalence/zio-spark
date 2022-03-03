@@ -5,6 +5,7 @@ package org.apache.spark.sql
  * function.
  */
 object Sniffer213 {
+
   /** Backdoor for withActive private function. */
   def sparkSessionWithActive[T](sparkSession: SparkSession, block: => T): T = sparkSession.withActive(block)
 }

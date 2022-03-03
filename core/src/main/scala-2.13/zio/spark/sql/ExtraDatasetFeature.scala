@@ -1,7 +1,8 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.execution.ExplainMode
 import org.apache.spark.sql.{Dataset => UnderlyingDataset}
+import org.apache.spark.sql.execution.ExplainMode
+
 import zio.{Console, RIO, Task, ZIO}
 import zio.spark.internal.Impure.ImpureBox
 import zio.spark.internal.codegen.BaseDataset
@@ -36,33 +37,34 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
   def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame = summary(statistics.map(_.toString): _*)
 
   /**
-   * Prints the plans (logical and physical) with a format specified by a given explain mode.
+   * Prints the plans (logical and physical) with a format specified by
+   * a given explain mode.
    *
-   * @param mode specifies the expected output format of plans.
-   *             <ul>
-   *               <li>`simple` Print only a physical plan.</li>
-   *               <li>`extended`: Print both logical and physical plans.</li>
-   *               <li>`codegen`: Print a physical plan and generated codes if they are
-   *                 available.</li>
-   *               <li>`cost`: Print a logical plan and statistics if they are available.</li>
-   *               <li>`formatted`: Split explain output into two sections: a physical plan outline
-   *                 and node details.</li>
-   *             </ul>
+   * @param mode
+   *   specifies the expected output format of plans. <ul> <li>`simple`
+   *   Print only a physical plan.</li> <li>`extended`: Print both
+   *   logical and physical plans.</li> <li>`codegen`: Print a physical
+   *   plan and generated codes if they are available.</li> <li>`cost`:
+   *   Print a logical plan and statistics if they are available.</li>
+   *   <li>`formatted`: Split explain output into two sections: a
+   *   physical plan outline and node details.</li> </ul>
    * @group basic
    * @since 3.0.0
    */
   def explain(mode: String): ZIO[SparkSession with Console, Throwable, Unit] = explain(ExplainMode.fromString(mode))
 
   /**
-   * Prints the plans (logical and physical) with a format specified by a given explain mode.
+   * Prints the plans (logical and physical) with a format specified by
+   * a given explain mode.
    *
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode): RIO[SparkSession with Console, Unit] = for {
-    ss <- ZIO.service[SparkSession]
-    plan <- ss.withActive(underlyingDataset.succeedNow(_.queryExecution.explainString(mode)))
-    _ <- Console.printLine(plan)
-  } yield ()
+  def explain(mode: ExplainMode): RIO[SparkSession with Console, Unit] =
+    for {
+      ss   <- ZIO.service[SparkSession]
+      plan <- ss.withActive(underlyingDataset.succeedNow(_.queryExecution.explainString(mode)))
+      _    <- Console.printLine(plan)
+    } yield ()
 
 }

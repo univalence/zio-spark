@@ -86,7 +86,7 @@ object MethodType {
 
     val methodsToImplement =
       Set(
-        "explain",      // It should be implemented using Console layer
+        "explain",   // It should be implemented using Console layer
         "show",      // It should be implemented using Console layer,
         "transform", // Too specific for codegen
         "write",     // TODO: DataFrameWriter should be added to zio-spark
