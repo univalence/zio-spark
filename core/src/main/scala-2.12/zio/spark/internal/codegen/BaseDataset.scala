@@ -12,8 +12,8 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
 import zio.Task
-import zio.spark.impure.Impure
-import zio.spark.impure.Impure.ImpureBox
+import zio.spark.internal.Impure
+import zio.spark.internal.Impure.ImpureBox
 import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
 
 import scala.collection.JavaConverters._

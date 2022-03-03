@@ -1,7 +1,7 @@
-package zio.spark.impure
+package zio.spark.internal
 
 import zio.{RIO, Task, UIO, ZIO}
-import zio.spark.impure.Impure.ImpureBox
+import zio.spark.internal.Impure.ImpureBox
 
 import scala.util.Try
 

@@ -3,8 +3,8 @@ package zio.spark.sql
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
-import zio.spark.impure.Impure
-import zio.spark.impure.Impure.ImpureBox
+import zio.spark.internal.Impure
+import zio.spark.internal.Impure.ImpureBox
 import zio.spark.parameter._
 import zio.spark.sql.SparkSession.Conf
 

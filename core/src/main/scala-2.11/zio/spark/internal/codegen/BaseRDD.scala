@@ -14,8 +14,8 @@ import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD}
 import org.apache.spark.storage.StorageLevel
 
 import zio.Task
-import zio.spark.impure.Impure
-import zio.spark.impure.Impure.ImpureBox
+import zio.spark.internal.Impure
+import zio.spark.internal.Impure.ImpureBox
 import zio.spark.rdd.RDD
 
 import scala.collection.Map
@@ -877,4 +877,5 @@ abstract class BaseRDD[T](underlyingRDD: ImpureBox[UnderlyingRDD[T]]) extends Im
    * [[org.apache.spark.rdd.RDD.toJavaRDD]]
    * [[org.apache.spark.rdd.RDD.toString]]
    */
+
 }
