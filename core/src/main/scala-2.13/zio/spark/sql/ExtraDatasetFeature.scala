@@ -51,7 +51,7 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String): ZIO[SparkSession with Console, Throwable, Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String): RIO[SparkSession with Console, Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
