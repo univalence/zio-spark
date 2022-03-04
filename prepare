@@ -5,5 +5,7 @@ IFS=$'\n\t'
 cd $(dirname "$0")
 cd zio-spark-codegen
 sbt scalafmtAll
+sbt scalafmtSbt
 cd ..
 sbt prepare
+sbt scalafmtSbt

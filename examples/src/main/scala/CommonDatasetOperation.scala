@@ -7,6 +7,7 @@ import zio.spark.sql._
 object CommonDatasetOperation extends ZIOAppDefault {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+  import zio.spark.sql.implicits._
 
   final case class Person(name: String, age: Int)
 

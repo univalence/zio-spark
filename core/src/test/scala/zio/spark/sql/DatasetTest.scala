@@ -14,6 +14,7 @@ import scala.util.Try
 object DatasetTest {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+  import zio.spark.sql.implicits._
 
   def datasetActionsSpec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] =
     suite("Dataset Actions")(

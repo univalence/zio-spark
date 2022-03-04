@@ -10,6 +10,7 @@ import zio.test.TestAspect._
 
 object ExtraDatasetFeatureTest {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+  import zio.spark.sql.implicits._
 
   def spec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
 
