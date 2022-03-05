@@ -13,11 +13,6 @@ object RelationalGroupedDataset {
     RelationalGroupedDataset(ImpureBox(underlyingRelationalGroupedDataset))
 }
 
-object RelationalGroupedDataset {
-  def apply(underlyingRelationalGroupedDataset: UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
-    RelationalGroupedDataset(ImpureBox(underlyingRelationalGroupedDataset))
-}
-
 final case class RelationalGroupedDataset(underlyingRelationalDataset: ImpureBox[UnderlyingRelationalGroupedDataset])
     extends Impure(underlyingRelationalDataset) {
   import underlyingRelationalDataset._
