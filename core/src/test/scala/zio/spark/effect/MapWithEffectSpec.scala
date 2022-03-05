@@ -33,13 +33,13 @@ object MapWithEffectSpec extends DefaultRunnableSpec {
           .fill(10000)(IO.fail("toto").as(1))
           .toRDD
           .flatMap(rdd => MapWithEffect(rdd)("rejected").collect)
-          .map(res => {
-            val size = res.size
+          .map { res =>
+
+            val size  = res.size
             val count = res.count(_ == Left("rejected"))
-            val i = res.indexWhere(_ == Left("rejected"))
-            assertTrue((size,i) == (10000, 1) && (count.toDouble < (0.95d * size)))
+            val i     = res.indexWhere(_ == Left("rejected"))
+            assertTrue(size == 10000, i == 1, count.toDouble < (0.95d * size))
           }
-          )
 
       }
     )
