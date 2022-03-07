@@ -9,7 +9,8 @@ import scala.meta.contrib.AssociatedComments
 case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scalaVersion: ScalaBinaryVersion) {
   self =>
 
-  val calls: List[ParameterGroup] = df.paramss.map(pg => ParameterGroup.fromScalaMeta(pg, scalaVersion))
+  val calls: List[ParameterGroup]    = df.paramss.map(pg => ParameterGroup.fromScalaMeta(pg, scalaVersion))
+  val anyParameters: List[Parameter] = calls.flatMap(_.parameters)
 
   val name: String                   = df.name.value
   val returnType: String             = df.decltpe.get.toString()

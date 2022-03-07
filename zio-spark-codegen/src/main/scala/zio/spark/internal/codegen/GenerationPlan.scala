@@ -67,76 +67,7 @@ case class GenerationPlan(planType: PlanType, source: meta.Source, scalaBinaryVe
       .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("Array"))) // Java specific implementation
   }
 
-  lazy val methodsWithTypes: Map[MethodType, Seq[Method]] = methods.groupBy(getMethodType)
-
-  /** @return the imports needed for each plans. */
-  def imports: String = {
-    val rddCommonImports =
-      """import org.apache.hadoop.io.compress.CompressionCodec
-        |import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
-        |import org.apache.spark.partial.{BoundedDouble, PartialResult}
-        |import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD}
-        |import org.apache.spark.storage.StorageLevel
-        |
-        |import zio.Task
-        |import zio.spark.internal.Impure
-        |import zio.spark.internal.Impure.ImpureBox
-        |import zio.spark.rdd.RDD
-        |
-        |import scala.collection.Map
-        |import scala.io.Codec
-        |import scala.reflect._
-        |""".stripMargin
-
-    val datasetCommonImports =
-      """import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions, Encoder, Row, TypedColumn}
-        |import org.apache.spark.sql.types.StructType
-        |import org.apache.spark.storage.StorageLevel
-        |
-        |import zio.Task
-        |import zio.spark.internal.Impure
-        |import zio.spark.internal.Impure.ImpureBox
-        |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
-        |
-        |import scala.reflect.runtime.universe.TypeTag
-        |""".stripMargin
-
-    val rddSpecificImports =
-      scalaBinaryVersion match {
-        case ScalaBinaryVersion.V2_13 =>
-          s"""import org.apache.spark.rdd.RDDBarrier
-             |import org.apache.spark.resource.ResourceProfile
-             |""".stripMargin
-        case ScalaBinaryVersion.V2_12 =>
-          s"""import org.apache.spark.rdd.RDDBarrier
-             |""".stripMargin
-        case _ => ""
-      }
-
-    val datasetSpecificImports =
-      scalaBinaryVersion match {
-        case ScalaBinaryVersion.V2_13 =>
-          s"""import scala.jdk.CollectionConverters._
-             |""".stripMargin
-        case _ =>
-          s"""import scala.collection.JavaConverters._
-             |""".stripMargin
-      }
-
-    val rddImports     = rddCommonImports + rddSpecificImports
-    val datasetImports = datasetCommonImports + datasetSpecificImports
-
-    val dataFrameNaImports =
-      """import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions}
-        |import zio.spark.internal.Impure
-        |import zio.spark.internal.Impure.ImpureBox
-        |import zio.spark.sql.{DataFrame, Dataset}
-        |""".stripMargin
-
-    planType.fold(rddImports, datasetImports, dataFrameNaImports)
-  }
-
-  val definition: String = planType.definition
+  lazy val methodsWithTypes: Map[MethodType, Seq[Method]] = methods.groupBy(getMethodType(_, planType))
 }
 
 object GenerationPlan {
@@ -236,6 +167,13 @@ object GenerationPlan {
             | */
             |def transformation(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
             |  succeedNow(f.andThen(x => Dataset(x)))
+            |
+            |/**
+            | * Applies a transformation to the underlying DataFrameNaFunctions, it is used for
+            | * transformations that can fail due to an AnalysisException.
+            | */
+            |def transformationWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+            |  TryAnalysis(transformation(f))
             |""".stripMargin
       }
     }
@@ -304,7 +242,7 @@ object GenerationPlan {
           """import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions}
             |import zio.spark.internal.Impure
             |import zio.spark.internal.Impure.ImpureBox
-            |import zio.spark.sql.{DataFrame, Dataset}
+            |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
             |""".stripMargin
       }
 
@@ -349,11 +287,11 @@ object GenerationPlan {
 
     @inline final def fold[C](planType: PlanType => C): C = planType(this)
 
-    final def fold[C](rdd: => C, dataset: => C, dataframeNa: => C): C =
+    final def fold[C](rdd: => C, dataset: => C, dataFrameNa: => C): C =
       this match {
         case RDDPlan                  => rdd
         case DatasetPlan              => dataset
-        case DataFrameNaFunctionsPlan => dataframeNa
+        case DataFrameNaFunctionsPlan => dataFrameNa
       }
   }
 

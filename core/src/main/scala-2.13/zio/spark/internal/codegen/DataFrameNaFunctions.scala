@@ -11,9 +11,9 @@ import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFuncti
 
 import zio.spark.internal.Impure
 import zio.spark.internal.Impure.ImpureBox
-import zio.spark.sql.{DataFrame, Dataset}
+import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
 
-case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
+final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
     extends Impure[UnderlyingDataFrameNaFunctions](underlyingDataFrameNaFunctions) {
   import underlyingDataFrameNaFunctions._
 
@@ -22,6 +22,14 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    */
   def transformation(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
     succeedNow(f.andThen(x => Dataset(x)))
+
+  /**
+   * Applies a transformation to the underlying DataFrameNaFunctions, it
+   * is used for transformations that can fail due to an
+   * AnalysisException.
+   */
+  def transformationWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+    TryAnalysis(transformation(f))
 
   /**
    * Returns a new `DataFrame` that drops rows containing any null or
@@ -44,40 +52,12 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
   final def drop(how: String): DataFrame = transformation(_.drop(how))
 
   /**
-   * Returns a new `DataFrame` that drops rows containing any null or
-   * NaN values in the specified columns.
-   *
-   * @since 1.3.1
-   */
-  final def drop(cols: Seq[String]): DataFrame = transformation(_.drop(cols))
-
-  /**
-   * Returns a new `DataFrame` that drops rows containing null or NaN
-   * values in the specified columns.
-   *
-   * If `how` is "any", then drop rows containing any null or NaN values
-   * in the specified columns. If `how` is "all", then drop rows only if
-   * every specified column is null or NaN for that row.
-   *
-   * @since 1.3.1
-   */
-  final def drop(how: String, cols: Seq[String]): DataFrame = transformation(_.drop(how, cols))
-
-  /**
    * Returns a new `DataFrame` that drops rows containing less than
    * `minNonNulls` non-null and non-NaN values.
    *
    * @since 1.3.1
    */
   final def drop(minNonNulls: Int): DataFrame = transformation(_.drop(minNonNulls))
-
-  /**
-   * Returns a new `DataFrame` that drops rows containing less than
-   * `minNonNulls` non-null and non-NaN values in the specified columns.
-   *
-   * @since 1.3.1
-   */
-  final def drop(minNonNulls: Int, cols: Seq[String]): DataFrame = transformation(_.drop(minNonNulls, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
@@ -103,48 +83,12 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
   final def fill(value: String): DataFrame = transformation(_.fill(value))
 
   /**
-   * Returns a new `DataFrame` that replaces null or NaN values in
-   * specified numeric columns. If a specified column is not a numeric
-   * column, it is ignored.
-   *
-   * @since 2.2.0
-   */
-  final def fill(value: Long, cols: Seq[String]): DataFrame = transformation(_.fill(value, cols))
-
-  /**
-   * Returns a new `DataFrame` that replaces null or NaN values in
-   * specified numeric columns. If a specified column is not a numeric
-   * column, it is ignored.
-   *
-   * @since 1.3.1
-   */
-  final def fill(value: Double, cols: Seq[String]): DataFrame = transformation(_.fill(value, cols))
-
-  /**
-   * Returns a new `DataFrame` that replaces null values in specified
-   * string columns. If a specified column is not a string column, it is
-   * ignored.
-   *
-   * @since 1.3.1
-   */
-  final def fill(value: String, cols: Seq[String]): DataFrame = transformation(_.fill(value, cols))
-
-  /**
    * Returns a new `DataFrame` that replaces null values in boolean
    * columns with `value`.
    *
    * @since 2.3.0
    */
   final def fill(value: Boolean): DataFrame = transformation(_.fill(value))
-
-  /**
-   * Returns a new `DataFrame` that replaces null values in specified
-   * boolean columns. If a specified column is not a boolean column, it
-   * is ignored.
-   *
-   * @since 2.3.0
-   */
-  final def fill(value: Boolean, cols: Seq[String]): DataFrame = transformation(_.fill(value, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null values.
@@ -167,6 +111,77 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    * @since 1.3.1
    */
   final def fill(valueMap: Map[String, Any]): DataFrame = transformation(_.fill(valueMap))
+
+  // ===============
+
+  /**
+   * Returns a new `DataFrame` that drops rows containing any null or
+   * NaN values in the specified columns.
+   *
+   * @since 1.3.1
+   */
+  final def drop(cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(cols))
+
+  /**
+   * Returns a new `DataFrame` that drops rows containing null or NaN
+   * values in the specified columns.
+   *
+   * If `how` is "any", then drop rows containing any null or NaN values
+   * in the specified columns. If `how` is "all", then drop rows only if
+   * every specified column is null or NaN for that row.
+   *
+   * @since 1.3.1
+   */
+  final def drop(how: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(how, cols))
+
+  /**
+   * Returns a new `DataFrame` that drops rows containing less than
+   * `minNonNulls` non-null and non-NaN values in the specified columns.
+   *
+   * @since 1.3.1
+   */
+  final def drop(minNonNulls: Int, cols: Seq[String]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.drop(minNonNulls, cols))
+
+  /**
+   * Returns a new `DataFrame` that replaces null or NaN values in
+   * specified numeric columns. If a specified column is not a numeric
+   * column, it is ignored.
+   *
+   * @since 2.2.0
+   */
+  final def fill(value: Long, cols: Seq[String]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.fill(value, cols))
+
+  /**
+   * Returns a new `DataFrame` that replaces null or NaN values in
+   * specified numeric columns. If a specified column is not a numeric
+   * column, it is ignored.
+   *
+   * @since 1.3.1
+   */
+  final def fill(value: Double, cols: Seq[String]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.fill(value, cols))
+
+  /**
+   * Returns a new `DataFrame` that replaces null values in specified
+   * string columns. If a specified column is not a string column, it is
+   * ignored.
+   *
+   * @since 1.3.1
+   */
+  final def fill(value: String, cols: Seq[String]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.fill(value, cols))
+
+  /**
+   * Returns a new `DataFrame` that replaces null values in specified
+   * boolean columns. If a specified column is not a boolean column, it
+   * is ignored.
+   *
+   * @since 2.3.0
+   */
+  final def fill(value: Boolean, cols: Seq[String]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.fill(value, cols))
 
   /**
    * Replaces values matching keys in `replacement` map.
@@ -193,7 +208,8 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def replace[T](col: String, replacement: Map[T, T]): DataFrame = transformation(_.replace(col, replacement))
+  final def replace[T](col: String, replacement: Map[T, T]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.replace(col, replacement))
 
   /**
    * Replaces values matching keys in `replacement` map.
@@ -216,7 +232,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def replace[T](cols: Seq[String], replacement: Map[T, T]): DataFrame =
-    transformation(_.replace(cols, replacement))
+  final def replace[T](cols: Seq[String], replacement: Map[T, T]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.replace(cols, replacement))
 
 }
