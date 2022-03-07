@@ -54,10 +54,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
             comments
               .leading(df)
               .mkString("  ", "\n  ", "")
-              .replace(
-                "numPartitions = 1",
-                "{{{ numPartitions = 1 }}}"
-              )
+              .replace("numPartitions = 1", "{{{ numPartitions = 1 }}}")
+              .replace("(Scala-specific) ", "")
 
         val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
 
@@ -67,7 +65,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
             .map(_.toString)
             .getOrElse("")
 
-        s"$comment$deprecation\ndef $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)"
+        s"""$comment$deprecation
+           |final def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)""".stripMargin
     }
 
   def isSetter: Boolean = name.startsWith("set")

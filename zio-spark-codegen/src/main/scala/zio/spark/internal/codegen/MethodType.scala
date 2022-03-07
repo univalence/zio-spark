@@ -138,7 +138,7 @@ object MethodType {
       case name if getters(name)                                                                    => DriverAction
       case name if pureInfo(name)                                                                   => SuccessNow
       case name if partitionOps(name)                                                               => SuccessNow
-      case "na" => SuccessNow
+      case "na"                                                                                     => SuccessNow
       case _ if method.path.startsWith("java.lang.Object")                                          => Ignored
       case _ if method.path.startsWith("scala.Any")                                                 => Ignored
       case _ if method.isSetter                                                                     => Ignored

@@ -3,10 +3,8 @@ package zio.spark.internal.codegen
 import org.scalafmt.interfaces.Scalafmt
 import sbt.*
 import sbt.Keys.*
-
+import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.MethodType.*
-
-import scala.collection.immutable
 
 import java.nio.file.*
 
@@ -27,7 +25,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
   override lazy val projectSettings =
     Seq(
       Compile / sourceGenerators += Def.task {
-        val jars: Classpath = (Compile / dependencyClasspathAsJars).value
+        val classpath: Classpath = (Compile / dependencyClasspathAsJars).value
 
         val version =
           scalaBinaryVersion.value match {
@@ -36,17 +34,20 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             case "2.13" => ScalaBinaryVersion.V2_13
           }
 
-        val generationPlans: immutable.Seq[GenerationPlan] =
+        val planTypes: Seq[PlanType] =
           List(
-            GenerationPlan.rddPlan(jars, version),
-            GenerationPlan.datasetPlan(jars, version),
-            GenerationPlan.dataframeNaPlan(jars, version)
-          ).map(zio.Runtime.default.unsafeRun)
+            GenerationPlan.RDDPlan,
+            GenerationPlan.DatasetPlan,
+            GenerationPlan.DataFrameNaFunctionsPlan
+          )
+
+        val generationPlans = planTypes.map(_.getGenerationPlan(classpath, version)).map(zio.Runtime.default.unsafeRun)
 
         val generatedFiles =
           generationPlans.map { plan =>
             val scalaDir: File = (Compile / scalaSource).value
-            new File(scalaDir.getPath + "-" + scalaBinaryVersion.value) / "zio" / "spark" / "internal" / "codegen" / s"${plan.outputName}.scala"
+            val basePath: File = new File(scalaDir.getPath + "-" + scalaBinaryVersion.value)
+            basePath / "zio" / "spark" / "internal" / "codegen" / s"${plan.planType.outputName}.scala"
           }
 
         /**
@@ -64,7 +65,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               val allMethods                  = plan.getFinalClassMethods((Compile / scalaSource).value)
               val methodsToImplement          = plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet
               val missingMethods: Set[String] = methodsToImplement -- allMethods
-              plan.name -> missingMethods
+              plan.planType.name -> missingMethods
             }
 
           val plansWithMissingMethodsNonEmpty = plansWithMissingMethods.filter(_._2.nonEmpty)
@@ -93,14 +94,25 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           }
         }
 
+        /**
+         * Checks that formatted code doesn't contain non indented
+         * single line.
+         * @param code
+         *   The code to check
+         */
+        def checkPostFormatting(code: String): Unit = {
+          val check: Option[String] = "\n//(.*?)\n".r.findFirstIn(code)
+          check.foreach { line =>
+            throw new AssertionError(s"generated file should not contain non-indented single-line comments $line")
+          }
+        }
+
         val scalafmt = Scalafmt.create(this.getClass.getClassLoader)
         val config   = Paths.get(".scalafmt.conf")
 
         generationPlans.zip(generatedFiles).foreach { case (plan, file) =>
-          val methodsWithMethodTypes = plan.methodsWithTypes
-
           val body: String =
-            methodsWithMethodTypes.toList
+            plan.methodsWithTypes.toList
               .sortBy(_._1)
               .map { case (methodType, methods) =>
                 val sep =
@@ -122,44 +134,14 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               }
               .mkString("\n\n  // ===============\n\n")
 
-          val code = {
-            import plan.*
-            s"""/**
-               | * /!\\ Warning /!\\
-               | *
-               | * This file is generated using zio-spark-codegen, you should not edit 
-               | * this file directly.
-               | */
-               |
-               |package zio.spark.internal.codegen
-               |
-               |$imports
-               |
-               |$suppressWarnings
-               |$definition {
-               |  import underlying$name._
-               |
-               |$baseImplicits
-               |
-               |$helpers
-               |
-               |$body
-               |
-               |}
-               |""".stripMargin
-          }
+          val sourceCode: String    = plan.planType.sourceCode(body, version)
+          val formattedCode: String = scalafmt.format(config, file.toPath, sourceCode)
 
-          val formattedCode: String = scalafmt.format(config, file.toPath, code)
-          val check: Option[String] = "\n//(.*?)\n".r.findFirstIn(formattedCode)
-          check.foreach { line =>
-            throw new AssertionError(s"generated file should not contain non-indented single-line comments $line")
-          }
+          checkPostFormatting(formattedCode)
 
           IO.write(file, formattedCode)
         }
-
         checkAllMethodsAreImplemented(generationPlans)
-
         generatedFiles
       }.taskValue
     )

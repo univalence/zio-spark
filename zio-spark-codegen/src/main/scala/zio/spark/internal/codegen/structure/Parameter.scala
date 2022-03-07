@@ -8,6 +8,7 @@ import scala.meta.*
 case class Parameter(underlying: Term.Param, scalaVersion: ScalaBinaryVersion) {
 
   val name: String = underlying.name.toString
+
   val signature: String =
     scalaVersion match {
       case ScalaBinaryVersion.V2_13 => underlying.decltpe.get.toString.replace("TraversableOnce", "IterableOnce")
