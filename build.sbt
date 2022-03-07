@@ -78,7 +78,8 @@ addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageRe
 // -- Lib versions
 lazy val libVersion =
   new {
-    val zio = "2.0.0-RC2"
+    val zio        = "2.0.0-RC2"
+    val zioPrelude = "1.0.0-RC10"
   }
 
 lazy val scala =
@@ -129,7 +130,8 @@ def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
     "dev.zio" %% "zio-test"     % libVersion.zio % Test,
     "dev.zio" %% "zio-test-sbt" % libVersion.zio % Test,
     "dev.zio" %% "zio"          % libVersion.zio,
-    "dev.zio" %% "zio-streams"  % libVersion.zio
+    "dev.zio" %% "zio-streams"  % libVersion.zio,
+    "dev.zio" %% "zio-prelude"  % libVersion.zioPrelude
   )
 }
 

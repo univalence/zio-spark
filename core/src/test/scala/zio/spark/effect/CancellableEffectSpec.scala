@@ -37,10 +37,8 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
     suite("cancellable")(
       test("jobGroup") {
         CancellableEffect.makeItCancellable(getJobGroup).map(x => assertTrue(x.startsWith("cancellable-group")))
-
       },
       test("smoke") {
-
         val job: Spark[Long] =
           CancellableEffect.makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000)).count))
 

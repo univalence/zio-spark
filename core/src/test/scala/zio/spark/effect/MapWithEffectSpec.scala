@@ -22,13 +22,12 @@ object MapWithEffectSpec extends DefaultRunnableSpec {
 
         Seq(1, 2, 3).toDataset.map(_.rdd)
 
-        def effect(rdd: RDD[Int]): Task[Seq[Either[String, Unit]]] =
-          MapWithEffect(rdd.map(i => UIO(println(i))))("rejected").collect
+        def effect(rdd: RDD[Int]): Task[Seq[Either[String, Int]]] =
+          MapWithEffect(rdd.map(i => UIO(i)))("rejected").collect
 
         (getRddInt flatMap effect).map(seq => assertTrue(seq.size == 3))
       },
       test("failure") {
-
         Seq
           .fill(10000)(IO.fail("toto").as(1))
           .toRDD

@@ -1,6 +1,7 @@
 package zio.spark.effect
 
 import zio.{IO, UIO, ZIO, ZManaged}
+import zio.spark.effect.NewType.{Ratio, Weight}
 import zio.spark.rdd.RDD
 import zio.stream.ZStream
 
@@ -12,7 +13,7 @@ object MapWithEffect {
   def apply[E1, E2 >: E1, A](rdd: RDD[IO[E1, A]])(
       onRejected: E2,
       maxErrorRatio: Ratio = Ratio.p05,
-      decayScale: Int = 1000
+      decayScale: Weight = Weight(1000)
   ): RDD[Either[E2, A]] = rdd.mapZIO(identity, _ => onRejected, maxErrorRatio, decayScale)
 
   implicit class RDDOps[T](private val rdd: RDD[T]) extends AnyVal {
@@ -21,7 +22,7 @@ object MapWithEffect {
         effect: T => IO[E, B],
         onRejection: T => E,
         maxErrorRatio: Ratio = Ratio.p05,
-        decayScale: Int = 1000
+        decayScale: Weight = Weight(1000)
     ): RDD[Either[E, B]] =
       rdd.mapPartitions(
         { it =>
