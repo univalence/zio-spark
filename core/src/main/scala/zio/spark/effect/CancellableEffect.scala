@@ -15,7 +15,6 @@ object CancellableEffect {
     val newGroupName = UIO("cancellable-group-" + Random.alphanumeric.take(6).mkString)
 
     for {
-
       sc        <- zio.spark.sql.fromSpark(_.sparkContext)
       groupName <- newGroupName
       x <-
