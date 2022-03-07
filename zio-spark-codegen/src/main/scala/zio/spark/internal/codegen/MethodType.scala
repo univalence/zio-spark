@@ -99,7 +99,6 @@ object MethodType {
         "context",      // TODO: SparkContext should be wrapped
         "sparkContext", // TODO: SparkContext should be wrapped
         "randomSplit",  // It should be implemented using Random layer
-        "na",           // TODO: DataFrameNaFunctions should be added to zio-spark
         "stat",         // TODO: DataFrameStatFunctions should be added to zio-spark
         "rollup",       // TODO: RelationalGroupedDataset should be added to zio-spark
         "cube",         // TODO: RelationalGroupedDataset should be added to zio-spark
@@ -139,6 +138,7 @@ object MethodType {
       case name if getters(name)                                                                    => DriverAction
       case name if pureInfo(name)                                                                   => SuccessNow
       case name if partitionOps(name)                                                               => SuccessNow
+      case "na" => SuccessNow
       case _ if method.path.startsWith("java.lang.Object")                                          => Ignored
       case _ if method.path.startsWith("scala.Any")                                                 => Ignored
       case _ if method.isSetter                                                                     => Ignored

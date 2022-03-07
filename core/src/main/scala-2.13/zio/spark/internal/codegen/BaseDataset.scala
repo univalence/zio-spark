@@ -7,7 +7,14 @@
 
 package zio.spark.internal.codegen
 
-import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row, TypedColumn}
+import org.apache.spark.sql.{
+  Column,
+  DataFrameNaFunctions => UnderlyingDataFrameNaFunctions,
+  Dataset => UnderlyingDataset,
+  Encoder,
+  Row,
+  TypedColumn
+}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
@@ -27,6 +34,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U]   = Dataset(x)
   implicit private def escape[U](x: Dataset[U]): UnderlyingDataset[U] = x.underlyingDataset.succeedNow(v => v)
   implicit private def iteratorConversion[U](iterator: java.util.Iterator[U]): Iterator[U] = iterator.asScala
+  implicit private def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
+    DataFrameNaFunctions(ImpureBox(x))
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
@@ -53,6 +62,19 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 1.6.0
    */
   def columns: Seq[String] = succeedNow(_.columns.toSeq)
+
+  // scalastyle:on println
+  /**
+   * Returns a [[DataFrameNaFunctions]] for working with missing data.
+   * {{{
+   *   // Dropping rows containing any null values.
+   *   ds.na.drop()
+   * }}}
+   *
+   * @group untypedrel
+   * @since 1.6.0
+   */
+  def na: DataFrameNaFunctions = succeedNow(_.na)
 
   /**
    * Returns the schema of this Dataset.
@@ -1873,7 +1895,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    *
    * [[org.apache.spark.sql.Dataset.cube]]
    * [[org.apache.spark.sql.Dataset.groupByKey]]
-   * [[org.apache.spark.sql.Dataset.na]]
    * [[org.apache.spark.sql.Dataset.randomSplit]]
    * [[org.apache.spark.sql.Dataset.rollup]]
    * [[org.apache.spark.sql.Dataset.stat]]

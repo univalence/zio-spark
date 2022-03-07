@@ -27,7 +27,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
   override lazy val projectSettings =
     Seq(
       Compile / sourceGenerators += Def.task {
-        val jars = (Compile / dependencyClasspathAsJars).value
+        val jars: Classpath = (Compile / dependencyClasspathAsJars).value
 
         val version =
           scalaBinaryVersion.value match {
@@ -39,13 +39,14 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
         val generationPlans: immutable.Seq[GenerationPlan] =
           List(
             GenerationPlan.rddPlan(jars, version),
-            GenerationPlan.datasetPlan(jars, version)
+            GenerationPlan.datasetPlan(jars, version),
+            GenerationPlan.dataframeNaPlan(jars, version)
           ).map(zio.Runtime.default.unsafeRun)
 
         val generatedFiles =
           generationPlans.map { plan =>
             val scalaDir: File = (Compile / scalaSource).value
-            new File(scalaDir.getPath + "-" + scalaBinaryVersion.value) / "zio" / "spark" / "internal" / "codegen" / s"Base${plan.name}.scala"
+            new File(scalaDir.getPath + "-" + scalaBinaryVersion.value) / "zio" / "spark" / "internal" / "codegen" / s"${plan.outputName}.scala"
           }
 
         /**
@@ -59,7 +60,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
          */
         def checkAllMethodsAreImplemented(plans: Seq[GenerationPlan]): Unit = {
           val plansWithMissingMethods: Seq[(String, Set[String])] =
-            plans.map { plan =>
+            plans.filter(_.planType.fold(true, true, false)).map { plan =>
               val allMethods                  = plan.getFinalClassMethods((Compile / scalaSource).value)
               val methodsToImplement          = plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet
               val missingMethods: Set[String] = methodsToImplement -- allMethods
@@ -92,6 +93,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           }
         }
 
+        val scalafmt = Scalafmt.create(this.getClass.getClassLoader)
+        val config   = Paths.get(".scalafmt.conf")
+
         generationPlans.zip(generatedFiles).foreach { case (plan, file) =>
           val methodsWithMethodTypes = plan.methodsWithTypes
 
@@ -118,9 +122,6 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               }
               .mkString("\n\n  // ===============\n\n")
 
-          val scalafmt = Scalafmt.create(this.getClass.getClassLoader)
-          val config   = Paths.get(".scalafmt.conf")
-
           val code = {
             import plan.*
             s"""/**
@@ -135,7 +136,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                |$imports
                |
                |$suppressWarnings
-               |abstract class Base$name[T](underlying$name: ImpureBox[Underlying$name[T]]) extends Impure[Underlying$name[T]](underlying$name) {
+               |$definition {
                |  import underlying$name._
                |
                |$baseImplicits
@@ -149,7 +150,6 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           }
 
           val formattedCode: String = scalafmt.format(config, file.toPath, code)
-
           val check: Option[String] = "\n//(.*?)\n".r.findFirstIn(formattedCode)
           check.foreach { line =>
             throw new AssertionError(s"generated file should not contain non-indented single-line comments $line")

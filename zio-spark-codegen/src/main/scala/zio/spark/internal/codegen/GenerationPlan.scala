@@ -31,10 +31,17 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
     path match {
       case "org/apache/spark/rdd/RDD.scala"     => GenerationPlan.RDDPlan
       case "org/apache/spark/sql/Dataset.scala" => GenerationPlan.DatasetPlan
+      case "org/apache/spark/sql/DataFrameNaFunctions.scala" => GenerationPlan.DataFrameNaFunctionsPlan
     }
 
   /** @return the name of the source file. */
   def name: String = path.replace(".scala", "").split('/').last
+
+  def outputName: String = planType.fold(
+    s"Base$name",
+    s"Base$name",
+    name
+  )
 
   /** @return the package name using the file path. */
   def pkg: String = path.replace(".scala", "").replace('/', '.')
@@ -42,20 +49,6 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
   /** @return the path of the generated base file. */
   def sparkZioPath: String = path.replace("org/apache/spark", "zio/spark")
 
-  /**
-   * Retrieves all function's names from a file.
-   *
-   * @param file
-   *   The file to retrieve functions from
-   * @return
-   *   The names of the functions
-   */
-  def functionsFromFile(file: File): Set[String] = {
-    val source: Source = IO.read(file).parse[Source].get
-    val template       = getTemplateFromSource(source)
-    collectFunctionsFromTemplate(template).map(_.name.value).toSet
-
-  }
 
   /**
    * Returns the final methods resulting from the fusion of the
@@ -75,32 +68,9 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
         val baseFile: File = new File(scalaSource.getPath + "-" + scalaBinaryVersion)
         val file: File     = baseFile / "zio" / "spark" / "sql" / "ExtraDatasetFeature.scala"
         baseClassFunctions ++ functionsFromFile(file)
+      case GenerationPlan.DataFrameNaFunctionsPlan => baseClassFunctions
     }
   }
-
-  def checkMods(mods: List[Mod]): Boolean =
-    !mods.exists {
-      case mod"@DeveloperApi" => true
-      case mod"private[$_]"   => true
-      case mod"protected[$_]" => true
-      case _                  => false
-    }
-
-  def collectFunctionsFromTemplate(template: Template): immutable.Seq[Defn.Def] =
-    template.stats.collect {
-      case d: Defn.Def if checkMods(d.mods) => d
-      // case d: Decl.Def if checkMods(d.mods) => ??? // only compute is declared
-    }
-
-  def getTemplateFromSource(source: Source): Template =
-    source.children
-      .flatMap(_.children)
-      .collectFirst {
-        case c: Defn.Class if c.name.toString == "RDD"                 => c.templ
-        case c: Defn.Class if c.name.toString == "Dataset"             => c.templ
-        case c: Defn.Class if c.name.toString == "ExtraDatasetFeature" => c.templ
-      }
-      .get
 
   /** @return the methods of the spark source file. */
   lazy val methods: Seq[Method] = {
@@ -123,20 +93,21 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
 
   /** @return the implicits needed for each plans. */
   def baseImplicits: String = {
-    val encoder: String = planType.fold("", "(implicit enc: Encoder[Seq[U]])")
+    val encoder: String = planType.fold("", "(implicit enc: Encoder[Seq[U]])", "")
 
     val rddImplicits =
       s"""private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]])$encoder: Underlying$name[Seq[U]] = x.map(_.toIndexedSeq)
          |@inline private def noOrdering[U]: Ordering[U] = null""".stripMargin
 
     val datasetImplicits =
-      s"""private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = iterator.asScala""".stripMargin
+      s"""private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = iterator.asScala
+         |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions = DataFrameNaFunctions(ImpureBox(x))""".stripMargin
 
     val defaultImplicits =
       s"""private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
          |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name.succeedNow(v => v)""".stripMargin
 
-    val implicits = defaultImplicits + "\n" + planType.fold(rddImplicits, datasetImplicits)
+    val implicits = planType.fold(defaultImplicits + "\n" +rddImplicits, defaultImplicits + "\n" +datasetImplicits, "")
 
     s"""  // scalafix:off
        |$implicits
@@ -164,7 +135,7 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
         |""".stripMargin
 
     val datasetCommonImports =
-      """import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row, TypedColumn}
+      """import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions, Encoder, Row, TypedColumn}
         |import org.apache.spark.sql.types.StructType
         |import org.apache.spark.storage.StorageLevel
         |
@@ -201,7 +172,14 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
     val rddImports     = rddCommonImports + rddSpecificImports
     val datasetImports = datasetCommonImports + datasetSpecificImports
 
-    planType.fold(rddImports, datasetImports)
+    val dataFrameNaImports =
+      """import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions}
+        |import zio.spark.internal.Impure
+        |import zio.spark.internal.Impure.ImpureBox
+        |import zio.spark.sql.{DataFrame, Dataset}
+        |""".stripMargin
+
+    planType.fold(rddImports, datasetImports, dataFrameNaImports)
   }
 
   /** @return the helper functions needed for each plans. */
@@ -228,26 +206,49 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
         |  TryAnalysis(succeedNow(f))
         |""".stripMargin
 
-    defaultHelpers + "\n\n" + planType.fold("", datasetHelpers)
+    val dataframeNaHelpers =
+      """/**
+        | * Applies a transformation to the underlying DataFrameNaFunctions.
+        | */
+        |def transformation(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
+        |  succeedNow(f.andThen(x => Dataset(x)))
+        |""".stripMargin
+
+    planType.fold(defaultHelpers, defaultHelpers + "\n\n" + datasetHelpers, dataframeNaHelpers)
   }
 
   val suppressWarnings: String = {
     val rddSuppressWarnings = "@SuppressWarnings(Array(\"scalafix:DisableSyntax.defaultArgs\", \"scalafix:DisableSyntax.null\"))"
 
-    planType.fold(rddSuppressWarnings, "")
+    planType.fold(rddSuppressWarnings, "", "")
+  }
+
+  val definition: String = {
+    def baseDefinition(withT: Boolean): String = {
+      val className =  if (withT) s"$outputName[T]" else outputName
+      val underlyingName = if (withT) s"Underlying$name[T]" else s"Underlying$name"
+      s"class $className(underlying$name: ImpureBox[$underlyingName]) extends Impure[$underlyingName](underlying$name)"
+    }
+    planType.fold(
+      "abstract " + baseDefinition(withT=true),
+      "abstract " + baseDefinition(withT=true),
+      "case " + baseDefinition(withT=false)
+    )
   }
 }
 
 object GenerationPlan {
   sealed trait PlanType {
-    def fold[C](rdd: => C, dataset: => C): C =
+    def fold[C](rdd: => C, dataset: => C, dataframeNa: => C): C =
       this match {
         case RDDPlan     => rdd
         case DatasetPlan => dataset
+        case DataFrameNaFunctionsPlan => dataframeNa
       }
   }
   case object RDDPlan     extends PlanType
   case object DatasetPlan extends PlanType
+  case object DataFrameNaFunctionsPlan extends PlanType
 
   /**
    * Retrieve the generation plan according to the module name, the file
@@ -278,4 +279,43 @@ object GenerationPlan {
   def datasetPlan(classpath: GetSources.Classpath, scalaBinaryVersion: ScalaBinaryVersion): zio.Task[GenerationPlan] =
     get("spark-sql", "org/apache/spark/sql/Dataset.scala", classpath, scalaBinaryVersion)
 
+  def dataframeNaPlan(classpath: GetSources.Classpath, scalaBinaryVersion: ScalaBinaryVersion): zio.Task[GenerationPlan] =
+    get("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala", classpath, scalaBinaryVersion)
+
+
+  /**
+   * Retrieves all function's names from a file.
+   *
+   * @param file
+   *   The file to retrieve functions from
+   * @return
+   *   The names of the functions
+   */
+  def functionsFromFile(file: File): Set[String] = {
+    val source: Source = IO.read(file).parse[Source].get
+    val template       = getTemplateFromSource(source)
+    collectFunctionsFromTemplate(template).map(_.name.value).toSet
+  }
+
+  def checkMods(mods: List[Mod]): Boolean =
+    !mods.exists {
+      case mod"@DeveloperApi" => true
+      case mod"private[$_]"   => true
+      case mod"protected[$_]" => true
+      case _                  => false
+    }
+
+  def collectFunctionsFromTemplate(template: Template): immutable.Seq[Defn.Def] =
+    template.stats.collect {
+      case d: Defn.Def if checkMods(d.mods) => d
+      // case d: Decl.Def if checkMods(d.mods) => ??? // only compute is declared
+    }
+
+  def getTemplateFromSource(source: Source): Template =
+    source.children
+      .flatMap(_.children)
+      .collectFirst {
+        case c: Defn.Class                 => c.templ
+      }
+      .get
 }
