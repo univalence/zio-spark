@@ -42,8 +42,7 @@ object SparkSession extends Accessible[SparkSession] {
    */
   def builder: Builder = Builder(UnderlyingSparkSession.builder(), Map.empty)
 
-  def attempt[Out](f: UnderlyingSparkSession => Out): Spark[Out] =
-    ZIO.serviceWithZIO[SparkSession](_.attemptBlocking(f))
+  def attempt[Out](f: UnderlyingSparkSession => Out): Spark[Out] = ZIO.serviceWithZIO[SparkSession](_.attempt(f))
 
   final case class Builder(builder: UnderlyingSparkSession.Builder, extraConfigs: Map[String, String]) {
     self =>

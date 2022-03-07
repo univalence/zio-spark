@@ -208,7 +208,7 @@ case class GenerationPlan(module: String, path: String, source: meta.Source, sca
   def helpers: String = {
     val defaultHelpers =
       s"""/** Applies an action to the underlying $name. */
-         |def action[U](f: Underlying$name[T] => U): Task[U] = attemptBlocking(f)
+         |def action[U](f: Underlying$name[T] => U): Task[U] = attempt(f)
          |
          |/** Applies a transformation to the underlying $name. */
          |def transformation[U](f: Underlying$name[T] => Underlying$name[U]): $name[U] = succeedNow(f.andThen(x => $name(x)))""".stripMargin

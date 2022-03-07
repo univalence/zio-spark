@@ -34,7 +34,6 @@ object MapWithEffectSpec extends DefaultRunnableSpec {
           .toRDD
           .flatMap(rdd => MapWithEffect(rdd)("rejected").collect)
           .map { res =>
-
             val size  = res.size
             val count = res.count(_ == Left("rejected"))
             val i     = res.indexWhere(_ == Left("rejected"))
