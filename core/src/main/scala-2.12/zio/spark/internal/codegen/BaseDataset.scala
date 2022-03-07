@@ -551,39 +551,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   final def crossJoin(right: Dataset[_]): DataFrame = transformation(_.crossJoin(right))
 
   /**
-   * Computes basic statistics for numeric and string columns, including
-   * count, mean, stddev, min, and max. If no columns are given, this
-   * function computes statistics for all numerical or string columns.
-   *
-   * This function is meant for exploratory data analysis, as we make no
-   * guarantee about the backward compatibility of the schema of the
-   * resulting Dataset. If you want to programmatically compute summary
-   * statistics, use the `agg` function instead.
-   *
-   * {{{
-   *   ds.describe("age", "height").show()
-   *
-   *   // output:
-   *   // summary age   height
-   *   // count   10.0  10.0
-   *   // mean    53.3  178.05
-   *   // stddev  11.6  15.7
-   *   // min     18.0  163.0
-   *   // max     92.0  192.0
-   * }}}
-   *
-   * Use [[summary]] for expanded statistics and control over which
-   * statistics to compute.
-   *
-   * @param cols
-   *   Columns to compute statistics on.
-   *
-   * @group action
-   * @since 1.6.0
-   */
-  final def describe(cols: String*): DataFrame = transformation(_.describe(cols: _*))
-
-  /**
    * Returns a new Dataset that contains only the unique rows from this
    * Dataset. This is an alias for `dropDuplicates`.
    *
@@ -649,40 +616,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   final def dropDuplicates: Dataset[T] = transformation(_.dropDuplicates())
 
   /**
-   * Returns a new Dataset with duplicate rows removed, considering only
-   * the subset of columns.
-   *
-   * For a static batch [[Dataset]], it just drops duplicate rows. For a
-   * streaming [[Dataset]], it will keep all data across triggers as
-   * intermediate state to drop duplicates rows. You can use
-   * [[withWatermark]] to limit how late the duplicate data can be and
-   * system will accordingly limit the state. In addition, too late data
-   * older than watermark will be dropped to avoid any possibility of
-   * duplicates.
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  final def dropDuplicates(colNames: Seq[String]): Dataset[T] = transformation(_.dropDuplicates(colNames))
-
-  /**
-   * Returns a new [[Dataset]] with duplicate rows removed, considering
-   * only the subset of columns.
-   *
-   * For a static batch [[Dataset]], it just drops duplicate rows. For a
-   * streaming [[Dataset]], it will keep all data across triggers as
-   * intermediate state to drop duplicates rows. You can use
-   * [[withWatermark]] to limit how late the duplicate data can be and
-   * system will accordingly limit the state. In addition, too late data
-   * older than watermark will be dropped to avoid any possibility of
-   * duplicates.
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  final def dropDuplicates(col1: String, cols: String*): Dataset[T] = transformation(_.dropDuplicates(col1, cols: _*))
-
-  /**
    * Returns a new Dataset containing rows in this Dataset but not in
    * another Dataset. This is equivalent to `EXCEPT DISTINCT` in SQL.
    *
@@ -744,32 +677,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
   final def explode[A <: Product: TypeTag](input: Column*)(f: Row => TraversableOnce[A]): DataFrame =
     transformation(_.explode(input: _*)(f))
-
-  /**
-   * Returns a new Dataset where a single column has been expanded to
-   * zero or more rows by the provided function. This is similar to a
-   * `LATERAL VIEW` in HiveQL. All columns of the input row are
-   * implicitly joined with each value that is output by the function.
-   *
-   * Given that this is deprecated, as an alternative, you can explode
-   * columns either using `functions.explode()`:
-   *
-   * {{{
-   *   ds.select(explode(split('words, " ")).as("word"))
-   * }}}
-   *
-   * or `flatMap()`:
-   *
-   * {{{
-   *   ds.flatMap(_.words.split(" "))
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
-  final def explode[A, B: TypeTag](inputColumn: String, outputColumn: String)(f: A => TraversableOnce[B]): DataFrame =
-    transformation(_.explode(inputColumn, outputColumn)(f))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that only
@@ -847,95 +754,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   final def join(right: Dataset[_]): DataFrame = transformation(_.join(right))
 
   /**
-   * Inner equi-join with another `DataFrame` using the given column.
-   *
-   * Different from other join functions, the join column will only
-   * appear once in the output,
-   * i.e. similar to SQL's `JOIN USING` syntax.
-   *
-   * {{{
-   *   // Joining df1 and df2 using the column "user_id"
-   *   df1.join(df2, "user_id")
-   * }}}
-   *
-   * @param right
-   *   Right side of the join operation.
-   * @param usingColumn
-   *   Name of the column to join on. This column must exist on both
-   *   sides.
-   *
-   * @note
-   *   If you perform a self-join using this function without aliasing
-   *   the input `DataFrame`s, you will NOT be able to reference any
-   *   columns after the join, since there is no way to disambiguate
-   *   which side of the join you would like to reference.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  final def join(right: Dataset[_], usingColumn: String): DataFrame = transformation(_.join(right, usingColumn))
-
-  /**
-   * Inner equi-join with another `DataFrame` using the given columns.
-   *
-   * Different from other join functions, the join columns will only
-   * appear once in the output,
-   * i.e. similar to SQL's `JOIN USING` syntax.
-   *
-   * {{{
-   *   // Joining df1 and df2 using the columns "user_id" and "user_name"
-   *   df1.join(df2, Seq("user_id", "user_name"))
-   * }}}
-   *
-   * @param right
-   *   Right side of the join operation.
-   * @param usingColumns
-   *   Names of the columns to join on. This columns must exist on both
-   *   sides.
-   *
-   * @note
-   *   If you perform a self-join using this function without aliasing
-   *   the input `DataFrame`s, you will NOT be able to reference any
-   *   columns after the join, since there is no way to disambiguate
-   *   which side of the join you would like to reference.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  final def join(right: Dataset[_], usingColumns: Seq[String]): DataFrame = transformation(_.join(right, usingColumns))
-
-  /**
-   * Equi-join with another `DataFrame` using the given columns. A cross
-   * join with a predicate is specified as an inner join. If you would
-   * explicitly like to perform a cross join use the `crossJoin` method.
-   *
-   * Different from other join functions, the join columns will only
-   * appear once in the output,
-   * i.e. similar to SQL's `JOIN USING` syntax.
-   *
-   * @param right
-   *   Right side of the join operation.
-   * @param usingColumns
-   *   Names of the columns to join on. This columns must exist on both
-   *   sides.
-   * @param joinType
-   *   Type of join to perform. Default `inner`. Must be one of:
-   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
-   *   `left_outer`, `right`, `right_outer`, `left_semi`, `left_anti`.
-   *
-   * @note
-   *   If you perform a self-join using this function without aliasing
-   *   the input `DataFrame`s, you will NOT be able to reference any
-   *   columns after the join, since there is no way to disambiguate
-   *   which side of the join you would like to reference.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  final def join(right: Dataset[_], usingColumns: Seq[String], joinType: String): DataFrame =
-    transformation(_.join(right, usingColumns, joinType))
-
-  /**
    * Returns a new Dataset by taking the first `n` rows. The difference
    * between this function and `head` is that `head` is an action and
    * returns an array (by triggering query execution) while `limit`
@@ -964,15 +782,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    */
   final def mapPartitions[U: Encoder](func: Iterator[T] => Iterator[U]): Dataset[U] =
     transformation(_.mapPartitions(func))
-
-  /**
-   * Returns a new Dataset sorted by the given expressions. This is an
-   * alias of the `sort` function.
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  final def orderBy(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.orderBy(sortCol, sortCols: _*))
 
   /**
    * Returns a new Dataset that has exactly `numPartitions` partitions.
@@ -1057,33 +866,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
     transformation(_.sample(withReplacement, fraction))
 
   /**
-   * Selects a set of column based expressions.
-   * {{{
-   *   ds.select($"colA", $"colB" + 1)
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  final def select(cols: Column*): DataFrame = transformation(_.select(cols: _*))
-
-  /**
-   * Selects a set of columns. This is a variant of `select` that can
-   * only select existing columns using column names (i.e. cannot
-   * construct expressions).
-   *
-   * {{{
-   *   // The following two are equivalent:
-   *   ds.select("colA", "colB")
-   *   ds.select($"colA", $"colB")
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  final def select(col: String, cols: String*): DataFrame = transformation(_.select(col, cols: _*))
-
-  /**
    * :: Experimental :: Returns a new Dataset by computing the given
    * [[Column]] expression for each element.
    *
@@ -1148,33 +930,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
       c4: TypedColumn[T, U4],
       c5: TypedColumn[T, U5]
   ): Dataset[(U1, U2, U3, U4, U5)] = transformation(_.select(c1, c2, c3, c4, c5))
-
-  /**
-   * Returns a new Dataset sorted by the specified column, all in
-   * ascending order.
-   * {{{
-   *   // The following 3 are equivalent
-   *   ds.sort("sortcol")
-   *   ds.sort($"sortcol")
-   *   ds.sort($"sortcol".asc)
-   * }}}
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  final def sort(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.sort(sortCol, sortCols: _*))
-
-  /**
-   * Returns a new Dataset with each partition sorted by the given
-   * expressions.
-   *
-   * This is the same operation as "SORT BY" in SQL (Hive QL).
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  final def sortWithinPartitions(sortCol: String, sortCols: String*): Dataset[T] =
-    transformation(_.sortWithinPartitions(sortCol, sortCols: _*))
 
   /**
    * Computes specified statistics for numeric and string columns.
@@ -1252,22 +1007,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // This is declared with parentheses to prevent the Scala compiler from treating
   // `ds.toDF("1")` as invoking this toDF and then apply on the returned DataFrame.
   final def toDF: DataFrame = transformation(_.toDF())
-
-  /**
-   * Converts this strongly typed collection of data to generic
-   * `DataFrame` with columns renamed. This can be quite convenient in
-   * conversion from an RDD of tuples into a `DataFrame` with meaningful
-   * names. For example:
-   * {{{
-   *   val rdd: RDD[(Int, String)] = ...
-   *   rdd.toDF()  // this implicit conversion creates a DataFrame with column name `_1` and `_2`
-   *   rdd.toDF("id", "name")  // this creates a DataFrame with column name "id" and "name"
-   * }}}
-   *
-   * @group basic
-   * @since 2.0.0
-   */
-  final def toDF(colNames: String*): DataFrame = transformation(_.toDF(colNames: _*))
 
   /**
    * Returns the content of the Dataset as a Dataset of JSON strings.
@@ -1473,6 +1212,102 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   final def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as)
 
   /**
+   * Computes basic statistics for numeric and string columns, including
+   * count, mean, stddev, min, and max. If no columns are given, this
+   * function computes statistics for all numerical or string columns.
+   *
+   * This function is meant for exploratory data analysis, as we make no
+   * guarantee about the backward compatibility of the schema of the
+   * resulting Dataset. If you want to programmatically compute summary
+   * statistics, use the `agg` function instead.
+   *
+   * {{{
+   *   ds.describe("age", "height").show()
+   *
+   *   // output:
+   *   // summary age   height
+   *   // count   10.0  10.0
+   *   // mean    53.3  178.05
+   *   // stddev  11.6  15.7
+   *   // min     18.0  163.0
+   *   // max     92.0  192.0
+   * }}}
+   *
+   * Use [[summary]] for expanded statistics and control over which
+   * statistics to compute.
+   *
+   * @param cols
+   *   Columns to compute statistics on.
+   *
+   * @group action
+   * @since 1.6.0
+   */
+  final def describe(cols: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.describe(cols: _*))
+
+  /**
+   * Returns a new Dataset with duplicate rows removed, considering only
+   * the subset of columns.
+   *
+   * For a static batch [[Dataset]], it just drops duplicate rows. For a
+   * streaming [[Dataset]], it will keep all data across triggers as
+   * intermediate state to drop duplicates rows. You can use
+   * [[withWatermark]] to limit how late the duplicate data can be and
+   * system will accordingly limit the state. In addition, too late data
+   * older than watermark will be dropped to avoid any possibility of
+   * duplicates.
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def dropDuplicates(colNames: Seq[String]): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.dropDuplicates(colNames))
+
+  /**
+   * Returns a new [[Dataset]] with duplicate rows removed, considering
+   * only the subset of columns.
+   *
+   * For a static batch [[Dataset]], it just drops duplicate rows. For a
+   * streaming [[Dataset]], it will keep all data across triggers as
+   * intermediate state to drop duplicates rows. You can use
+   * [[withWatermark]] to limit how late the duplicate data can be and
+   * system will accordingly limit the state. In addition, too late data
+   * older than watermark will be dropped to avoid any possibility of
+   * duplicates.
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def dropDuplicates(col1: String, cols: String*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.dropDuplicates(col1, cols: _*))
+
+  /**
+   * Returns a new Dataset where a single column has been expanded to
+   * zero or more rows by the provided function. This is similar to a
+   * `LATERAL VIEW` in HiveQL. All columns of the input row are
+   * implicitly joined with each value that is output by the function.
+   *
+   * Given that this is deprecated, as an alternative, you can explode
+   * columns either using `functions.explode()`:
+   *
+   * {{{
+   *   ds.select(explode(split('words, " ")).as("word"))
+   * }}}
+   *
+   * or `flatMap()`:
+   *
+   * {{{
+   *   ds.flatMap(_.words.split(" "))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
+  final def explode[A, B: TypeTag](inputColumn: String, outputColumn: String)(
+      f: A => TraversableOnce[B]
+  ): TryAnalysis[DataFrame] = transformationWithAnalysis(_.explode(inputColumn, outputColumn)(f))
+
+  /**
    * Filters rows using the given condition.
    * {{{
    *   // The following are equivalent:
@@ -1495,6 +1330,97 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 1.6.0
    */
   final def filter(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(conditionExpr))
+
+  /**
+   * Inner equi-join with another `DataFrame` using the given column.
+   *
+   * Different from other join functions, the join column will only
+   * appear once in the output,
+   * i.e. similar to SQL's `JOIN USING` syntax.
+   *
+   * {{{
+   *   // Joining df1 and df2 using the column "user_id"
+   *   df1.join(df2, "user_id")
+   * }}}
+   *
+   * @param right
+   *   Right side of the join operation.
+   * @param usingColumn
+   *   Name of the column to join on. This column must exist on both
+   *   sides.
+   *
+   * @note
+   *   If you perform a self-join using this function without aliasing
+   *   the input `DataFrame`s, you will NOT be able to reference any
+   *   columns after the join, since there is no way to disambiguate
+   *   which side of the join you would like to reference.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def join(right: Dataset[_], usingColumn: String): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.join(right, usingColumn))
+
+  /**
+   * Inner equi-join with another `DataFrame` using the given columns.
+   *
+   * Different from other join functions, the join columns will only
+   * appear once in the output,
+   * i.e. similar to SQL's `JOIN USING` syntax.
+   *
+   * {{{
+   *   // Joining df1 and df2 using the columns "user_id" and "user_name"
+   *   df1.join(df2, Seq("user_id", "user_name"))
+   * }}}
+   *
+   * @param right
+   *   Right side of the join operation.
+   * @param usingColumns
+   *   Names of the columns to join on. This columns must exist on both
+   *   sides.
+   *
+   * @note
+   *   If you perform a self-join using this function without aliasing
+   *   the input `DataFrame`s, you will NOT be able to reference any
+   *   columns after the join, since there is no way to disambiguate
+   *   which side of the join you would like to reference.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def join(right: Dataset[_], usingColumns: Seq[String]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.join(right, usingColumns))
+
+  /**
+   * Equi-join with another `DataFrame` using the given columns. A cross
+   * join with a predicate is specified as an inner join. If you would
+   * explicitly like to perform a cross join use the `crossJoin` method.
+   *
+   * Different from other join functions, the join columns will only
+   * appear once in the output,
+   * i.e. similar to SQL's `JOIN USING` syntax.
+   *
+   * @param right
+   *   Right side of the join operation.
+   * @param usingColumns
+   *   Names of the columns to join on. This columns must exist on both
+   *   sides.
+   * @param joinType
+   *   Type of join to perform. Default `inner`. Must be one of:
+   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
+   *   `left_outer`, `right`, `right_outer`, `left_semi`, `left_anti`.
+   *
+   * @note
+   *   If you perform a self-join using this function without aliasing
+   *   the input `DataFrame`s, you will NOT be able to reference any
+   *   columns after the join, since there is no way to disambiguate
+   *   which side of the join you would like to reference.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def join(right: Dataset[_], usingColumns: Seq[String], joinType: String): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.join(right, usingColumns, joinType))
 
   /**
    * Inner join with another `DataFrame`, using the given join
@@ -1592,6 +1518,16 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
+  final def orderBy(sortCol: String, sortCols: String*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.orderBy(sortCol, sortCols: _*))
+
+  /**
+   * Returns a new Dataset sorted by the given expressions. This is an
+   * alias of the `sort` function.
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
   final def orderBy(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.orderBy(sortExprs: _*))
 
   /**
@@ -1653,6 +1589,34 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
     transformationWithAnalysis(_.repartitionByRange(partitionExprs: _*))
 
   /**
+   * Selects a set of column based expressions.
+   * {{{
+   *   ds.select($"colA", $"colB" + 1)
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def select(cols: Column*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.select(cols: _*))
+
+  /**
+   * Selects a set of columns. This is a variant of `select` that can
+   * only select existing columns using column names (i.e. cannot
+   * construct expressions).
+   *
+   * {{{
+   *   // The following two are equivalent:
+   *   ds.select("colA", "colB")
+   *   ds.select($"colA", $"colB")
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def select(col: String, cols: String*): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.select(col, cols: _*))
+
+  /**
    * Selects a set of SQL expressions. This is a variant of `select`
    * that accepts SQL expressions.
    *
@@ -1666,6 +1630,22 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 2.0.0
    */
   final def selectExpr(exprs: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.selectExpr(exprs: _*))
+
+  /**
+   * Returns a new Dataset sorted by the specified column, all in
+   * ascending order.
+   * {{{
+   *   // The following 3 are equivalent
+   *   ds.sort("sortcol")
+   *   ds.sort($"sortcol")
+   *   ds.sort($"sortcol".asc)
+   * }}}
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def sort(sortCol: String, sortCols: String*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.sort(sortCol, sortCols: _*))
 
   /**
    * Returns a new Dataset sorted by the given expressions. For example:
@@ -1687,8 +1667,36 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
+  final def sortWithinPartitions(sortCol: String, sortCols: String*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.sortWithinPartitions(sortCol, sortCols: _*))
+
+  /**
+   * Returns a new Dataset with each partition sorted by the given
+   * expressions.
+   *
+   * This is the same operation as "SORT BY" in SQL (Hive QL).
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
   final def sortWithinPartitions(sortExprs: Column*): TryAnalysis[Dataset[T]] =
     transformationWithAnalysis(_.sortWithinPartitions(sortExprs: _*))
+
+  /**
+   * Converts this strongly typed collection of data to generic
+   * `DataFrame` with columns renamed. This can be quite convenient in
+   * conversion from an RDD of tuples into a `DataFrame` with meaningful
+   * names. For example:
+   * {{{
+   *   val rdd: RDD[(Int, String)] = ...
+   *   rdd.toDF()  // this implicit conversion creates a DataFrame with column name `_1` and `_2`
+   *   rdd.toDF("id", "name")  // this creates a DataFrame with column name "id" and "name"
+   * }}}
+   *
+   * @group basic
+   * @since 2.0.0
+   */
+  final def toDF(colNames: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.toDF(colNames: _*))
 
   /**
    * Filters rows using the given condition. This is an alias for
@@ -1750,6 +1758,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * [[org.apache.spark.sql.Dataset.flatMap]]
    * [[org.apache.spark.sql.Dataset.foreach]]
    * [[org.apache.spark.sql.Dataset.foreachPartition]]
+   * [[org.apache.spark.sql.Dataset.groupByKey]]
    * [[org.apache.spark.sql.Dataset.javaRDD]]
    * [[org.apache.spark.sql.Dataset.map]]
    * [[org.apache.spark.sql.Dataset.mapPartitions]]
