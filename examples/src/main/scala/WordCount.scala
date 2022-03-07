@@ -2,6 +2,7 @@ import zio._
 import zio.spark.parameter._
 import zio.spark.rdd._
 import zio.spark.sql._
+import zio.spark.sql.implicits._
 
 object WordCount extends ZIOAppDefault {
 

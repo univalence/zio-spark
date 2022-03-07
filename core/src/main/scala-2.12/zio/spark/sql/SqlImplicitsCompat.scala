@@ -4,10 +4,25 @@ import org.apache.spark.sql.{ColumnName, Encoder, Encoders}
 
 import scala.reflect.runtime.universe.TypeTag
 
-trait SqlImplicits extends LowPrioritySQLImplicits {
+import org.apache.spark.sql.{ColumnName, Encoders}
+
+import zio.URIO
+import zio.spark.rdd.{RDD, RDDConversionOps}
+
+import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.TypeTag
+
+object implicits extends LowPrioritySQLImplicits {
   implicit final class StringToColumn(val sc: StringContext) {
     def $(args: Any*): ColumnName = new ColumnName(sc.s(args: _*))
   }
+
+  // avoid ambiguous implicits errors
+  sealed trait ImplicitPriority
+  type Encoder[T] = org.apache.spark.sql.Encoder[T] with ImplicitPriority
+  @SuppressWarnings(Array("scalafix:DisableSyntax.asInstanceOf", "scalafix:DisableSyntax.implicitConversion"))
+  @inline implicit def implicitPriority[T](enc: org.apache.spark.sql.Encoder[T]): Encoder[T] =
+    enc.asInstanceOf[Encoder[T]]
 
   /** An encoder for nullable string type. */
   implicit def javaString: Encoder[java.lang.String] = Encoders.STRING
@@ -46,8 +61,18 @@ trait SqlImplicits extends LowPrioritySQLImplicits {
   /** An encoder for Scala's primitive boolean type. */
   implicit def scalaBoolean: Encoder[Boolean] = Encoders.scalaBoolean
 
+  implicit class seqDatasetHolderOps[T: org.apache.spark.sql.Encoder](seq: Seq[T]) {
+    // SparkSession => Dataset[T] : UF[SparkSession, Dataset[T]]
+    def toDataset: URIO[SparkSession, Dataset[T]] =
+      zio.spark.sql.fromSpark(ss => ss.implicits.localSeqToDatasetHolder(seq).toDS().zioSpark).orDie
+  }
+
+  implicit class seqRddHolderOps[T: ClassTag](seq: Seq[T]) {
+    def toRDD: URIO[SparkSession, RDD[T]] = zio.spark.sql.fromSpark(_.sparkContext.makeRDD(seq).zioSpark).orDie
+  }
+
 }
 
 trait LowPrioritySQLImplicits {
-  implicit final def newProductEncoder[T <: Product: TypeTag]: Encoder[T] = Encoders.product[T]
+  implicit final def newProductEncoder[T <: Product: TypeTag]: implicits.Encoder[T] = Encoders.product[T]
 }
