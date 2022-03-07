@@ -7,7 +7,14 @@
 
 package zio.spark.internal.codegen
 
-import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, Encoder, Row, TypedColumn}
+import org.apache.spark.sql.{
+  Column,
+  DataFrameNaFunctions => UnderlyingDataFrameNaFunctions,
+  Dataset => UnderlyingDataset,
+  Encoder,
+  Row,
+  TypedColumn
+}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
@@ -19,7 +26,6 @@ import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
 import scala.collection.JavaConverters._
 import scala.reflect.runtime.universe.TypeTag
 
-@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
     extends Impure[UnderlyingDataset[T]](underlyingDataset) {
   import underlyingDataset._
@@ -27,7 +33,10 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // scalafix:off
   implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U]   = Dataset(x)
   implicit private def escape[U](x: Dataset[U]): UnderlyingDataset[U] = x.underlyingDataset.succeedNow(v => v)
+
   implicit private def iteratorConversion[U](iterator: java.util.Iterator[U]): Iterator[U] = iterator.asScala
+  implicit private def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
+    DataFrameNaFunctions(ImpureBox(x))
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
@@ -44,6 +53,87 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(transformation(f))
 
+  /** Wraps a function into a TryAnalysis. */
+  def withAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(succeedNow(f))
+
+  /**
+   * Returns all column names as an array.
+   *
+   * @group basic
+   * @since 1.6.0
+   */
+  final def columns: Seq[String] = succeedNow(_.columns.toSeq)
+
+  // scalastyle:on println
+  /**
+   * Returns a [[DataFrameNaFunctions]] for working with missing data.
+   * {{{
+   *   // Dropping rows containing any null values.
+   *   ds.na.drop()
+   * }}}
+   *
+   * @group untypedrel
+   * @since 1.6.0
+   */
+  final def na: DataFrameNaFunctions = succeedNow(_.na)
+
+  /**
+   * Returns the schema of this Dataset.
+   *
+   * @group basic
+   * @since 1.6.0
+   */
+  final def schema: StructType = succeedNow(_.schema)
+
+  // ===============
+
+  /**
+   * Selects column based on the column name and returns it as a
+   * [[Column]].
+   *
+   * @note
+   *   The column name can also reference to a nested column like `a.b`.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def apply(colName: String): TryAnalysis[Column] = withAnalysis(_.apply(colName))
+
+  /**
+   * Selects column based on the column name and returns it as a
+   * [[Column]].
+   *
+   * @note
+   *   The column name can also reference to a nested column like `a.b`.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def col(colName: String): TryAnalysis[Column] = withAnalysis(_.col(colName))
+
+  /**
+   * Selects column based on the column name specified as a regex and
+   * returns it as [[Column]].
+   * @group untypedrel
+   * @since 2.3.0
+   */
+  final def colRegex(colName: String): TryAnalysis[Column] = withAnalysis(_.colRegex(colName))
+
+  /**
+   * Returns a new Dataset by adding a column or replacing the existing
+   * column that has the same name.
+   *
+   * `column`'s expression must only refer to attributes supplied by
+   * this Dataset. It is an error to add a column that refers to some
+   * other Dataset.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] = withAnalysis(_.withColumn(colName, col))
+
+  // ===============
+
   /**
    * Returns an array that contains all rows in this Dataset.
    *
@@ -56,21 +146,21 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 1.6.0
    */
-  def collect: Task[Seq[T]] = action(_.collect().toSeq)
+  final def collect: Task[Seq[T]] = action(_.collect().toSeq)
 
   /**
    * Returns the number of rows in the Dataset.
    * @group action
    * @since 1.6.0
    */
-  def count: Task[Long] = action(_.count())
+  final def count: Task[Long] = action(_.count())
 
   /**
    * Returns the first row. Alias for head().
    * @group action
    * @since 1.6.0
    */
-  def first: Task[T] = action(_.first())
+  final def first: Task[T] = action(_.first())
 
   /**
    * Applies a function `f` to all rows.
@@ -78,7 +168,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 1.6.0
    */
-  def foreach(f: T => Unit): Task[Unit] = action(_.foreach(f))
+  final def foreach(f: T => Unit): Task[Unit] = action(_.foreach(f))
 
   /**
    * Applies a function `f` to each partition of this Dataset.
@@ -86,7 +176,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 1.6.0
    */
-  def foreachPartition(f: Iterator[T] => Unit): Task[Unit] = action(_.foreachPartition(f))
+  final def foreachPartition(f: Iterator[T] => Unit): Task[Unit] = action(_.foreachPartition(f))
 
   /**
    * Returns the first `n` rows.
@@ -99,14 +189,14 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 1.6.0
    */
-  def head(n: Int): Task[Seq[T]] = action(_.head(n).toSeq)
+  final def head(n: Int): Task[Seq[T]] = action(_.head(n).toSeq)
 
   /**
    * Returns the first row.
    * @group action
    * @since 1.6.0
    */
-  def head: Task[T] = action(_.head())
+  final def head: Task[T] = action(_.head())
 
   /**
    * Returns true if the `Dataset` is empty.
@@ -114,7 +204,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.4.0
    */
-  def isEmpty: Task[Boolean] = action(_.isEmpty)
+  final def isEmpty: Task[Boolean] = action(_.isEmpty)
 
   /**
    * :: Experimental :: (Scala-specific) Reduces the elements of this
@@ -125,7 +215,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 1.6.0
    */
-  def reduce(func: (T, T) => T): Task[T] = action(_.reduce(func))
+  final def reduce(func: (T, T) => T): Task[T] = action(_.reduce(func))
 
   /**
    * Returns the first `n` rows in the Dataset.
@@ -137,7 +227,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 1.6.0
    */
-  def take(n: Int): Task[Seq[T]] = action(_.take(n).toSeq)
+  final def take(n: Int): Task[Seq[T]] = action(_.take(n).toSeq)
 
   /**
    * Returns an iterator that contains all rows in this Dataset.
@@ -154,7 +244,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 2.0.0
    */
-  def toLocalIterator: Task[Iterator[T]] = action(_.toLocalIterator())
+  final def toLocalIterator: Task[Iterator[T]] = action(_.toLocalIterator())
 
   // ===============
 
@@ -165,7 +255,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 1.6.0
    */
-  def cache: Task[Dataset[T]] = action(_.cache())
+  final def cache: Task[Dataset[T]] = action(_.cache())
 
   /**
    * Eagerly checkpoint a Dataset and return the new Dataset.
@@ -177,7 +267,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.1.0
    */
-  def checkpoint: Task[Dataset[T]] = action(_.checkpoint())
+  final def checkpoint: Task[Dataset[T]] = action(_.checkpoint())
 
   /**
    * Returns a checkpointed version of this Dataset. Checkpointing can
@@ -189,15 +279,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.1.0
    */
-  def checkpoint(eager: Boolean): Task[Dataset[T]] = action(_.checkpoint(eager))
-
-  /**
-   * Returns all column names as an array.
-   *
-   * @group basic
-   * @since 1.6.0
-   */
-  def columns: Task[Seq[String]] = action(_.columns.toSeq)
+  final def checkpoint(eager: Boolean): Task[Dataset[T]] = action(_.checkpoint(eager))
 
   /**
    * Creates a global temporary view using the given name. The lifetime
@@ -216,7 +298,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.1.0
    */
-  def createGlobalTempView(viewName: String): Task[Unit] = action(_.createGlobalTempView(viewName))
+  final def createGlobalTempView(viewName: String): Task[Unit] = action(_.createGlobalTempView(viewName))
 
   /**
    * Creates or replaces a global temporary view using the given name.
@@ -233,7 +315,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.2.0
    */
-  def createOrReplaceGlobalTempView(viewName: String): Task[Unit] = action(_.createOrReplaceGlobalTempView(viewName))
+  final def createOrReplaceGlobalTempView(viewName: String): Task[Unit] =
+    action(_.createOrReplaceGlobalTempView(viewName))
 
   /**
    * Creates a local temporary view using the given name. The lifetime
@@ -243,7 +326,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.0.0
    */
-  def createOrReplaceTempView(viewName: String): Task[Unit] = action(_.createOrReplaceTempView(viewName))
+  final def createOrReplaceTempView(viewName: String): Task[Unit] = action(_.createOrReplaceTempView(viewName))
 
   /**
    * Creates a local temporary view using the given name. The lifetime
@@ -262,7 +345,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.0.0
    */
-  def createTempView(viewName: String): Task[Unit] = action(_.createTempView(viewName))
+  final def createTempView(viewName: String): Task[Unit] = action(_.createTempView(viewName))
 
   /**
    * Returns all column names and their data types as an array.
@@ -270,7 +353,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 1.6.0
    */
-  def dtypes: Task[Seq[(String, String)]] = action(_.dtypes.toSeq)
+  final def dtypes: Task[Seq[(String, String)]] = action(_.dtypes.toSeq)
 
   /**
    * Returns a best-effort snapshot of the files that compose this
@@ -282,7 +365,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.0.0
    */
-  def inputFiles: Task[Seq[String]] = action(_.inputFiles.toSeq)
+  final def inputFiles: Task[Seq[String]] = action(_.inputFiles.toSeq)
 
   /**
    * Returns true if the `collect` and `take` methods can be run locally
@@ -291,7 +374,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 1.6.0
    */
-  def isLocal: Task[Boolean] = action(_.isLocal)
+  final def isLocal: Task[Boolean] = action(_.isLocal)
 
   /**
    * Returns true if this Dataset contains one or more sources that
@@ -304,7 +387,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group streaming
    * @since 2.0.0
    */
-  def isStreaming: Task[Boolean] = action(_.isStreaming)
+  final def isStreaming: Task[Boolean] = action(_.isStreaming)
 
   /**
    * Eagerly locally checkpoints a Dataset and return the new Dataset.
@@ -317,7 +400,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.3.0
    */
-  def localCheckpoint: Task[Dataset[T]] = action(_.localCheckpoint())
+  final def localCheckpoint: Task[Dataset[T]] = action(_.localCheckpoint())
 
   /**
    * Locally checkpoints a Dataset and return the new Dataset.
@@ -330,7 +413,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.3.0
    */
-  def localCheckpoint(eager: Boolean): Task[Dataset[T]] = action(_.localCheckpoint(eager))
+  final def localCheckpoint(eager: Boolean): Task[Dataset[T]] = action(_.localCheckpoint(eager))
 
   /**
    * Persist this Dataset with the default storage level
@@ -339,7 +422,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 1.6.0
    */
-  def persist: Task[Dataset[T]] = action(_.persist())
+  final def persist: Task[Dataset[T]] = action(_.persist())
 
   /**
    * Persist this Dataset with the given storage level.
@@ -351,7 +434,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 1.6.0
    */
-  def persist(newLevel: StorageLevel): Task[Dataset[T]] = action(_.persist(newLevel))
+  final def persist(newLevel: StorageLevel): Task[Dataset[T]] = action(_.persist(newLevel))
 
   /**
    * Registers this Dataset as a temporary table using the given name.
@@ -362,15 +445,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 1.6.0
    */
   @deprecated("Use createOrReplaceTempView(viewName) instead.", "2.0.0")
-  def registerTempTable(tableName: String): Task[Unit] = action(_.registerTempTable(tableName))
-
-  /**
-   * Returns the schema of this Dataset.
-   *
-   * @group basic
-   * @since 1.6.0
-   */
-  def schema: Task[StructType] = action(_.schema)
+  final def registerTempTable(tableName: String): Task[Unit] = action(_.registerTempTable(tableName))
 
   /**
    * Get the Dataset's current storage level, or StorageLevel.NONE if
@@ -379,7 +454,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.1.0
    */
-  def storageLevel: Task[StorageLevel] = action(_.storageLevel)
+  final def storageLevel: Task[StorageLevel] = action(_.storageLevel)
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
@@ -392,7 +467,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 1.6.0
    */
-  def unpersist(blocking: Boolean): Task[Dataset[T]] = action(_.unpersist(blocking))
+  final def unpersist(blocking: Boolean): Task[Dataset[T]] = action(_.unpersist(blocking))
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
@@ -402,62 +477,9 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 1.6.0
    */
-  def unpersist: Task[Dataset[T]] = action(_.unpersist())
+  final def unpersist: Task[Dataset[T]] = action(_.unpersist())
 
   // ===============
-
-  /**
-   * (Scala-specific) Aggregates on the entire Dataset without groups.
-   * {{{
-   *   // ds.agg(...) is a shorthand for ds.groupBy().agg(...)
-   *   ds.agg("age" -> "max", "salary" -> "avg")
-   *   ds.groupBy().agg("age" -> "max", "salary" -> "avg")
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def agg(aggExpr: (String, String), aggExprs: (String, String)*): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.agg(aggExpr, aggExprs: _*))
-
-  /**
-   * (Scala-specific) Aggregates on the entire Dataset without groups.
-   * {{{
-   *   // ds.agg(...) is a shorthand for ds.groupBy().agg(...)
-   *   ds.agg(Map("age" -> "max", "salary" -> "avg"))
-   *   ds.groupBy().agg(Map("age" -> "max", "salary" -> "avg"))
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def agg(exprs: Map[String, String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(exprs))
-
-  /**
-   * (Java-specific) Aggregates on the entire Dataset without groups.
-   * {{{
-   *   // ds.agg(...) is a shorthand for ds.groupBy().agg(...)
-   *   ds.agg(Map("age" -> "max", "salary" -> "avg"))
-   *   ds.groupBy().agg(Map("age" -> "max", "salary" -> "avg"))
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def agg(exprs: java.util.Map[String, String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(exprs))
-
-  /**
-   * Aggregates on the entire Dataset without groups.
-   * {{{
-   *   // ds.agg(...) is a shorthand for ds.groupBy().agg(...)
-   *   ds.agg(max($"age"), avg($"salary"))
-   *   ds.groupBy().agg(max($"age"), avg($"salary"))
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def agg(expr: Column, exprs: Column*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(expr, exprs: _*))
 
   /**
    * Returns a new Dataset with an alias set. Same as `as`.
@@ -465,42 +487,15 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def alias(alias: String): Dataset[T] = transformation(_.alias(alias))
+  final def alias(alias: String): Dataset[T] = transformation(_.alias(alias))
 
   /**
-   * (Scala-specific) Returns a new Dataset with an alias set. Same as
-   * `as`.
+   * Returns a new Dataset with an alias set. Same as `as`.
    *
    * @group typedrel
    * @since 2.0.0
    */
-  def alias(alias: Symbol): Dataset[T] = transformation(_.alias(alias))
-
-  /**
-   * :: Experimental :: Returns a new Dataset where each record has been
-   * mapped on to the specified type. The method used to map columns
-   * depend on the type of `U`:
-   *   - When `U` is a class, fields for the class will be mapped to
-   *     columns of the same name (case sensitivity is determined by
-   *     `spark.sql.caseSensitive`).
-   *   - When `U` is a tuple, the columns will be mapped by ordinal
-   *     (i.e. the first column will be assigned to `_1`).
-   *   - When `U` is a primitive type (i.e. String, Int, etc), then the
-   *     first column of the `DataFrame` will be used.
-   *
-   * If the schema of the Dataset does not match the desired `U` type,
-   * you can use `select` along with `alias` or `as` to rearrange or
-   * rename as required.
-   *
-   * Note that `as[]` only changes the view of the data that is passed
-   * into typed operations, such as `map()`, and does not eagerly
-   * project away any columns that are not present in the specified
-   * class.
-   *
-   * @group basic
-   * @since 1.6.0
-   */
-  def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as)
+  final def alias(alias: Symbol): Dataset[T] = transformation(_.alias(alias))
 
   /**
    * Returns a new Dataset with an alias set.
@@ -508,15 +503,15 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def as(alias: String): Dataset[T] = transformation(_.as(alias))
+  final def as(alias: String): Dataset[T] = transformation(_.as(alias))
 
   /**
-   * (Scala-specific) Returns a new Dataset with an alias set.
+   * Returns a new Dataset with an alias set.
    *
    * @group typedrel
    * @since 2.0.0
    */
-  def as(alias: Symbol): Dataset[T] = transformation(_.as(alias))
+  final def as(alias: Symbol): Dataset[T] = transformation(_.as(alias))
 
   /**
    * Returns a new Dataset that has exactly `numPartitions` partitions,
@@ -527,17 +522,18 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * to 100 partitions, there will not be a shuffle, instead each of the
    * 100 new partitions will claim 10 of the current partitions.
    *
-   * However, if you're doing a drastic coalesce, this may result in
-   * your computation taking place on fewer nodes than you like (e.g.
-   * one node in the case of numPartitions = 1). To avoid this, you can
-   * call repartition. This will add a shuffle step, but means the
-   * current upstream partitions will be executed in parallel (per
-   * whatever the current partitioning is).
+   * However, if you're doing a drastic coalesce, e.g. to
+   * {{{numPartitions = 1}}}, this may result in your computation taking
+   * place on fewer nodes than you like (e.g. one node in the case of
+   * {{{numPartitions = 1}}}). To avoid this, you can call repartition.
+   * This will add a shuffle step, but means the current upstream
+   * partitions will be executed in parallel (per whatever the current
+   * partitioning is).
    *
    * @group typedrel
    * @since 1.6.0
    */
-  def coalesce(numPartitions: Int): Dataset[T] = transformation(_.coalesce(numPartitions))
+  final def coalesce(numPartitions: Int): Dataset[T] = transformation(_.coalesce(numPartitions))
 
   /**
    * Explicit cartesian join with another `DataFrame`.
@@ -552,7 +548,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.1.0
    */
-  def crossJoin(right: Dataset[_]): DataFrame = transformation(_.crossJoin(right))
+  final def crossJoin(right: Dataset[_]): DataFrame = transformation(_.crossJoin(right))
 
   /**
    * Computes basic statistics for numeric and string columns, including
@@ -585,7 +581,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 1.6.0
    */
-  def describe(cols: String*): DataFrame = transformation(_.describe(cols: _*))
+  final def describe(cols: String*): DataFrame = transformation(_.describe(cols: _*))
 
   /**
    * Returns a new Dataset that contains only the unique rows from this
@@ -599,7 +595,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def distinct: Dataset[T] = transformation(_.distinct())
+  final def distinct: Dataset[T] = transformation(_.distinct())
 
   /**
    * Returns a new Dataset with a column dropped. This is a no-op if
@@ -611,7 +607,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def drop(colName: String): DataFrame = transformation(_.drop(colName))
+  final def drop(colName: String): DataFrame = transformation(_.drop(colName))
 
   /**
    * Returns a new Dataset with columns dropped. This is a no-op if
@@ -623,7 +619,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
+  final def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
 
   /**
    * Returns a new Dataset with a column dropped. This version of drop
@@ -633,7 +629,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def drop(col: Column): DataFrame = transformation(_.drop(col))
+  final def drop(col: Column): DataFrame = transformation(_.drop(col))
 
   /**
    * Returns a new Dataset that contains only the unique rows from this
@@ -650,24 +646,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def dropDuplicates: Dataset[T] = transformation(_.dropDuplicates())
-
-  /**
-   * (Scala-specific) Returns a new Dataset with duplicate rows removed,
-   * considering only the subset of columns.
-   *
-   * For a static batch [[Dataset]], it just drops duplicate rows. For a
-   * streaming [[Dataset]], it will keep all data across triggers as
-   * intermediate state to drop duplicates rows. You can use
-   * [[withWatermark]] to limit how late the duplicate data can be and
-   * system will accordingly limit the state. In addition, too late data
-   * older than watermark will be dropped to avoid any possibility of
-   * duplicates.
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  def dropDuplicates(colNames: Seq[String]): Dataset[T] = transformation(_.dropDuplicates(colNames))
+  final def dropDuplicates: Dataset[T] = transformation(_.dropDuplicates())
 
   /**
    * Returns a new Dataset with duplicate rows removed, considering only
@@ -684,7 +663,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def dropDuplicates(colNames: Array[String]): Dataset[T] = transformation(_.dropDuplicates(colNames))
+  final def dropDuplicates(colNames: Seq[String]): Dataset[T] = transformation(_.dropDuplicates(colNames))
 
   /**
    * Returns a new [[Dataset]] with duplicate rows removed, considering
@@ -701,7 +680,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def dropDuplicates(col1: String, cols: String*): Dataset[T] = transformation(_.dropDuplicates(col1, cols: _*))
+  final def dropDuplicates(col1: String, cols: String*): Dataset[T] = transformation(_.dropDuplicates(col1, cols: _*))
 
   /**
    * Returns a new Dataset containing rows in this Dataset but not in
@@ -715,7 +694,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def except(other: Dataset[T]): Dataset[T] = transformation(_.except(other))
+  final def except(other: Dataset[T]): Dataset[T] = transformation(_.except(other))
 
   /**
    * Returns a new Dataset containing rows in this Dataset but not in
@@ -731,13 +710,13 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.4.0
    */
-  def exceptAll(other: Dataset[T]): Dataset[T] = transformation(_.exceptAll(other))
+  final def exceptAll(other: Dataset[T]): Dataset[T] = transformation(_.exceptAll(other))
 
   /**
-   * (Scala-specific) Returns a new Dataset where each row has been
-   * expanded to zero or more rows by the provided function. This is
-   * similar to a `LATERAL VIEW` in HiveQL. The columns of the input row
-   * are implicitly joined with each row that is output by the function.
+   * Returns a new Dataset where each row has been expanded to zero or
+   * more rows by the provided function. This is similar to a `LATERAL
+   * VIEW` in HiveQL. The columns of the input row are implicitly joined
+   * with each row that is output by the function.
    *
    * Given that this is deprecated, as an alternative, you can explode
    * columns either using `functions.explode()` or `flatMap()`. The
@@ -763,15 +742,14 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 2.0.0
    */
   @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
-  def explode[A <: Product: TypeTag](input: Column*)(f: Row => TraversableOnce[A]): DataFrame =
+  final def explode[A <: Product: TypeTag](input: Column*)(f: Row => TraversableOnce[A]): DataFrame =
     transformation(_.explode(input: _*)(f))
 
   /**
-   * (Scala-specific) Returns a new Dataset where a single column has
-   * been expanded to zero or more rows by the provided function. This
-   * is similar to a `LATERAL VIEW` in HiveQL. All columns of the input
-   * row are implicitly joined with each value that is output by the
-   * function.
+   * Returns a new Dataset where a single column has been expanded to
+   * zero or more rows by the provided function. This is similar to a
+   * `LATERAL VIEW` in HiveQL. All columns of the input row are
+   * implicitly joined with each value that is output by the function.
    *
    * Given that this is deprecated, as an alternative, you can explode
    * columns either using `functions.explode()`:
@@ -790,32 +768,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 2.0.0
    */
   @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
-  def explode[A, B: TypeTag](inputColumn: String, outputColumn: String)(f: A => TraversableOnce[B]): DataFrame =
+  final def explode[A, B: TypeTag](inputColumn: String, outputColumn: String)(f: A => TraversableOnce[B]): DataFrame =
     transformation(_.explode(inputColumn, outputColumn)(f))
-
-  /**
-   * Filters rows using the given condition.
-   * {{{
-   *   // The following are equivalent:
-   *   peopleDs.filter($"age" > 15)
-   *   peopleDs.where($"age" > 15)
-   * }}}
-   *
-   * @group typedrel
-   * @since 1.6.0
-   */
-  def filter(condition: Column): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(condition))
-
-  /**
-   * Filters rows using the given SQL expression.
-   * {{{
-   *   peopleDs.filter("age > 15")
-   * }}}
-   *
-   * @group typedrel
-   * @since 1.6.0
-   */
-  def filter(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(conditionExpr))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that only
@@ -824,7 +778,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def filter(func: T => Boolean): Dataset[T] = transformation(_.filter(func))
+  final def filter(func: T => Boolean): Dataset[T] = transformation(_.filter(func))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset by first
@@ -834,7 +788,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def flatMap[U: Encoder](func: T => TraversableOnce[U]): Dataset[U] = transformation(_.flatMap(func))
+  final def flatMap[U: Encoder](func: T => TraversableOnce[U]): Dataset[U] = transformation(_.flatMap(func))
 
   /**
    * Specifies some hint on the current Dataset. As an example, the
@@ -847,7 +801,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.2.0
    */
-  def hint(name: String, parameters: Any*): Dataset[T] = transformation(_.hint(name, parameters: _*))
+  final def hint(name: String, parameters: Any*): Dataset[T] = transformation(_.hint(name, parameters: _*))
 
   /**
    * Returns a new Dataset containing rows only in both this Dataset and
@@ -861,7 +815,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def intersect(other: Dataset[T]): Dataset[T] = transformation(_.intersect(other))
+  final def intersect(other: Dataset[T]): Dataset[T] = transformation(_.intersect(other))
 
   /**
    * Returns a new Dataset containing rows only in both this Dataset and
@@ -877,7 +831,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.4.0
    */
-  def intersectAll(other: Dataset[T]): Dataset[T] = transformation(_.intersectAll(other))
+  final def intersectAll(other: Dataset[T]): Dataset[T] = transformation(_.intersectAll(other))
 
   /**
    * Join with another `DataFrame`.
@@ -890,7 +844,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def join(right: Dataset[_]): DataFrame = transformation(_.join(right))
+  final def join(right: Dataset[_]): DataFrame = transformation(_.join(right))
 
   /**
    * Inner equi-join with another `DataFrame` using the given column.
@@ -919,7 +873,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def join(right: Dataset[_], usingColumn: String): DataFrame = transformation(_.join(right, usingColumn))
+  final def join(right: Dataset[_], usingColumn: String): DataFrame = transformation(_.join(right, usingColumn))
 
   /**
    * Inner equi-join with another `DataFrame` using the given columns.
@@ -948,7 +902,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def join(right: Dataset[_], usingColumns: Seq[String]): DataFrame = transformation(_.join(right, usingColumns))
+  final def join(right: Dataset[_], usingColumns: Seq[String]): DataFrame = transformation(_.join(right, usingColumns))
 
   /**
    * Equi-join with another `DataFrame` using the given columns. A cross
@@ -978,97 +932,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def join(right: Dataset[_], usingColumns: Seq[String], joinType: String): DataFrame =
+  final def join(right: Dataset[_], usingColumns: Seq[String], joinType: String): DataFrame =
     transformation(_.join(right, usingColumns, joinType))
-
-  /**
-   * Inner join with another `DataFrame`, using the given join
-   * expression.
-   *
-   * {{{
-   *   // The following two are equivalent:
-   *   df1.join(df2, $"df1Key" === $"df2Key")
-   *   df1.join(df2).where($"df1Key" === $"df2Key")
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def join(right: Dataset[_], joinExprs: Column): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.join(right, joinExprs))
-
-  /**
-   * Join with another `DataFrame`, using the given join expression. The
-   * following performs a full outer join between `df1` and `df2`.
-   *
-   * {{{
-   *   // Scala:
-   *   import org.apache.spark.sql.functions._
-   *   df1.join(df2, $"df1Key" === $"df2Key", "outer")
-   *
-   *   // Java:
-   *   import static org.apache.spark.sql.functions.*;
-   *   df1.join(df2, col("df1Key").equalTo(col("df2Key")), "outer");
-   * }}}
-   *
-   * @param right
-   *   Right side of the join.
-   * @param joinExprs
-   *   Join expression.
-   * @param joinType
-   *   Type of join to perform. Default `inner`. Must be one of:
-   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
-   *   `left_outer`, `right`, `right_outer`, `left_semi`, `left_anti`.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def join(right: Dataset[_], joinExprs: Column, joinType: String): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.join(right, joinExprs, joinType))
-
-  /**
-   * :: Experimental :: Joins this Dataset returning a `Tuple2` for each
-   * pair where `condition` evaluates to true.
-   *
-   * This is similar to the relation `join` function with one important
-   * difference in the result schema. Since `joinWith` preserves objects
-   * present on either side of the join, the result schema is similarly
-   * nested into a tuple under the column names `_1` and `_2`.
-   *
-   * This type of join can be useful both for preserving type-safety
-   * with the original object types as well as working with relational
-   * data where either side of the join has column names in common.
-   *
-   * @param other
-   *   Right side of the join.
-   * @param condition
-   *   Join expression.
-   * @param joinType
-   *   Type of join to perform. Default `inner`. Must be one of:
-   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
-   *   `left_outer`, `right`, `right_outer`.
-   *
-   * @group typedrel
-   * @since 1.6.0
-   */
-  def joinWith[U](other: Dataset[U], condition: Column, joinType: String): TryAnalysis[Dataset[(T, U)]] =
-    transformationWithAnalysis(_.joinWith(other, condition, joinType))
-
-  /**
-   * :: Experimental :: Using inner equi-join to join this Dataset
-   * returning a `Tuple2` for each pair where `condition` evaluates to
-   * true.
-   *
-   * @param other
-   *   Right side of the join.
-   * @param condition
-   *   Join expression.
-   *
-   * @group typedrel
-   * @since 1.6.0
-   */
-  def joinWith[U](other: Dataset[U], condition: Column): TryAnalysis[Dataset[(T, U)]] =
-    transformationWithAnalysis(_.joinWith(other, condition))
 
   /**
    * Returns a new Dataset by taking the first `n` rows. The difference
@@ -1079,7 +944,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def limit(n: Int): Dataset[T] = transformation(_.limit(n))
+  final def limit(n: Int): Dataset[T] = transformation(_.limit(n))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that
@@ -1088,7 +953,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def map[U: Encoder](func: T => U): Dataset[U] = transformation(_.map(func))
+  final def map[U: Encoder](func: T => U): Dataset[U] = transformation(_.map(func))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that
@@ -1097,7 +962,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def mapPartitions[U: Encoder](func: Iterator[T] => Iterator[U]): Dataset[U] = transformation(_.mapPartitions(func))
+  final def mapPartitions[U: Encoder](func: Iterator[T] => Iterator[U]): Dataset[U] =
+    transformation(_.mapPartitions(func))
 
   /**
    * Returns a new Dataset sorted by the given expressions. This is an
@@ -1106,16 +972,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def orderBy(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.orderBy(sortCol, sortCols: _*))
-
-  /**
-   * Returns a new Dataset sorted by the given expressions. This is an
-   * alias of the `sort` function.
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  def orderBy(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.orderBy(sortExprs: _*))
+  final def orderBy(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.orderBy(sortCol, sortCols: _*))
 
   /**
    * Returns a new Dataset that has exactly `numPartitions` partitions.
@@ -1123,65 +980,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def repartition(numPartitions: Int): Dataset[T] = transformation(_.repartition(numPartitions))
-
-  /**
-   * Returns a new Dataset partitioned by the given partitioning
-   * expressions into `numPartitions`. The resulting Dataset is hash
-   * partitioned.
-   *
-   * This is the same operation as "DISTRIBUTE BY" in SQL (Hive QL).
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  def repartition(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] =
-    transformationWithAnalysis(_.repartition(numPartitions, partitionExprs: _*))
-
-  /**
-   * Returns a new Dataset partitioned by the given partitioning
-   * expressions, using `spark.sql.shuffle.partitions` as number of
-   * partitions. The resulting Dataset is hash partitioned.
-   *
-   * This is the same operation as "DISTRIBUTE BY" in SQL (Hive QL).
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  def repartition(partitionExprs: Column*): TryAnalysis[Dataset[T]] =
-    transformationWithAnalysis(_.repartition(partitionExprs: _*))
-
-  /**
-   * Returns a new Dataset partitioned by the given partitioning
-   * expressions into `numPartitions`. The resulting Dataset is range
-   * partitioned.
-   *
-   * At least one partition-by expression must be specified. When no
-   * explicit sort order is specified, "ascending nulls first" is
-   * assumed. Note, the rows are not sorted in each partition of the
-   * resulting Dataset.
-   *
-   * @group typedrel
-   * @since 2.3.0
-   */
-  def repartitionByRange(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] =
-    transformationWithAnalysis(_.repartitionByRange(numPartitions, partitionExprs: _*))
-
-  /**
-   * Returns a new Dataset partitioned by the given partitioning
-   * expressions, using `spark.sql.shuffle.partitions` as number of
-   * partitions. The resulting Dataset is range partitioned.
-   *
-   * At least one partition-by expression must be specified. When no
-   * explicit sort order is specified, "ascending nulls first" is
-   * assumed. Note, the rows are not sorted in each partition of the
-   * resulting Dataset.
-   *
-   * @group typedrel
-   * @since 2.3.0
-   */
-  def repartitionByRange(partitionExprs: Column*): TryAnalysis[Dataset[T]] =
-    transformationWithAnalysis(_.repartitionByRange(partitionExprs: _*))
+  final def repartition(numPartitions: Int): Dataset[T] = transformation(_.repartition(numPartitions))
 
   /**
    * Returns a new [[Dataset]] by sampling a fraction of rows (without
@@ -1199,7 +998,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.3.0
    */
-  def sample(fraction: Double, seed: Long): Dataset[T] = transformation(_.sample(fraction, seed))
+  final def sample(fraction: Double, seed: Long): Dataset[T] = transformation(_.sample(fraction, seed))
 
   /**
    * Returns a new [[Dataset]] by sampling a fraction of rows (without
@@ -1215,7 +1014,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.3.0
    */
-  def sample(fraction: Double): Dataset[T] = transformation(_.sample(fraction))
+  final def sample(fraction: Double): Dataset[T] = transformation(_.sample(fraction))
 
   /**
    * Returns a new [[Dataset]] by sampling a fraction of rows, using a
@@ -1235,7 +1034,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def sample(withReplacement: Boolean, fraction: Double, seed: Long): Dataset[T] =
+  final def sample(withReplacement: Boolean, fraction: Double, seed: Long): Dataset[T] =
     transformation(_.sample(withReplacement, fraction, seed))
 
   /**
@@ -1254,7 +1053,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def sample(withReplacement: Boolean, fraction: Double): Dataset[T] =
+  final def sample(withReplacement: Boolean, fraction: Double): Dataset[T] =
     transformation(_.sample(withReplacement, fraction))
 
   /**
@@ -1266,7 +1065,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def select(cols: Column*): DataFrame = transformation(_.select(cols: _*))
+  final def select(cols: Column*): DataFrame = transformation(_.select(cols: _*))
 
   /**
    * Selects a set of columns. This is a variant of `select` that can
@@ -1282,7 +1081,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def select(col: String, cols: String*): DataFrame = transformation(_.select(col, cols: _*))
+  final def select(col: String, cols: String*): DataFrame = transformation(_.select(col, cols: _*))
 
   /**
    * :: Experimental :: Returns a new Dataset by computing the given
@@ -1296,7 +1095,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def select[U1](c1: TypedColumn[T, U1]): Dataset[U1] = transformation(_.select(c1))
+  final def select[U1](c1: TypedColumn[T, U1]): Dataset[U1] = transformation(_.select(c1))
 
   /**
    * :: Experimental :: Returns a new Dataset by computing the given
@@ -1305,7 +1104,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def select[U1, U2](c1: TypedColumn[T, U1], c2: TypedColumn[T, U2]): Dataset[(U1, U2)] =
+  final def select[U1, U2](c1: TypedColumn[T, U1], c2: TypedColumn[T, U2]): Dataset[(U1, U2)] =
     transformation(_.select(c1, c2))
 
   /**
@@ -1315,7 +1114,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def select[U1, U2, U3](
+  final def select[U1, U2, U3](
       c1: TypedColumn[T, U1],
       c2: TypedColumn[T, U2],
       c3: TypedColumn[T, U3]
@@ -1328,7 +1127,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def select[U1, U2, U3, U4](
+  final def select[U1, U2, U3, U4](
       c1: TypedColumn[T, U1],
       c2: TypedColumn[T, U2],
       c3: TypedColumn[T, U3],
@@ -1342,28 +1141,13 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 1.6.0
    */
-  def select[U1, U2, U3, U4, U5](
+  final def select[U1, U2, U3, U4, U5](
       c1: TypedColumn[T, U1],
       c2: TypedColumn[T, U2],
       c3: TypedColumn[T, U3],
       c4: TypedColumn[T, U4],
       c5: TypedColumn[T, U5]
   ): Dataset[(U1, U2, U3, U4, U5)] = transformation(_.select(c1, c2, c3, c4, c5))
-
-  /**
-   * Selects a set of SQL expressions. This is a variant of `select`
-   * that accepts SQL expressions.
-   *
-   * {{{
-   *   // The following are equivalent:
-   *   ds.selectExpr("colA", "colB as newName", "abs(colC)")
-   *   ds.select(expr("colA"), expr("colB as newName"), expr("abs(colC)"))
-   * }}}
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def selectExpr(exprs: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.selectExpr(exprs: _*))
 
   /**
    * Returns a new Dataset sorted by the specified column, all in
@@ -1378,18 +1162,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def sort(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.sort(sortCol, sortCols: _*))
-
-  /**
-   * Returns a new Dataset sorted by the given expressions. For example:
-   * {{{
-   *   ds.sort($"col1", $"col2".desc)
-   * }}}
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  def sort(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.sort(sortExprs: _*))
+  final def sort(sortCol: String, sortCols: String*): Dataset[T] = transformation(_.sort(sortCol, sortCols: _*))
 
   /**
    * Returns a new Dataset with each partition sorted by the given
@@ -1400,20 +1173,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def sortWithinPartitions(sortCol: String, sortCols: String*): Dataset[T] =
+  final def sortWithinPartitions(sortCol: String, sortCols: String*): Dataset[T] =
     transformation(_.sortWithinPartitions(sortCol, sortCols: _*))
-
-  /**
-   * Returns a new Dataset with each partition sorted by the given
-   * expressions.
-   *
-   * This is the same operation as "SORT BY" in SQL (Hive QL).
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  def sortWithinPartitions(sortExprs: Column*): TryAnalysis[Dataset[T]] =
-    transformationWithAnalysis(_.sortWithinPartitions(sortExprs: _*))
 
   /**
    * Computes specified statistics for numeric and string columns.
@@ -1477,7 +1238,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group action
    * @since 2.3.0
    */
-  def summary(statistics: String*): DataFrame = transformation(_.summary(statistics: _*))
+  final def summary(statistics: String*): DataFrame = transformation(_.summary(statistics: _*))
 
   /**
    * Converts this strongly typed collection of data to generic
@@ -1490,7 +1251,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    */
   // This is declared with parentheses to prevent the Scala compiler from treating
   // `ds.toDF("1")` as invoking this toDF and then apply on the returned DataFrame.
-  def toDF: DataFrame = transformation(_.toDF())
+  final def toDF: DataFrame = transformation(_.toDF())
 
   /**
    * Converts this strongly typed collection of data to generic
@@ -1506,13 +1267,13 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group basic
    * @since 2.0.0
    */
-  def toDF(colNames: String*): DataFrame = transformation(_.toDF(colNames: _*))
+  final def toDF(colNames: String*): DataFrame = transformation(_.toDF(colNames: _*))
 
   /**
    * Returns the content of the Dataset as a Dataset of JSON strings.
    * @since 2.0.0
    */
-  def toJSON: Dataset[String] = transformation(_.toJSON)
+  final def toJSON: Dataset[String] = transformation(_.toJSON)
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
@@ -1548,7 +1309,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.0.0
    */
-  def union(other: Dataset[T]): Dataset[T] = transformation(_.union(other))
+  final def union(other: Dataset[T]): Dataset[T] = transformation(_.union(other))
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
@@ -1565,7 +1326,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 2.0.0
    */
   @deprecated("use union()", "2.0.0")
-  def unionAll(other: Dataset[T]): Dataset[T] = transformation(_.unionAll(other))
+  final def unionAll(other: Dataset[T]): Dataset[T] = transformation(_.unionAll(other))
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
@@ -1595,46 +1356,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group typedrel
    * @since 2.3.0
    */
-  def unionByName(other: Dataset[T]): Dataset[T] = transformation(_.unionByName(other))
-
-  /**
-   * Filters rows using the given condition. This is an alias for
-   * `filter`.
-   * {{{
-   *   // The following are equivalent:
-   *   peopleDs.filter($"age" > 15)
-   *   peopleDs.where($"age" > 15)
-   * }}}
-   *
-   * @group typedrel
-   * @since 1.6.0
-   */
-  def where(condition: Column): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(condition))
-
-  /**
-   * Filters rows using the given SQL expression.
-   * {{{
-   *   peopleDs.where("age > 15")
-   * }}}
-   *
-   * @group typedrel
-   * @since 1.6.0
-   */
-  def where(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(conditionExpr))
-
-  /**
-   * Returns a new Dataset by adding a column or replacing the existing
-   * column that has the same name.
-   *
-   * `column`'s expression must only refer to attributes supplied by
-   * this Dataset. It is an error to add a column that refers to some
-   * other Dataset.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.withColumn(colName, col))
+  final def unionByName(other: Dataset[T]): Dataset[T] = transformation(_.unionByName(other))
 
   /**
    * Returns a new Dataset with a column renamed. This is a no-op if
@@ -1643,7 +1365,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group untypedrel
    * @since 2.0.0
    */
-  def withColumnRenamed(existingName: String, newName: String): DataFrame =
+  final def withColumnRenamed(existingName: String, newName: String): DataFrame =
     transformation(_.withColumnRenamed(existingName, newName))
 
   /**
@@ -1678,8 +1400,320 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @group streaming
    * @since 2.1.0
    */
-  def withWatermark(eventTime: String, delayThreshold: String): Dataset[T] =
+  final def withWatermark(eventTime: String, delayThreshold: String): Dataset[T] =
     transformation(_.withWatermark(eventTime, delayThreshold))
+
+  // ===============
+
+  /**
+   * Aggregates on the entire Dataset without groups.
+   * {{{
+   *   // ds.agg(...) is a shorthand for ds.groupBy().agg(...)
+   *   ds.agg("age" -> "max", "salary" -> "avg")
+   *   ds.groupBy().agg("age" -> "max", "salary" -> "avg")
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def agg(aggExpr: (String, String), aggExprs: (String, String)*): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.agg(aggExpr, aggExprs: _*))
+
+  /**
+   * Aggregates on the entire Dataset without groups.
+   * {{{
+   *   // ds.agg(...) is a shorthand for ds.groupBy().agg(...)
+   *   ds.agg(Map("age" -> "max", "salary" -> "avg"))
+   *   ds.groupBy().agg(Map("age" -> "max", "salary" -> "avg"))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def agg(exprs: Map[String, String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(exprs))
+
+  /**
+   * Aggregates on the entire Dataset without groups.
+   * {{{
+   *   // ds.agg(...) is a shorthand for ds.groupBy().agg(...)
+   *   ds.agg(max($"age"), avg($"salary"))
+   *   ds.groupBy().agg(max($"age"), avg($"salary"))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def agg(expr: Column, exprs: Column*): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.agg(expr, exprs: _*))
+
+  /**
+   * :: Experimental :: Returns a new Dataset where each record has been
+   * mapped on to the specified type. The method used to map columns
+   * depend on the type of `U`:
+   *   - When `U` is a class, fields for the class will be mapped to
+   *     columns of the same name (case sensitivity is determined by
+   *     `spark.sql.caseSensitive`).
+   *   - When `U` is a tuple, the columns will be mapped by ordinal
+   *     (i.e. the first column will be assigned to `_1`).
+   *   - When `U` is a primitive type (i.e. String, Int, etc), then the
+   *     first column of the `DataFrame` will be used.
+   *
+   * If the schema of the Dataset does not match the desired `U` type,
+   * you can use `select` along with `alias` or `as` to rearrange or
+   * rename as required.
+   *
+   * Note that `as[]` only changes the view of the data that is passed
+   * into typed operations, such as `map()`, and does not eagerly
+   * project away any columns that are not present in the specified
+   * class.
+   *
+   * @group basic
+   * @since 1.6.0
+   */
+  final def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as)
+
+  /**
+   * Filters rows using the given condition.
+   * {{{
+   *   // The following are equivalent:
+   *   peopleDs.filter($"age" > 15)
+   *   peopleDs.where($"age" > 15)
+   * }}}
+   *
+   * @group typedrel
+   * @since 1.6.0
+   */
+  final def filter(condition: Column): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(condition))
+
+  /**
+   * Filters rows using the given SQL expression.
+   * {{{
+   *   peopleDs.filter("age > 15")
+   * }}}
+   *
+   * @group typedrel
+   * @since 1.6.0
+   */
+  final def filter(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.filter(conditionExpr))
+
+  /**
+   * Inner join with another `DataFrame`, using the given join
+   * expression.
+   *
+   * {{{
+   *   // The following two are equivalent:
+   *   df1.join(df2, $"df1Key" === $"df2Key")
+   *   df1.join(df2).where($"df1Key" === $"df2Key")
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def join(right: Dataset[_], joinExprs: Column): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.join(right, joinExprs))
+
+  /**
+   * Join with another `DataFrame`, using the given join expression. The
+   * following performs a full outer join between `df1` and `df2`.
+   *
+   * {{{
+   *   // Scala:
+   *   import org.apache.spark.sql.functions._
+   *   df1.join(df2, $"df1Key" === $"df2Key", "outer")
+   *
+   *   // Java:
+   *   import static org.apache.spark.sql.functions.*;
+   *   df1.join(df2, col("df1Key").equalTo(col("df2Key")), "outer");
+   * }}}
+   *
+   * @param right
+   *   Right side of the join.
+   * @param joinExprs
+   *   Join expression.
+   * @param joinType
+   *   Type of join to perform. Default `inner`. Must be one of:
+   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
+   *   `left_outer`, `right`, `right_outer`, `left_semi`, `left_anti`.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def join(right: Dataset[_], joinExprs: Column, joinType: String): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.join(right, joinExprs, joinType))
+
+  /**
+   * :: Experimental :: Joins this Dataset returning a `Tuple2` for each
+   * pair where `condition` evaluates to true.
+   *
+   * This is similar to the relation `join` function with one important
+   * difference in the result schema. Since `joinWith` preserves objects
+   * present on either side of the join, the result schema is similarly
+   * nested into a tuple under the column names `_1` and `_2`.
+   *
+   * This type of join can be useful both for preserving type-safety
+   * with the original object types as well as working with relational
+   * data where either side of the join has column names in common.
+   *
+   * @param other
+   *   Right side of the join.
+   * @param condition
+   *   Join expression.
+   * @param joinType
+   *   Type of join to perform. Default `inner`. Must be one of:
+   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
+   *   `left_outer`, `right`, `right_outer`.
+   *
+   * @group typedrel
+   * @since 1.6.0
+   */
+  final def joinWith[U](other: Dataset[U], condition: Column, joinType: String): TryAnalysis[Dataset[(T, U)]] =
+    transformationWithAnalysis(_.joinWith(other, condition, joinType))
+
+  /**
+   * :: Experimental :: Using inner equi-join to join this Dataset
+   * returning a `Tuple2` for each pair where `condition` evaluates to
+   * true.
+   *
+   * @param other
+   *   Right side of the join.
+   * @param condition
+   *   Join expression.
+   *
+   * @group typedrel
+   * @since 1.6.0
+   */
+  final def joinWith[U](other: Dataset[U], condition: Column): TryAnalysis[Dataset[(T, U)]] =
+    transformationWithAnalysis(_.joinWith(other, condition))
+
+  /**
+   * Returns a new Dataset sorted by the given expressions. This is an
+   * alias of the `sort` function.
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def orderBy(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.orderBy(sortExprs: _*))
+
+  /**
+   * Returns a new Dataset partitioned by the given partitioning
+   * expressions into `numPartitions`. The resulting Dataset is hash
+   * partitioned.
+   *
+   * This is the same operation as "DISTRIBUTE BY" in SQL (Hive QL).
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def repartition(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.repartition(numPartitions, partitionExprs: _*))
+
+  /**
+   * Returns a new Dataset partitioned by the given partitioning
+   * expressions, using `spark.sql.shuffle.partitions` as number of
+   * partitions. The resulting Dataset is hash partitioned.
+   *
+   * This is the same operation as "DISTRIBUTE BY" in SQL (Hive QL).
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def repartition(partitionExprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.repartition(partitionExprs: _*))
+
+  /**
+   * Returns a new Dataset partitioned by the given partitioning
+   * expressions into `numPartitions`. The resulting Dataset is range
+   * partitioned.
+   *
+   * At least one partition-by expression must be specified. When no
+   * explicit sort order is specified, "ascending nulls first" is
+   * assumed. Note, the rows are not sorted in each partition of the
+   * resulting Dataset.
+   *
+   * @group typedrel
+   * @since 2.3.0
+   */
+  final def repartitionByRange(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.repartitionByRange(numPartitions, partitionExprs: _*))
+
+  /**
+   * Returns a new Dataset partitioned by the given partitioning
+   * expressions, using `spark.sql.shuffle.partitions` as number of
+   * partitions. The resulting Dataset is range partitioned.
+   *
+   * At least one partition-by expression must be specified. When no
+   * explicit sort order is specified, "ascending nulls first" is
+   * assumed. Note, the rows are not sorted in each partition of the
+   * resulting Dataset.
+   *
+   * @group typedrel
+   * @since 2.3.0
+   */
+  final def repartitionByRange(partitionExprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.repartitionByRange(partitionExprs: _*))
+
+  /**
+   * Selects a set of SQL expressions. This is a variant of `select`
+   * that accepts SQL expressions.
+   *
+   * {{{
+   *   // The following are equivalent:
+   *   ds.selectExpr("colA", "colB as newName", "abs(colC)")
+   *   ds.select(expr("colA"), expr("colB as newName"), expr("abs(colC)"))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  final def selectExpr(exprs: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.selectExpr(exprs: _*))
+
+  /**
+   * Returns a new Dataset sorted by the given expressions. For example:
+   * {{{
+   *   ds.sort($"col1", $"col2".desc)
+   * }}}
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def sort(sortExprs: Column*): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.sort(sortExprs: _*))
+
+  /**
+   * Returns a new Dataset with each partition sorted by the given
+   * expressions.
+   *
+   * This is the same operation as "SORT BY" in SQL (Hive QL).
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  final def sortWithinPartitions(sortExprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.sortWithinPartitions(sortExprs: _*))
+
+  /**
+   * Filters rows using the given condition. This is an alias for
+   * `filter`.
+   * {{{
+   *   // The following are equivalent:
+   *   peopleDs.filter($"age" > 15)
+   *   peopleDs.where($"age" > 15)
+   * }}}
+   *
+   * @group typedrel
+   * @since 1.6.0
+   */
+  final def where(condition: Column): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(condition))
+
+  /**
+   * Filters rows using the given SQL expression.
+   * {{{
+   *   peopleDs.where("age > 15")
+   * }}}
+   *
+   * @group typedrel
+   * @since 1.6.0
+   */
+  final def where(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(conditionExpr))
 
   // ===============
 
@@ -1687,11 +1721,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * Methods that need to be implemented
    *
    * [[org.apache.spark.sql.Dataset.cube]]
-   * [[org.apache.spark.sql.Dataset.explain]]
    * [[org.apache.spark.sql.Dataset.groupByKey]]
-   * [[org.apache.spark.sql.Dataset.na]]
-   * [[org.apache.spark.sql.Dataset.printSchema]]
-   * [[org.apache.spark.sql.Dataset.randomSplit]]
    * [[org.apache.spark.sql.Dataset.rollup]]
    * [[org.apache.spark.sql.Dataset.stat]]
    * [[org.apache.spark.sql.Dataset.writeStream]]
@@ -1702,7 +1732,9 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   /**
    * Methods with handmade implementations
    *
+   * [[org.apache.spark.sql.Dataset.explain]]
    * [[org.apache.spark.sql.Dataset.groupBy]]
+   * [[org.apache.spark.sql.Dataset.printSchema]]
    * [[org.apache.spark.sql.Dataset.show]]
    * [[org.apache.spark.sql.Dataset.transform]]
    * [[org.apache.spark.sql.Dataset.write]]
@@ -1713,9 +1745,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   /**
    * Ignored methods
    *
-   * [[org.apache.spark.sql.Dataset.apply]]
-   * [[org.apache.spark.sql.Dataset.col]]
-   * [[org.apache.spark.sql.Dataset.colRegex]]
    * [[org.apache.spark.sql.Dataset.collectAsList]]
    * [[org.apache.spark.sql.Dataset.filter]]
    * [[org.apache.spark.sql.Dataset.flatMap]]
@@ -1724,10 +1753,10 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * [[org.apache.spark.sql.Dataset.javaRDD]]
    * [[org.apache.spark.sql.Dataset.map]]
    * [[org.apache.spark.sql.Dataset.mapPartitions]]
-   * [[org.apache.spark.sql.Dataset.randomSplitAsList]]
    * [[org.apache.spark.sql.Dataset.reduce]]
    * [[org.apache.spark.sql.Dataset.takeAsList]]
    * [[org.apache.spark.sql.Dataset.toJavaRDD]]
    * [[org.apache.spark.sql.Dataset.toString]]
    */
+
 }

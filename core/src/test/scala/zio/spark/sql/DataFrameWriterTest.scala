@@ -1,13 +1,11 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{Row, SaveMode}
-
-import zio.Task
+import zio.{Task, UIO}
 import zio.spark.helper.Fixture._
 import zio.test._
 
 import scala.reflect.io.Directory
-
 import java.io.File
 
 object DataFrameWriterTest {
@@ -47,14 +45,12 @@ object DataFrameWriterTest {
     ) {
       def build: Spec[SparkSession, TestFailure[Any], TestSuccess] =
         test(s"DataFrameWriter can save a DataFrame to $extension") {
-          val path: String = s"$resourcesPath/output.$extension"
-
-          val pipeline = Pipeline.buildWithoutTransformation(read)(write(path))
-
           for {
-            _      <- pipeline.run
-            df     <- readAgain(path)
-            output <- df.count
+            path <- UIO(s"$targetPath/output-${scala.util.Random.nextInt()}.$extension")
+            df <- read
+            _ <- write(path)(df)
+            savedDf     <- readAgain(path)
+            output <- savedDf.count
             _      <- deleteGeneratedFolder(path)
           } yield assertTrue(output == 4L)
         }

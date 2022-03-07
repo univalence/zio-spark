@@ -54,21 +54,20 @@ case class GenerationPlan(planType: PlanType, source: meta.Source, scalaBinaryVe
     val fileSource = source
 
     val template                     = getTemplateFromSource(fileSource)
-    val scalametaMethods                   = collectFunctionsFromTemplate(template)
+    val scalametaMethods             = collectFunctionsFromTemplate(template)
     val comments: AssociatedComments = contrib.AssociatedComments(template)
-    val allMethods = scalametaMethods.map(m => Method.fromScalaMeta(m, comments, planType.pkg, scalaBinaryVersion))
+    val allMethods                   = scalametaMethods.map(m => Method.fromScalaMeta(m, comments, planType.pkg, scalaBinaryVersion))
 
     allMethods
       .filterNot(_.fullName.contains("$"))
       .filterNot(_.fullName.contains("java.lang.Object"))
       .filterNot(_.fullName.contains("scala.Any"))
       .filterNot(_.fullName.contains("<init>"))
-      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("java"))) // Java specific implementation
+      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("java")))  // Java specific implementation
       .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("Array"))) // Java specific implementation
   }
 
-  lazy val methodsWithTypes: Map[MethodType, Seq[Method]] =
-    methods.groupBy(getMethodType)
+  lazy val methodsWithTypes: Map[MethodType, Seq[Method]] = methods.groupBy(getMethodType)
 
   /** @return the imports needed for each plans. */
   def imports: String = {

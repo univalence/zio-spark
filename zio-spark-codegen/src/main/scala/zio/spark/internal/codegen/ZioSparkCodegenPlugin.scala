@@ -3,6 +3,7 @@ package zio.spark.internal.codegen
 import org.scalafmt.interfaces.Scalafmt
 import sbt.*
 import sbt.Keys.*
+
 import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.MethodType.*
 
