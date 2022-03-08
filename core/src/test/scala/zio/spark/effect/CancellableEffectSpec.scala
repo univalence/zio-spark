@@ -9,6 +9,7 @@ import zio.spark.SparkSessionRunner
 import zio.spark.sql.{fromSpark, Spark, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
 import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
+import zio.test.TestAspect._
 import zio.test.TestAspect.timeout
 
 object CancellableEffectSpec extends DefaultRunnableSpec {
@@ -57,6 +58,6 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
             }
           )
         }
-      }
+      } @@ ignore
     ).provideCustomLayerShared(SparkSessionRunner.session) @@ timeout(10.seconds)
 }
