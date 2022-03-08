@@ -63,14 +63,14 @@ object DataFrameWriterTest {
           readAgain = path => readCsv(path),
           write     = path => _.write.withHeader.csv(path)
         ),
-        // Not working with mac M1 due to snappy-java:
+        // Not working with mac M1 in old version of Spark due to snappy-java:
         // (Caused by: org.xerial.snappy.SnappyError: [FAILED_TO_LOAD_NATIVE_LIBRARY]
         // no native library is found for os.name=Mac and os.arch=aarch64)
         writerTest(
           extension = "parquet",
           readAgain = path => SparkSession.read.parquet(path),
           write     = path => _.write.parquet(path)
-        ) @@ os(!_.isMac),
+        ) @@ scala211(os(!_.isMac)),
         writerTest(
           extension = "json",
           readAgain = path => SparkSession.read.json(path),
