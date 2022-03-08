@@ -1,7 +1,7 @@
 package zio.spark.internal.codegen.structure
 
-import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.{MethodType, ScalaBinaryVersion}
+import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.structure.TypeUtils.*
 
 import scala.meta.*

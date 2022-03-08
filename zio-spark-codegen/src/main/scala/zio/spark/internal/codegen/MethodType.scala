@@ -124,17 +124,17 @@ object MethodType {
       elements.exists(element => candidates.exists(candidate => element.contains(candidate)))
 
     method.name match {
-      case _ if method.fullName.startsWith("java.lang.Object")                                              => Ignored
-      case _ if method.fullName.startsWith("scala.Any")                                                     => Ignored
+      case _ if method.fullName.startsWith("java.lang.Object")                                          => Ignored
+      case _ if method.fullName.startsWith("scala.Any")                                                 => Ignored
       case _ if method.isSetter                                                                         => Ignored
-      case name if name == "groupBy" && method.fullName.contains("RDD")                                     => Ignored
+      case name if name == "groupBy" && method.fullName.contains("RDD")                                 => Ignored
       case name if methodsToIgnore(name)                                                                => Ignored
       case name if name.contains("$")                                                                   => Ignored
       case _ if method.calls.flatMap(_.parameters.map(_.signature)).exists(_.contains("Function"))      => Ignored
       case name if methodsToImplement(name)                                                             => ToImplement
       case name if methodsTodo(name)                                                                    => TODO
       case "drop" if planType.name == "Dataset"                                                         => Transformation
-      case "apply" | "col" | "colRegex" | "withColumn" if method.fullName.contains("Dataset")               => SuccessWithAnalysis
+      case "apply" | "col" | "colRegex" | "withColumn" if method.fullName.contains("Dataset")           => SuccessWithAnalysis
       case _ if oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis) => TransformationWithAnalysis
       case name if method.anyParameters.isEmpty && name == "as"                                         => TransformationWithAnalysis
       case name if action(name)                                                                         => DistributedComputation
