@@ -91,7 +91,7 @@ class SmartCircuitTap[-E1, +E2](
 
 final case class DecayingRatio(ratio: Ratio, scale: Weight) {
   def decay(value: Ratio, maxScale: Weight): DecayingRatio =
-    DecayingRatio(Ratio.mean(scale, ratio)(Weight(1), value), if (scale < maxScale) scale else maxScale)
+    DecayingRatio(Ratio.mean(scale, ratio)(Weight(1L), value), if (scale < maxScale) scale else maxScale)
 }
 
 object CircuitTap {

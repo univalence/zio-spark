@@ -7,6 +7,7 @@ import org.apache.spark.sql.internal.SessionState
  * function.
  */
 object Sniffer211 {
+
   /** Backdoor for withActive private function. */
   def sessionState(sparkSession: SparkSession): SessionState = sparkSession.sessionState
 }

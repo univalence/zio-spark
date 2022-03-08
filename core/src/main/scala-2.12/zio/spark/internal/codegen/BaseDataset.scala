@@ -1723,49 +1723,43 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
 
   // ===============
 
-  /**
-   * Methods that need to be implemented
-   *
-   * [[org.apache.spark.sql.Dataset.cube]]
-   * [[org.apache.spark.sql.Dataset.groupByKey]]
-   * [[org.apache.spark.sql.Dataset.na]]
-   * [[org.apache.spark.sql.Dataset.randomSplit]]
-   * [[org.apache.spark.sql.Dataset.rollup]]
-   * [[org.apache.spark.sql.Dataset.stat]]
-   * [[org.apache.spark.sql.Dataset.writeStream]]
-   */
+  // Methods that need to be implemented
+  //
+  // [[org.apache.spark.sql.Dataset.cube]]
+  // [[org.apache.spark.sql.Dataset.groupByKey]]
+  // [[org.apache.spark.sql.Dataset.na]]
+  // [[org.apache.spark.sql.Dataset.randomSplit]]
+  // [[org.apache.spark.sql.Dataset.rollup]]
+  // [[org.apache.spark.sql.Dataset.stat]]
+  // [[org.apache.spark.sql.Dataset.writeStream]]
 
   // ===============
 
-  /**
-   * Methods with handmade implementations
-   *
-   * [[org.apache.spark.sql.Dataset.explain]]
-   * [[org.apache.spark.sql.Dataset.groupBy]]
-   * [[org.apache.spark.sql.Dataset.printSchema]]
-   * [[org.apache.spark.sql.Dataset.show]]
-   * [[org.apache.spark.sql.Dataset.transform]]
-   * [[org.apache.spark.sql.Dataset.write]]
-   */
+  // Methods with handmade implementations
+  //
+  // [[org.apache.spark.sql.Dataset.explain]]
+  // [[org.apache.spark.sql.Dataset.groupBy]]
+  // [[org.apache.spark.sql.Dataset.printSchema]]
+  // [[org.apache.spark.sql.Dataset.show]]
+  // [[org.apache.spark.sql.Dataset.transform]]
+  // [[org.apache.spark.sql.Dataset.write]]
 
   // ===============
 
-  /**
-   * Ignored methods
-   *
-   * [[org.apache.spark.sql.Dataset.collectAsList]]
-   * [[org.apache.spark.sql.Dataset.filter]]
-   * [[org.apache.spark.sql.Dataset.flatMap]]
-   * [[org.apache.spark.sql.Dataset.foreach]]
-   * [[org.apache.spark.sql.Dataset.foreachPartition]]
-   * [[org.apache.spark.sql.Dataset.javaRDD]]
-   * [[org.apache.spark.sql.Dataset.map]]
-   * [[org.apache.spark.sql.Dataset.mapPartitions]]
-   * [[org.apache.spark.sql.Dataset.randomSplitAsList]]
-   * [[org.apache.spark.sql.Dataset.reduce]]
-   * [[org.apache.spark.sql.Dataset.takeAsList]]
-   * [[org.apache.spark.sql.Dataset.toJavaRDD]]
-   * [[org.apache.spark.sql.Dataset.toString]]
-   */
+  // Ignored methods
+  //
+  // [[org.apache.spark.sql.Dataset.collectAsList]]
+  // [[org.apache.spark.sql.Dataset.filter]]
+  // [[org.apache.spark.sql.Dataset.flatMap]]
+  // [[org.apache.spark.sql.Dataset.foreach]]
+  // [[org.apache.spark.sql.Dataset.foreachPartition]]
+  // [[org.apache.spark.sql.Dataset.javaRDD]]
+  // [[org.apache.spark.sql.Dataset.map]]
+  // [[org.apache.spark.sql.Dataset.mapPartitions]]
+  // [[org.apache.spark.sql.Dataset.randomSplitAsList]]
+  // [[org.apache.spark.sql.Dataset.reduce]]
+  // [[org.apache.spark.sql.Dataset.takeAsList]]
+  // [[org.apache.spark.sql.Dataset.toJavaRDD]]
+  // [[org.apache.spark.sql.Dataset.toString]]
 
 }

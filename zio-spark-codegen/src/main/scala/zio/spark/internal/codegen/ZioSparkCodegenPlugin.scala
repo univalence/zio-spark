@@ -18,11 +18,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
   def prefixAllLines(text: String, prefix: String): String = text.split("\n").map(prefix + _).mkString("\n")
 
   def commentMethods(methods: String, title: String): String =
-    s"""/**
-       | * $title
-       | *
-       |${prefixAllLines(methods, " * ")}
-       | */""".stripMargin
+    s"""  // $title
+       |  //
+       |${prefixAllLines(methods, "  // ")}""".stripMargin
 
   override lazy val projectSettings =
     Seq(

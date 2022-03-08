@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{ColumnName, Encoder, Encoders}
+import org.apache.spark.sql.{ColumnName, Encoders}
 
 import scala.reflect.runtime.universe.TypeTag
 

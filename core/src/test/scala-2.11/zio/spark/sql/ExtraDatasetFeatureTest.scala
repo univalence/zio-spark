@@ -1,9 +1,9 @@
 package zio.spark.sql
 
-import zio.test._
-import zio.test.TestAspect._
 import zio.spark.helper.Fixture._
 import zio.spark.sql.implicits._
+import zio.test._
+import zio.test.TestAspect._
 
 object ExtraDatasetFeatureTest {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
@@ -14,7 +14,7 @@ object ExtraDatasetFeatureTest {
     suite("ExtraDatatasetFeature Actions")(
       test("Dataset should implement explain correctly") {
         for {
-          df     <- read
+          df <- read
           transformedDf = df.withColumnRenamed("name", "fullname").filter($"age" > 30)
           _      <- transformedDf.explain
           output <- TestConsole.output
