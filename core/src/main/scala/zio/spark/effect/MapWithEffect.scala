@@ -25,7 +25,7 @@ object MapWithEffect {
         decayScale: Weight = Weight(1000)
     ): RDD[Either[E, B]] =
       rdd.mapPartitions(
-        { it =>
+        { it: Iterator[T] =>
           type EE = Option[E]
           val createCircuit: UIO[CircuitTap[EE, EE]] =
             CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale)

@@ -32,9 +32,11 @@ object CancellableEffect {
       val global: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
       override def execute(runnable: Runnable): Unit =
-        global.execute(() => {
-          sparkContext.setJobGroup(groupName, "cancellable job group")
-          runnable.run()
+        global.execute(new Runnable {
+          override def run(): Unit = {
+            sparkContext.setJobGroup(groupName, "cancellable job group")
+            runnable.run()
+          }
         })
 
       override def reportFailure(cause: Throwable): Unit = global.reportFailure(cause)
