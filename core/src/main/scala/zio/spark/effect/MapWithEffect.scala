@@ -26,22 +26,17 @@ object MapWithEffect {
     ): RDD[Either[E, B]] =
       rdd.mapPartitions(
         { it =>
-          type EE = Option[E]
-          val createCircuit: UIO[CircuitTap[EE, EE]] =
-            CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale)
+          val createCircuit: UIO[DylanCircuitTap[T, E]] =
+            CircuitTap.dylan[T, E](maxErrorRatio, _ => true, onRejection, decayScale)
 
-          def iterator(circuitTap: CircuitTap[EE, EE]): ZManaged[Any, Nothing, Iterator[Either[E, B]]] = {
+          def iterator(circuitTap: DylanCircuitTap[T, E]): ZManaged[Any, Nothing, Iterator[Either[E, B]]] = {
             val in: ZStream[Any, Nothing, T] = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
-            val out: ZStream[Any, Nothing, Either[E, B]] =
-              in.mapZIO { x =>
-                val exe: ZIO[Any, Option[E], B] = circuitTap(effect(x).asSomeError)
-                exe.mapError(_.getOrElse(onRejection(x))).either
-              }
-            out.toIterator.map(_.map(_.merge))
+            val out: ZStream[Any, E, B] = in.mapZIO { x => circuitTap(x, effect)}
+            out.toIterator
           }
 
           val managed: ZManaged[Any, Nothing, Iterator[Either[E, B]]] = createCircuit.toManaged flatMap iterator
-          zio.Runtime.global.unsafeRun(managed.use(x => UIO(x)))
+          zio.Runtime.global.unsafeRun(managed.use(UIO(_)))
         },
         true
       )
