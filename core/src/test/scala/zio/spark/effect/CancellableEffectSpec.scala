@@ -1,5 +1,6 @@
 package zio.spark.effect
 
+import org.apache.spark.SparkContextCompatibility.removeSparkListener
 import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
@@ -25,13 +26,13 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       _ <- UIO(sc.addSparkListener(listener))
       x <- zio
       _ <-
-        UIO(sc.removeSparkListener(listener))
+        UIO(removeSparkListener(sc, listener))
           .delay(1.seconds)
           .provideSomeLayer(Clock.live) // wait a bit the last events to be publish
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 
-  def waitBlocking(seconds: Int): UIO[Int] = UIO.blocking(UIO(Thread.sleep(seconds * 1000))).as(seconds)
+  def waitBlocking(seconds: Int): UIO[Int] = UIO.blocking(UIO(Thread.sleep(seconds * 1000L))).as(seconds)
 
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("cancellable")(
@@ -40,7 +41,7 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       },
       test("smoke") {
         val job: Spark[Long] =
-          CancellableEffect.makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000)).count))
+          CancellableEffect.makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000L)).count))
 
         listenSparkEvents(waitBlocking(5).race(job)).map { case (events, n) =>
           assertTrue(
