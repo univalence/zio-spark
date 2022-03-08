@@ -64,7 +64,7 @@ ThisBuild / coverageMinimumStmtPerPackage   := 80
 ThisBuild / coverageMinimumBranchPerPackage := 80
 ThisBuild / coverageMinimumStmtPerFile      := 50
 ThisBuild / coverageMinimumBranchPerFile    := 50
-ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*"
+ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*;.*CancellableEffect.*" // TODO: CancellableEffect should be up again when smoke test is not ignored anymore
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
