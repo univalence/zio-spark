@@ -34,6 +34,9 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
 
   def waitBlocking(seconds: Int): UIO[Int] = UIO.blocking(UIO(Thread.sleep(seconds * 1000L))).as(seconds)
 
+  def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
+    itr.exists(pred.applyOrElse(_, (_: T) => false))
+
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("cancellable")(
       test("jobGroup") {
@@ -46,14 +49,10 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
         listenSparkEvents(waitBlocking(5).race(job)).map { case (events, n) =>
           assertTrue(
             n == 5,
-            events.exists {
-              case js: SparkListenerJobStart =>
-                events.exists {
-                  case je: SparkListenerJobEnd =>
-                    je.jobId == js.jobId && je.jobResult.toString.contains("cancelled job group")
-                  case _ => false
-                }
-              case _ => false
+            exists(events) { case js: SparkListenerJobStart =>
+              exists(events) { case je: SparkListenerJobEnd =>
+                je.jobId == js.jobId && je.jobResult.toString.contains("cancelled job group")
+              }
             }
           )
         }

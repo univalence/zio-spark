@@ -41,7 +41,6 @@ object MapWithEffectSpec extends DefaultRunnableSpec {
             val i     = res.indexWhere(_ == Left("rejected"))
             assertTrue(size == 10000, i == 1, count.toDouble < (0.95d * size))
           }
-
       } @@ ignore
     ).provideCustomLayerShared(session)
 }
