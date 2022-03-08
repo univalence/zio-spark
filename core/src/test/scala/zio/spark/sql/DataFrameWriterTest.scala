@@ -5,6 +5,7 @@ import org.apache.spark.sql.{Row, SaveMode}
 import zio.Task
 import zio.spark.helper.Fixture._
 import zio.test._
+import zio.test.TestAspect._
 
 import scala.reflect.io.Directory
 
@@ -39,13 +40,13 @@ object DataFrameWriterTest {
       }
     )
 
-  def dataFrameWriterSavingSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] = {
+  def dataFrameWriterSavingSpec: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] = {
     final case class WriterTest(
         extension: String,
         readAgain: String => Spark[DataFrame],
         write:     String => DataFrame => Task[Unit]
     ) {
-      def build: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+      def build: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] =
         test(s"DataFrameWriter can save a DataFrame to $extension") {
           val path: String = s"$resourcesPath/output.$extension"
 
@@ -57,7 +58,7 @@ object DataFrameWriterTest {
             output <- df.count
             _      <- deleteGeneratedFolder(path)
           } yield assertTrue(output == 4L)
-        }
+        } @@ ignore
     }
 
     val tests =

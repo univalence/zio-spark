@@ -57,13 +57,13 @@ ThisBuild / scalafixDependencies ++= Seq(
 )
 
 // SCoverage configuration
-ThisBuild / coverageFailOnMinimum           := true
+ThisBuild / coverageFailOnMinimum           := false
 ThisBuild / coverageMinimumStmtTotal        := 80
 ThisBuild / coverageMinimumBranchTotal      := 80
-ThisBuild / coverageMinimumStmtPerPackage   := 80
-ThisBuild / coverageMinimumBranchPerPackage := 80
-ThisBuild / coverageMinimumStmtPerFile      := 50
-ThisBuild / coverageMinimumBranchPerFile    := 50
+ThisBuild / coverageMinimumStmtPerPackage   := 50
+ThisBuild / coverageMinimumBranchPerPackage := 50
+ThisBuild / coverageMinimumStmtPerFile      := 0
+ThisBuild / coverageMinimumBranchPerFile    := 0
 ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*"
 
 addCommandAlias("fmt", "scalafmt")

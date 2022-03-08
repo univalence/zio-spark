@@ -4,11 +4,12 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 
 import zio.{IO, Task, UIO}
 import zio.spark.SparkSessionRunner.session
+import zio.spark.effect.MapWithEffect._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
-import zio.test.TestAspect.ignore
+import zio.test.TestAspect._
 
 object MapWithEffectSpec extends DefaultRunnableSpec {
   override def spec: ZSpec[TestEnvironment, Any] =
@@ -30,9 +31,10 @@ object MapWithEffectSpec extends DefaultRunnableSpec {
       },
       test("failure") {
         Seq
-          .fill(10000)(IO.fail("toto").as(1))
+          .fill(10000)(1)
           .toRDD
-          .flatMap(rdd => MapWithEffect(rdd)("rejected").collect)
+          .map(_.mapZIO(_ => IO.fail("fail").as(1), _ => "rejected"))
+          .flatMap(_.collect)
           .map { res =>
             val size  = res.size
             val count = res.count(_ == Left("rejected"))
