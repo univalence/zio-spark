@@ -1,3 +1,5 @@
+import sbt.librarymanagement.Configuration
+
 // Common configuration
 inThisBuild(
   List(
@@ -55,13 +57,13 @@ ThisBuild / scalafixDependencies ++= Seq(
 )
 
 // SCoverage configuration
-ThisBuild / coverageFailOnMinimum           := true
+ThisBuild / coverageFailOnMinimum           := false
 ThisBuild / coverageMinimumStmtTotal        := 80
 ThisBuild / coverageMinimumBranchTotal      := 80
-ThisBuild / coverageMinimumStmtPerPackage   := 80
-ThisBuild / coverageMinimumBranchPerPackage := 80
-ThisBuild / coverageMinimumStmtPerFile      := 50
-ThisBuild / coverageMinimumBranchPerFile    := 50
+ThisBuild / coverageMinimumStmtPerPackage   := 50
+ThisBuild / coverageMinimumBranchPerPackage := 50
+ThisBuild / coverageMinimumStmtPerFile      := 0
+ThisBuild / coverageMinimumBranchPerFile    := 0
 ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*"
 
 addCommandAlias("fmt", "scalafmt")
@@ -91,13 +93,16 @@ lazy val scala =
 
 lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 
+lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
+
 lazy val core =
   (project in file("core"))
     .settings(
       name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
       scalaVersion       := scala.v213,
-      libraryDependencies ++= generateLibraryDependencies(CrossVersion.partialVersion(scalaVersion.value).get._2),
+      scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
+      libraryDependencies ++= generateLibraryDependencies(scalaMajorVersion.value),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       scalacOptions ~= fatalWarningsAsProperties
     )
@@ -106,19 +111,21 @@ lazy val core =
 lazy val examples =
   (project in file("examples"))
     .settings(
-      scalaVersion   := scala.v213,
-      publish / skip := true,
-      libraryDependencies ++= generateSparkLibraryDependencies(CrossVersion.partialVersion(scalaVersion.value).get._2)
+      scalaVersion      := scala.v213,
+      publish / skip    := true,
+      scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
+      libraryDependencies ++= generateSparkLibraryDependencies(scalaMajorVersion.value, conf = Compile),
+      scalacOptions ~= fatalWarningsAsProperties
     )
     .dependsOn(core)
 
 /** Generates required libraries for spark. */
-def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
-  val sparkVersion = sparkScalaVersionMapping(scalaMinor)
+def generateSparkLibraryDependencies(scalaMinor: Long, conf: Configuration = Provided): Seq[ModuleID] = {
+  val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
-    "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided
+    "org.apache.spark" %% "spark-core" % sparkVersion % conf,
+    "org.apache.spark" %% "spark-sql"  % sparkVersion % conf
   )
 }
 

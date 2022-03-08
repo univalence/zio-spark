@@ -1,7 +1,6 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{ColumnName, Encoder, Encoders}
-import scala.reflect.runtime.universe.TypeTag
+import org.apache.spark.sql.{ColumnName, Encoders}
 
 import zio.URIO
 import zio.spark.rdd.{RDD, RDDConversionOps}

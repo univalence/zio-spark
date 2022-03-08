@@ -2,9 +2,10 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{Row, SaveMode}
 
-import zio.{Task, UIO}
+import zio.Task
 import zio.spark.helper.Fixture._
 import zio.test._
+import zio.test.TestAspect._
 
 import scala.reflect.io.Directory
 
@@ -39,93 +40,90 @@ object DataFrameWriterTest {
       }
     )
 
-  def dataFrameWriterSavingSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] = {
-    final case class WriterTest(
-        extension: String,
-        readAgain: String => Spark[DataFrame],
-        write:     String => DataFrame => Task[Unit]
-    ) {
-      def build: Spec[SparkSession, TestFailure[Any], TestSuccess] =
-        test(s"DataFrameWriter can save a DataFrame to $extension") {
-          for {
-            path    <- UIO(s"$targetPath/output-${scala.util.Random.nextInt()}.$extension")
-            df      <- read
-            _       <- write(path)(df)
-            savedDf <- readAgain(path)
-            output  <- savedDf.count
-            _       <- deleteGeneratedFolder(path)
-          } yield assertTrue(output == 4L)
-        }
-    }
+  def dataFrameWriterSavingSpec: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] = {
+    def writerTest(extension: String, readAgain: String => Spark[DataFrame], write: String => DataFrame => Task[Unit]) =
+      test(s"DataFrameWriter can save a DataFrame to $extension") {
+        val path: String = s"$targetsPath/test/output/dataframe-writer.$extension"
+
+        val pipeline = Pipeline.buildWithoutTransformation(read)(write(path))
+
+        for {
+          _      <- pipeline.run
+          df     <- readAgain(path)
+          output <- df.count
+          _      <- deleteGeneratedFolder(path)
+        } yield assertTrue(output == 4L)
+
+      }
 
     val tests =
       List(
-        WriterTest(
+        writerTest(
           extension = "csv",
           readAgain = path => readCsv(path),
           write     = path => _.write.withHeader.csv(path)
         ),
-        WriterTest(
+        // Not working with mac M1 in old version of Spark due to snappy-java:
+        // (Caused by: org.xerial.snappy.SnappyError: [FAILED_TO_LOAD_NATIVE_LIBRARY]
+        // no native library is found for os.name=Mac and os.arch=aarch64)
+        writerTest(
           extension = "parquet",
           readAgain = path => SparkSession.read.parquet(path),
           write     = path => _.write.parquet(path)
-        ),
-        WriterTest(
+        ) @@ scala211(os(!_.isMac)),
+        writerTest(
           extension = "json",
           readAgain = path => SparkSession.read.json(path),
           write     = path => _.write.json(path)
         )
       )
 
-    suite("DataFrameWriter Saving Formats")(tests.map(_.build): _*)
+    suite("DataFrameWriter Saving Formats")(tests: _*)
   }
 
   def dataFrameWriterOptionDefinitionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] = {
-    final case class WriterTest(
-        testName:      String,
-        endo:          DataFrameWriter[Row] => DataFrameWriter[Row],
-        expectedKey:   String,
+    def writerTest(
+        testName: String,
+        endo: DataFrameWriter[Row] => DataFrameWriter[Row],
+        expectedKey: String,
         expectedValue: String
-    ) {
-
-      def build: Spec[SparkSession, TestFailure[Any], TestSuccess] =
-        test(s"DataFrameWriter can add the option ($testName)") {
-          for {
-            df <- read
-            write             = df.write
-            writerWithOptions = endo(write)
-            options           = Map(expectedKey -> expectedValue)
-          } yield assertTrue(writerWithOptions.options == options)
-        }
-    }
+    ) =
+      test(s"DataFrameWriter can add the option ($testName)") {
+        for {
+          df <- read
+          write             = df.write
+          writerWithOptions = endo(write)
+          options           = Map(expectedKey -> expectedValue)
+        } yield assertTrue(writerWithOptions.options == options)
+      }
 
     val tests =
       List(
-        WriterTest(
+        writerTest(
           testName      = "Any option with a boolean value",
           endo          = _.option("a", value = true),
           expectedKey   = "a",
           expectedValue = "true"
         ),
-        WriterTest(
+        writerTest(
           testName      = "Any option with a int value",
           endo          = _.option("a", 1),
           expectedKey   = "a",
           expectedValue = "1"
         ),
-        WriterTest(
+        writerTest(
           testName      = "Any option with a float value",
           endo          = _.option("a", 1f),
           expectedKey   = "a",
           expectedValue = "1.0"
         ),
-        WriterTest(
+        writerTest(
           testName      = "Any option with a double value",
           endo          = _.option("a", 1d),
           expectedKey   = "a",
           expectedValue = "1.0"
         ),
-        WriterTest(
+        writerTest(
           testName      = "Option that read header",
           endo          = _.withHeader,
           expectedKey   = "header",
@@ -133,6 +131,6 @@ object DataFrameWriterTest {
         )
       )
 
-    suite("DataFrameWriter Option Definitions")(tests.map(_.build): _*)
+    suite("DataFrameWriter Option Definitions")(tests: _*)
   }
 }

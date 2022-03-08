@@ -37,13 +37,14 @@ jobs:
         uses: coursier/cache-action@v6
       - name: Download sources
         run: sbt ++${{ matrix.scala }}! "project core" updateClassifiers
-      - name: Run tests 2.11.X and 2.12.X
+      - name: Run tests 2.11.X and 2.12.X without coverage
         if: ${{ !startsWith(matrix.scala, '2.13.') }}
         run: sbt ++${{ matrix.scala }}! "project core" testSpecific
-      - name: Run tests 2.13.X
+      - name: Run tests 2.13.X with coverage
         if: ${{ startsWith(matrix.scala, '2.13.') }}
         run: sbt ++${{ matrix.scala }}! "project core" testSpecificWithCoverage
       - name: Publish coverage to codecov
+        if: ${{ startsWith(matrix.scala, '2.13.') }}
         uses: codecov/codecov-action@v2
 
   publish:

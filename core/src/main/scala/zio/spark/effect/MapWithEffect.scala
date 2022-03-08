@@ -13,7 +13,7 @@ object MapWithEffect {
   def apply[E1, E2 >: E1, A](rdd: RDD[IO[E1, A]])(
       onRejected: E2,
       maxErrorRatio: Ratio = Ratio.p05,
-      decayScale: Weight = Weight(1000)
+      decayScale: Weight = Weight(1000L)
   ): RDD[Either[E2, A]] = rdd.mapZIO(identity, _ => onRejected, maxErrorRatio, decayScale)
 
   implicit class RDDOps[T](private val rdd: RDD[T]) extends AnyVal {
@@ -22,10 +22,10 @@ object MapWithEffect {
         effect: T => IO[E, B],
         onRejection: T => E,
         maxErrorRatio: Ratio = Ratio.p05,
-        decayScale: Weight = Weight(1000)
+        decayScale: Weight = Weight(1000L)
     ): RDD[Either[E, B]] =
       rdd.mapPartitions(
-        { it =>
+        { it: Iterator[T] =>
           type EE = Option[E]
           val createCircuit: UIO[CircuitTap[EE, EE]] =
             CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale)
@@ -41,7 +41,7 @@ object MapWithEffect {
           }
 
           val managed: ZManaged[Any, Nothing, Iterator[Either[E, B]]] = createCircuit.toManaged flatMap iterator
-          zio.Runtime.global.unsafeRun(managed.use(x => UIO(x)))
+          zio.Runtime.global.unsafeRun(managed.use(UIO(_)))
         },
         true
       )

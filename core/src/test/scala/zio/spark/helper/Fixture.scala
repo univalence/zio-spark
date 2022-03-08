@@ -12,7 +12,7 @@ object Fixture {
 
   val resourcesPath: String = "core/src/test/resources"
 
-  val targetPath: String = "core/target/temp"
+  val targetsPath: String = "core/target/test"
 
   val read: Spark[DataFrame] = readCsv(s"$resourcesPath/data.csv")
 
