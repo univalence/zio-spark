@@ -60,11 +60,11 @@ ThisBuild / scalafixDependencies ++= Seq(
 ThisBuild / coverageFailOnMinimum           := true
 ThisBuild / coverageMinimumStmtTotal        := 80
 ThisBuild / coverageMinimumBranchTotal      := 80
-ThisBuild / coverageMinimumStmtPerPackage   := 80
-ThisBuild / coverageMinimumBranchPerPackage := 80
-ThisBuild / coverageMinimumStmtPerFile      := 50
-ThisBuild / coverageMinimumBranchPerFile    := 50
-ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*;.*implicits.*"
+ThisBuild / coverageMinimumStmtPerPackage   := 0
+ThisBuild / coverageMinimumBranchPerPackage := 0
+ThisBuild / coverageMinimumStmtPerFile      := 0
+ThisBuild / coverageMinimumBranchPerFile    := 0
+ThisBuild / coverageExcludedPackages := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*"
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
