@@ -8,6 +8,7 @@ import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
+import zio.test.TestAspect.ignore
 
 object MapWithEffectSpec extends DefaultRunnableSpec {
   override def spec: ZSpec[TestEnvironment, Any] =
@@ -38,8 +39,6 @@ object MapWithEffectSpec extends DefaultRunnableSpec {
             val i     = res.indexWhere(_ == Left("rejected"))
             assertTrue(size == 10000, i == 1, count.toDouble < (0.95d * size))
           }
-
-      }
-    )
-      .provideCustomLayerShared(session)
+      } @@ ignore
+    ).provideCustomLayerShared(session)
 }
