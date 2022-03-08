@@ -100,7 +100,7 @@ lazy val core =
     .settings(
       name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala.v211,
+      scalaVersion       := scala.v213,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= generateLibraryDependencies(scalaMajorVersion.value),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
@@ -111,7 +111,7 @@ lazy val core =
 lazy val examples =
   (project in file("examples"))
     .settings(
-      scalaVersion      := scala.v211,
+      scalaVersion      := scala.v213,
       publish / skip    := true,
       scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= generateSparkLibraryDependencies(scalaMajorVersion.value, conf = Compile),
