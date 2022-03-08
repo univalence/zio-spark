@@ -12,6 +12,8 @@ object Fixture {
 
   val resourcesPath: String = "core/src/test/resources"
 
+  val targetsPath: String = "core/target/test"
+
   val read: Spark[DataFrame] = readCsv(s"$resourcesPath/data.csv")
 
   val readEmpty: Spark[DataFrame] = readCsv(s"$resourcesPath/empty.csv")
