@@ -89,33 +89,6 @@ class SmartCircuitTap[-E1, +E2](
   override def getState: UIO[CircuitTap.State] = state.get
 }
 
-class DylanCircuitTap[T, E](
-   errBound:  Ratio,
-   qualified: E => Boolean,
-   rejected:  T => E,
-   state:     Ref[CircuitTap.State]
- ) {
-  def apply[R, A](in: T, effect: T => ZIO[R, E, A]): ZIO[R, E, A] =
-    state.get flatMap { s =>
-      val tooMuchError: Boolean = s.decayingErrorRatio.ratio > errBound
-      if (tooMuchError) {
-        zio.ZRef.UnifiedSyntax(state).update(_.incRejected) *> ZIO.fail(rejected(in))
-      } else {
-        run(effect(in))
-      }
-    }
-
-  private def run[R, A](effect: ZIO[R, E, A]): ZIO[R, E, A] = {
-    def tapError(e: E): UIO[Unit] =
-      if (qualified(e)) state.update(_.incFailure)
-      else state.update(_.incSuccess)
-
-    effect.tapBoth(tapError, _ => state.update(_.incSuccess))
-  }
-
-  override def getState: UIO[CircuitTap.State] = state.get
-}
-
 final case class DecayingRatio(ratio: Ratio, scale: Weight) {
   def decay(value: Ratio, maxScale: Weight): DecayingRatio =
     DecayingRatio(Ratio.mean(scale, ratio)(Weight(1), value), if (scale < maxScale) scale else maxScale)
@@ -168,14 +141,4 @@ object CircuitTap {
     for {
       state <- Ref.make(zeroState(decayScale))
     } yield new SmartCircuitTap[E1, E2](maxError, qualified, rejected, state)
-
-  def dylan[T, E](
-      maxError: Ratio,
-      qualified: E => Boolean,
-      rejected: T => E,
-      decayScale: Weight
-    ): UIO[DylanCircuitTap[T, E]] =
-    for {
-      state <- Ref.make(zeroState(decayScale))
-    } yield new DylanCircuitTap[T, E](maxError, qualified, rejected, state)
 }
