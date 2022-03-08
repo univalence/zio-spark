@@ -8,7 +8,7 @@ import zio.{durationLong, Chunk, Clock, UIO, ZIO, ZRef}
 import zio.spark.SparkSessionRunner
 import zio.spark.sql.{fromSpark, Spark, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
-import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
+import zio.test._
 import zio.test.TestAspect._
 
 object CancellableEffectSpec extends DefaultRunnableSpec {

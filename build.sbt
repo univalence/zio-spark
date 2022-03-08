@@ -57,7 +57,7 @@ ThisBuild / scalafixDependencies ++= Seq(
 )
 
 // SCoverage configuration
-ThisBuild / coverageFailOnMinimum           := true
+ThisBuild / coverageFailOnMinimum           := false
 ThisBuild / coverageMinimumStmtTotal        := 80
 ThisBuild / coverageMinimumBranchTotal      := 80
 ThisBuild / coverageMinimumStmtPerPackage   := 50
