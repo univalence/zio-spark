@@ -32,7 +32,8 @@ object MapWithEffect {
 
           def iterator(circuitTap: CircuitTap[EE, EE]): ZManaged[Any, Nothing, Iterator[Either[E, B]]] = {
             val in: ZStream[Any, Nothing, T] = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
-            val out: ZStream[Any, Nothing, Either[E, B]] = in.mapZIO { x =>
+            val out: ZStream[Any, Nothing, Either[E, B]] =
+              in.mapZIO { x =>
                 val exe: ZIO[Any, Option[E], B] = circuitTap(effect(x).asSomeError)
                 exe.mapError(_.getOrElse(onRejection(x))).either
               }

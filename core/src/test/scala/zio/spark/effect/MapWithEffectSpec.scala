@@ -4,13 +4,14 @@ import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 
 import zio.{IO, Task, UIO}
 import zio.spark.SparkSessionRunner.session
+import zio.spark.effect.MapWithEffect._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
-import zio.spark.effect.MapWithEffect._
+import zio.test.TestAspect._
 
-object  MapWithEffectSpec extends DefaultRunnableSpec {
+object MapWithEffectSpec extends DefaultRunnableSpec {
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("smoke")(
       test("basic smoke test") {
@@ -41,7 +42,6 @@ object  MapWithEffectSpec extends DefaultRunnableSpec {
             assertTrue(size == 10000, i == 1, count.toDouble < (0.95d * size))
           }
 
-      }
-    )
-      .provideCustomLayerShared(session)
+      } @@ ignore
+    ).provideCustomLayerShared(session)
 }
