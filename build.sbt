@@ -52,9 +52,7 @@ inThisBuild(
 ThisBuild / scalafixScalaBinaryVersion := "2.13"
 ThisBuild / semanticdbEnabled          := true
 ThisBuild / semanticdbVersion          := scalafixSemanticdb.revision
-ThisBuild / scalafixDependencies ++= Seq(
-  "com.github.vovapolu" %% "scaluzzi" % "0.1.21"
-)
+ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "0.1.21")
 
 // SCoverage configuration
 ThisBuild / coverageFailOnMinimum           := false
@@ -64,7 +62,7 @@ ThisBuild / coverageMinimumStmtPerPackage   := 50
 ThisBuild / coverageMinimumBranchPerPackage := 50
 ThisBuild / coverageMinimumStmtPerFile      := 0
 ThisBuild / coverageMinimumBranchPerFile    := 0
-ThisBuild / coverageExcludedPackages        := "<empty>;.*SqlImplicits.*;.*Impure.*;.*BaseRDD.*;.*BaseDataset.*"
+ThisBuild / coverageExcludedPackages := "<empty>;.*SqlImplicits.*;.*Impure.*;zio\\.spark\\.internal\\.codegen\\..*"
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
