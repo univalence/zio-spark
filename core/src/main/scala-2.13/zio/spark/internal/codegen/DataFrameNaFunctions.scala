@@ -13,7 +13,7 @@ import zio.spark.internal.Impure
 import zio.spark.internal.Impure.ImpureBox
 import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
 
-final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
+case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
     extends Impure[UnderlyingDataFrameNaFunctions](underlyingDataFrameNaFunctions) {
   import underlyingDataFrameNaFunctions._
 
