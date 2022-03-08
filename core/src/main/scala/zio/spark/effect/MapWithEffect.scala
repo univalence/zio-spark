@@ -1,9 +1,8 @@
 package zio.spark.effect
 
-import zio.{IO, UIO, ZIO, ZManaged}
+import zio.{IO, ZEnv}
 import zio.spark.effect.NewType.{Ratio, Weight}
 import zio.spark.rdd.RDD
-import zio.stream.ZStream
 
 import scala.util.Either
 
@@ -22,28 +21,21 @@ object MapWithEffect {
         effect: T => IO[E, B],
         onRejection: T => E,
         maxErrorRatio: Ratio = Ratio.p05,
-        decayScale: Weight = Weight(1000L)
+        decayScale: Weight = Weight(1000L),
+        maxStack: Int = 16
     ): RDD[Either[E, B]] =
-      rdd.mapPartitions(
-        { it: Iterator[T] =>
-          type EE = Option[E]
-          val createCircuit: UIO[CircuitTap[EE, EE]] =
-            CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale)
+      rdd.mapPartitions { it: Iterator[T] =>
+        type EE = Option[E]
 
-          def iterator(circuitTap: CircuitTap[EE, EE]): ZManaged[Any, Nothing, Iterator[Either[E, B]]] = {
-            val in: ZStream[Any, Nothing, T] = ZStream.fromIterator(it).refineOrDie(PartialFunction.empty)
-            val out: ZStream[Any, Nothing, Either[E, B]] =
-              in.mapZIO { x =>
-                val exe: ZIO[Any, Option[E], B] = circuitTap(effect(x).asSomeError)
-                exe.mapError(_.getOrElse(onRejection(x))).either
-              }
-            out.toIterator.map(_.map(_.merge))
-          }
+        val runtime: zio.Runtime[ZEnv] = zio.Runtime.default
 
-          val managed: ZManaged[Any, Nothing, Iterator[Either[E, B]]] = createCircuit.toManaged flatMap iterator
-          zio.Runtime.global.unsafeRun(managed.use(UIO(_)))
-        },
-        true
-      )
+        val createCircuit: CircuitTap[EE, EE] =
+          runtime.unsafeRun(CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale))
+
+        it.map { x =>
+          val io = createCircuit(effect(x).asSomeError).mapError(_.getOrElse(onRejection(x))).either
+          runtime.unsafeRunFast(io, maxStack)
+        }
+      }
   }
 }
