@@ -13,7 +13,7 @@ import zio.spark.internal.Impure
 import zio.spark.internal.Impure.ImpureBox
 import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
 
-case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
+final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
     extends Impure[UnderlyingDataFrameNaFunctions](underlyingDataFrameNaFunctions) {
   import underlyingDataFrameNaFunctions._
 
@@ -37,7 +37,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def drop: DataFrame = transformation(_.drop())
+  def drop: DataFrame = transformation(_.drop())
 
   /**
    * Returns a new `DataFrame` that drops rows containing null or NaN
@@ -49,7 +49,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def drop(how: String): DataFrame = transformation(_.drop(how))
+  def drop(how: String): DataFrame = transformation(_.drop(how))
 
   /**
    * Returns a new `DataFrame` that drops rows containing less than
@@ -57,7 +57,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def drop(minNonNulls: Int): DataFrame = transformation(_.drop(minNonNulls))
+  def drop(minNonNulls: Int): DataFrame = transformation(_.drop(minNonNulls))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
@@ -65,14 +65,14 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 2.2.0
    */
-  final def fill(value: Long): DataFrame = transformation(_.fill(value))
+  def fill(value: Long): DataFrame = transformation(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
    * numeric columns with `value`.
    * @since 1.3.1
    */
-  final def fill(value: Double): DataFrame = transformation(_.fill(value))
+  def fill(value: Double): DataFrame = transformation(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null values in string
@@ -80,7 +80,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def fill(value: String): DataFrame = transformation(_.fill(value))
+  def fill(value: String): DataFrame = transformation(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null values in boolean
@@ -88,7 +88,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 2.3.0
    */
-  final def fill(value: Boolean): DataFrame = transformation(_.fill(value))
+  def fill(value: Boolean): DataFrame = transformation(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null values.
@@ -110,7 +110,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def fill(valueMap: Map[String, Any]): DataFrame = transformation(_.fill(valueMap))
+  def fill(valueMap: Map[String, Any]): DataFrame = transformation(_.fill(valueMap))
 
   // ===============
 
@@ -120,7 +120,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def drop(cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(cols))
+  def drop(cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(cols))
 
   /**
    * Returns a new `DataFrame` that drops rows containing null or NaN
@@ -132,7 +132,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def drop(how: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(how, cols))
+  def drop(how: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(how, cols))
 
   /**
    * Returns a new `DataFrame` that drops rows containing less than
@@ -140,7 +140,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def drop(minNonNulls: Int, cols: Seq[String]): TryAnalysis[DataFrame] =
+  def drop(minNonNulls: Int, cols: Seq[String]): TryAnalysis[DataFrame] =
     transformationWithAnalysis(_.drop(minNonNulls, cols))
 
   /**
@@ -150,8 +150,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 2.2.0
    */
-  final def fill(value: Long, cols: Seq[String]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.fill(value, cols))
+  def fill(value: Long, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
@@ -160,8 +159,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def fill(value: Double, cols: Seq[String]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.fill(value, cols))
+  def fill(value: Double, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null values in specified
@@ -170,8 +168,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def fill(value: String, cols: Seq[String]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.fill(value, cols))
+  def fill(value: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null values in specified
@@ -180,8 +177,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 2.3.0
    */
-  final def fill(value: Boolean, cols: Seq[String]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.fill(value, cols))
+  def fill(value: Boolean, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
   /**
    * Replaces values matching keys in `replacement` map.
@@ -208,7 +204,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def replace[T](col: String, replacement: Map[T, T]): TryAnalysis[DataFrame] =
+  def replace[T](col: String, replacement: Map[T, T]): TryAnalysis[DataFrame] =
     transformationWithAnalysis(_.replace(col, replacement))
 
   /**
@@ -232,7 +228,7 @@ case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[Underl
    *
    * @since 1.3.1
    */
-  final def replace[T](cols: Seq[String], replacement: Map[T, T]): TryAnalysis[DataFrame] =
+  def replace[T](cols: Seq[String], replacement: Map[T, T]): TryAnalysis[DataFrame] =
     transformationWithAnalysis(_.replace(cols, replacement))
 
 }

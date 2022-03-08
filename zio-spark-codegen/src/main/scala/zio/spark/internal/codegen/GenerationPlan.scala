@@ -56,7 +56,7 @@ case class GenerationPlan(planType: PlanType, source: meta.Source, scalaBinaryVe
     val template                     = getTemplateFromSource(fileSource)
     val scalametaMethods             = collectFunctionsFromTemplate(template)
     val comments: AssociatedComments = contrib.AssociatedComments(template)
-    val allMethods                   = scalametaMethods.map(m => Method.fromScalaMeta(m, comments, planType.pkg, scalaBinaryVersion))
+    val allMethods                   = scalametaMethods.map(m => Method.fromScalaMeta(m, comments, planType, scalaBinaryVersion))
 
     allMethods
       .filterNot(_.fullName.contains("$"))
@@ -98,7 +98,7 @@ object GenerationPlan {
 
     final def definition: String = {
       val tparam = if (hasTypeParameter) "[T]" else ""
-      val mod    = if (isAbstractClass) "abstract" else "case"
+      val mod    = if (isAbstractClass) "abstract" else "final case"
 
       val className      = s"$outputName$tparam"
       val underlyingName = s"Underlying$name$tparam"

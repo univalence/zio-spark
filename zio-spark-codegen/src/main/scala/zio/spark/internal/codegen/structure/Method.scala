@@ -1,12 +1,13 @@
 package zio.spark.internal.codegen.structure
 
+import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.{MethodType, ScalaBinaryVersion}
 import zio.spark.internal.codegen.structure.TypeUtils.*
 
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
 
-case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scalaVersion: ScalaBinaryVersion) {
+case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType, scalaVersion: ScalaBinaryVersion) {
   self =>
 
   val calls: List[ParameterGroup]    = df.paramss.map(pg => ParameterGroup.fromScalaMeta(pg, scalaVersion))
@@ -14,7 +15,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
 
   val name: String                   = df.name.value
   val returnType: String             = df.decltpe.get.toString()
-  val fullName: String               = s"$path.$name"
+  val fullName: String               = s"${planType.pkg}.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
 
   def toCode(methodType: MethodType): String =
@@ -36,7 +37,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
             case _                                     => "succeedNow"
           }
 
-        val cleanReturnType = cleanType(returnType, path)
+        val cleanReturnType = cleanType(returnType, planType.pkg)
 
         val trueReturnType =
           methodType match {
@@ -66,8 +67,10 @@ case class Method(df: Defn.Def, comments: AssociatedComments, path: String, scal
             .map(_.toString)
             .getOrElse("")
 
+        val mod: String = if (planType.isAbstractClass) "final " else ""
+
         s"""$comment$deprecation
-           |final def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)""".stripMargin
+           |${mod}def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)""".stripMargin
     }
 
   def isSetter: Boolean = name.startsWith("set")
@@ -83,7 +86,7 @@ object Method {
   def fromScalaMeta(
       df: Defn.Def,
       comments: AssociatedComments,
-      path: String,
+      planType: PlanType,
       scalaVersion: ScalaBinaryVersion
-  ): Method = Method(df, comments, path, scalaVersion)
+  ): Method = Method(df, comments, planType, scalaVersion)
 }
