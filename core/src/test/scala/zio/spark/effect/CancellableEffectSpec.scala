@@ -10,7 +10,6 @@ import zio.spark.sql.{fromSpark, Spark, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
 import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
 import zio.test.TestAspect._
-import zio.test.TestAspect.timeout
 
 object CancellableEffectSpec extends DefaultRunnableSpec {
   val getJobGroup: Spark[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
@@ -58,6 +57,6 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
             }
           )
         }
-      } @@ ignore
+      }
     ).provideCustomLayerShared(SparkSessionRunner.session) @@ timeout(10.seconds)
 }
