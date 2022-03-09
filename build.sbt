@@ -62,7 +62,12 @@ ThisBuild / coverageMinimumStmtPerPackage   := 50
 ThisBuild / coverageMinimumBranchPerPackage := 50
 ThisBuild / coverageMinimumStmtPerFile      := 0
 ThisBuild / coverageMinimumBranchPerFile    := 0
-ThisBuild / coverageExcludedPackages := "<empty>;.*SqlImplicits.*;.*Impure.*;zio\\.spark\\.internal\\.codegen\\..*"
+ThisBuild / coverageExcludedPackages :=
+  """<empty>
+    |.*SqlImplicits.*
+    |.*Impure.*
+    |zio\\.spark\\.internal\\.codegen\\..*
+    |""".stripMargin.replace("/n", ";")
 
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
