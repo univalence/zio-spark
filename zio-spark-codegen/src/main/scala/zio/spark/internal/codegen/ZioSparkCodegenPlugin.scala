@@ -37,7 +37,8 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           List(
             GenerationPlan.RDDPlan,
             GenerationPlan.DatasetPlan,
-            GenerationPlan.DataFrameNaFunctionsPlan
+            GenerationPlan.DataFrameNaFunctionsPlan,
+            GenerationPlan.DataFrameStatFunctionsPlan
           )
 
         val generationPlans = planTypes.map(_.getGenerationPlan(classpath, version)).map(zio.Runtime.default.unsafeRun)
@@ -60,7 +61,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
          */
         def checkAllMethodsAreImplemented(plans: Seq[GenerationPlan]): Unit = {
           val plansWithMissingMethods: Seq[(String, Set[String])] =
-            plans.filter(_.planType.fold(true, true, false)).map { plan =>
+            plans.filter(_.planType.fold(true, true, false, false)).map { plan =>
               val allMethods                  = plan.getFinalClassMethods((Compile / scalaSource).value)
               val methodsToImplement          = plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet
               val missingMethods: Set[String] = methodsToImplement -- allMethods

@@ -46,6 +46,7 @@ case class GenerationPlan(planType: PlanType, source: meta.Source, scalaBinaryVe
         val file: File     = baseFile / "zio" / "spark" / "sql" / "ExtraDatasetFeature.scala"
         baseClassFunctions ++ functionsFromFile(file)
       case GenerationPlan.DataFrameNaFunctionsPlan => baseClassFunctions
+      case GenerationPlan.DataFrameStatFunctionsPlan => baseClassFunctions
     }
   }
 
@@ -63,6 +64,8 @@ case class GenerationPlan(planType: PlanType, source: meta.Source, scalaBinaryVe
       .filterNot(_.fullName.contains("java.lang.Object"))
       .filterNot(_.fullName.contains("scala.Any"))
       .filterNot(_.fullName.contains("<init>"))
+      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("ju.")))  // Java specific implementation
+      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("jl.")))  // Java specific implementation
       .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("java")))  // Java specific implementation
       .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("Array"))) // Java specific implementation
   }
@@ -122,7 +125,10 @@ object GenerationPlan {
             s"""$defaultImplicits
                |
                |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = iterator.asScala
-               |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions = DataFrameNaFunctions(ImpureBox(x))""".stripMargin
+               |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
+               |  DataFrameNaFunctions(ImpureBox(x))
+               |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
+               |  DataFrameStatFunctions(ImpureBox(x))""".stripMargin
           case _ => ""
         }
 
@@ -175,6 +181,20 @@ object GenerationPlan {
             |def transformationWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
             |  TryAnalysis(transformation(f))
             |""".stripMargin
+        case DataFrameStatFunctionsPlan =>
+          """/**
+            | * Wraps a function into a TryAnalysis.
+            | */
+            |def withAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] =
+            |  TryAnalysis(succeedNow(f))
+            |
+            |/**
+            | * Applies a transformation to the underlying DataFrameStatFunctions, it is used for
+            | * transformations that can fail due to an AnalysisException.
+            | */
+            |def transformationWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+            |  TryAnalysis(succeedNow(f.andThen(x => Dataset(x))))
+            |""".stripMargin
       }
     }
 
@@ -212,9 +232,18 @@ object GenerationPlan {
 
           s"""$rddCommonImports
              |$rddSpecificImports""".stripMargin
+
         case DatasetPlan =>
           val datasetCommonImports =
-            """import org.apache.spark.sql.{Column, Dataset => UnderlyingDataset, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions, Encoder, Row, TypedColumn}
+            """import org.apache.spark.sql.{
+              |  Column,
+              |  Dataset => UnderlyingDataset,
+              |  DataFrameNaFunctions => UnderlyingDataFrameNaFunctions,
+              |  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
+              |  Encoder,
+              |  Row,
+              |  TypedColumn
+              |}
               |import org.apache.spark.sql.types.StructType
               |import org.apache.spark.storage.StorageLevel
               |
@@ -239,7 +268,22 @@ object GenerationPlan {
           s"""$datasetCommonImports
              |$datasetSpecificImports""".stripMargin
         case DataFrameNaFunctionsPlan =>
-          """import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions}
+          """import org.apache.spark.sql.{
+            | DataFrame => UnderlyingDataFrame,
+            | DataFrameNaFunctions => UnderlyingDataFrameNaFunctions
+            |}
+            |import zio.spark.internal.Impure
+            |import zio.spark.internal.Impure.ImpureBox
+            |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
+            |""".stripMargin
+        case DataFrameStatFunctionsPlan =>
+          """import org.apache.spark.sql.{
+            |  Column,
+            |  DataFrame => UnderlyingDataFrame,
+            |  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions
+            |}
+            |import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
+            |
             |import zio.spark.internal.Impure
             |import zio.spark.internal.Impure.ImpureBox
             |import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
@@ -287,17 +331,19 @@ object GenerationPlan {
 
     @inline final def fold[C](planType: PlanType => C): C = planType(this)
 
-    final def fold[C](rdd: => C, dataset: => C, dataFrameNa: => C): C =
+    final def fold[C](rdd: => C, dataset: => C, dataFrameNa: => C, dataFrameStat: => C): C =
       this match {
         case RDDPlan                  => rdd
         case DatasetPlan              => dataset
         case DataFrameNaFunctionsPlan => dataFrameNa
+        case DataFrameStatFunctionsPlan => dataFrameStat
       }
   }
 
   case object RDDPlan                  extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
   case object DatasetPlan              extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
   case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object DataFrameStatFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
 
   /**
    * Retrieves all function's names from a file.
