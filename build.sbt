@@ -70,6 +70,7 @@ ThisBuild / coverageMinimumStmtPerFile      := 0
 ThisBuild / coverageMinimumBranchPerFile    := 0
 ThisBuild / coverageExcludedPackages := excludedPackages.mkString(";")
 
+// Aliases
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
 addCommandAlias("lint", "scalafix")

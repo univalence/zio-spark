@@ -49,8 +49,6 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
   /** Methods provided by the Impure class. */
   def impureMethods: Seq[String] =
     Seq(
-      // "ImpureBox",
-      "attemptWithZIO",
       "attemptBlocking",
       "attempt"
     )
