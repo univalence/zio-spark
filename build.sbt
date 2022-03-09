@@ -64,9 +64,9 @@ ThisBuild / coverageMinimumStmtPerFile      := 0
 ThisBuild / coverageMinimumBranchPerFile    := 0
 ThisBuild / coverageExcludedPackages :=
   """<empty>
-    |.*SqlImplicits.*
-    |.*Impure.*
     |zio\\.spark\\.internal\\.codegen\\..*
+    |zio\\.spark\\.sql\\.implicits.*
+    |zio\\.spark\\.sql\\.LowPrioritySQLImplicits.*
     |""".stripMargin.replace("/n", ";")
 
 addCommandAlias("fmt", "scalafmt")
