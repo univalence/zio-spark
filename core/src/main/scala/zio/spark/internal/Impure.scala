@@ -1,7 +1,7 @@
 package zio.spark.internal
 
-import zio.spark.internal.Impure.ImpureBox
 import zio.{Task, UIO, ZIO}
+import zio.spark.internal.Impure.ImpureBox
 
 /** Give the ability for a type T to attempt Impure code. */
 abstract class Impure[+A](underlying: ImpureBox[A]) {
