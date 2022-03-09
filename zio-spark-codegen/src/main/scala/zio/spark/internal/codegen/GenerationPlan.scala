@@ -45,7 +45,7 @@ case class GenerationPlan(planType: PlanType, source: meta.Source, scalaBinaryVe
         val baseFile: File = new File(scalaSource.getPath + "-" + scalaBinaryVersion)
         val file: File     = baseFile / "zio" / "spark" / "sql" / "ExtraDatasetFeature.scala"
         baseClassFunctions ++ functionsFromFile(file)
-      case GenerationPlan.DataFrameNaFunctionsPlan => baseClassFunctions
+      case GenerationPlan.DataFrameNaFunctionsPlan   => baseClassFunctions
       case GenerationPlan.DataFrameStatFunctionsPlan => baseClassFunctions
     }
   }
@@ -64,8 +64,8 @@ case class GenerationPlan(planType: PlanType, source: meta.Source, scalaBinaryVe
       .filterNot(_.fullName.contains("java.lang.Object"))
       .filterNot(_.fullName.contains("scala.Any"))
       .filterNot(_.fullName.contains("<init>"))
-      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("ju.")))  // Java specific implementation
-      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("jl.")))  // Java specific implementation
+      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("ju.")))   // Java specific implementation
+      .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("jl.")))   // Java specific implementation
       .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("java")))  // Java specific implementation
       .filterNot(_.calls.flatMap(_.parameters).map(_.signature).exists(_.contains("Array"))) // Java specific implementation
   }
@@ -333,16 +333,16 @@ object GenerationPlan {
 
     final def fold[C](rdd: => C, dataset: => C, dataFrameNa: => C, dataFrameStat: => C): C =
       this match {
-        case RDDPlan                  => rdd
-        case DatasetPlan              => dataset
-        case DataFrameNaFunctionsPlan => dataFrameNa
+        case RDDPlan                    => rdd
+        case DatasetPlan                => dataset
+        case DataFrameNaFunctionsPlan   => dataFrameNa
         case DataFrameStatFunctionsPlan => dataFrameStat
       }
   }
 
-  case object RDDPlan                  extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-  case object DatasetPlan              extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-  case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object RDDPlan                    extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
+  case object DatasetPlan                extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
+  case object DataFrameNaFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
   case object DataFrameStatFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
 
   /**
