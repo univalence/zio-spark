@@ -10,6 +10,7 @@ package zio.spark.internal.codegen
 import org.apache.spark.sql.{
   Column,
   DataFrameNaFunctions => UnderlyingDataFrameNaFunctions,
+  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
   Dataset => UnderlyingDataset,
   Encoder,
   Row,
@@ -37,6 +38,8 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   implicit private def iteratorConversion[U](iterator: java.util.Iterator[U]): Iterator[U] = iterator.asScala
   implicit private def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
     DataFrameNaFunctions(ImpureBox(x))
+  implicit private def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
+    DataFrameStatFunctions(ImpureBox(x))
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
@@ -84,6 +87,19 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
    * @since 1.6.0
    */
   final def schema: StructType = succeedNow(_.schema)
+
+  /**
+   * Returns a [[DataFrameStatFunctions]] for working statistic
+   * functions support.
+   * {{{
+   *   // Finding frequent items in column with name 'a'.
+   *   ds.stat.freqItems(Seq("a"))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 1.6.0
+   */
+  final def stat: DataFrameStatFunctions = succeedNow(_.stat)
 
   // ===============
 
@@ -1875,7 +1891,6 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // [[org.apache.spark.sql.Dataset.cube]]
   // [[org.apache.spark.sql.Dataset.groupByKey]]
   // [[org.apache.spark.sql.Dataset.rollup]]
-  // [[org.apache.spark.sql.Dataset.stat]]
   // [[org.apache.spark.sql.Dataset.writeStream]]
   // [[org.apache.spark.sql.Dataset.writeTo]]
 

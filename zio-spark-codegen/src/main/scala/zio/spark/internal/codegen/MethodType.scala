@@ -100,7 +100,6 @@ object MethodType {
         "context",      // TODO: SparkContext should be wrapped
         "sparkContext", // TODO: SparkContext should be wrapped
         "randomSplit",  // It should be implemented using Random layer
-        "stat",         // TODO: DataFrameStatFunctions should be added to zio-spark
         "rollup",       // TODO: RelationalGroupedDataset should be added to zio-spark
         "cube",         // TODO: RelationalGroupedDataset should be added to zio-spark
         "groupByKey",   // TODO: KeyValueGroupedDataset should be added to zio-spark
@@ -135,6 +134,7 @@ object MethodType {
       case name if methodsTodo(name)                                                                    => TODO
       case "drop" if planType.name == "Dataset"                                                         => Transformation
       case "apply" | "col" | "colRegex" | "withColumn" if method.fullName.contains("Dataset")           => SuccessWithAnalysis
+      case "bloomFilter" | "corr" | "countMinSketch" | "cov" if method.fullName.contains("DataFrameStatFunctions")           => SuccessWithAnalysis
       case _ if oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis) => TransformationWithAnalysis
       case name if method.anyParameters.isEmpty && name == "as"                                         => TransformationWithAnalysis
       case name if action(name)                                                                         => DistributedComputation
@@ -147,7 +147,7 @@ object MethodType {
       case name if getters(name)                                                                        => DriverAction
       case name if pureInfo(name)                                                                       => SuccessNow
       case name if partitionOps(name)                                                                   => SuccessNow
-      case "na"                                                                                         => SuccessNow
+      case "na" | "stat"                                                                                       => SuccessNow
       case _ if method.returnType.startsWith("RDD")                                                     => Transformation
       case _ if method.returnType.startsWith("Dataset")                                                 => Transformation
       case _ if method.returnType == "DataFrame"                                                        => Transformation
