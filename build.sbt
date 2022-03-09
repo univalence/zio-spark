@@ -55,6 +55,13 @@ ThisBuild / semanticdbVersion          := scalafixSemanticdb.revision
 ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "0.1.21")
 
 // SCoverage configuration
+val excludedPackages: Seq[String] =
+  Seq(
+    "zio\\.spark\\.internal\\.codegen\\..*",
+    "zio\\.spark\\.sql\\.implicits.*",
+    "zio\\.spark\\.sql\\.LowPrioritySQLImplicits.*"
+  )
+
 ThisBuild / coverageFailOnMinimum           := false
 ThisBuild / coverageMinimumStmtTotal        := 80
 ThisBuild / coverageMinimumBranchTotal      := 80
@@ -62,8 +69,9 @@ ThisBuild / coverageMinimumStmtPerPackage   := 50
 ThisBuild / coverageMinimumBranchPerPackage := 50
 ThisBuild / coverageMinimumStmtPerFile      := 0
 ThisBuild / coverageMinimumBranchPerFile    := 0
-ThisBuild / coverageExcludedPackages := "<empty>;.*SqlImplicits.*;.*Impure.*;zio\\.spark\\.internal\\.codegen\\..*"
+ThisBuild / coverageExcludedPackages        := excludedPackages.mkString(";")
 
+// Aliases
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
 addCommandAlias("lint", "scalafix")
