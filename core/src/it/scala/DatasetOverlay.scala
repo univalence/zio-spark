@@ -1,5 +1,3 @@
-package zio.spark.sql
-
 import org.apache.spark.sql.{
   Column,
   Dataset => UnderlyingDataset,
@@ -8,16 +6,18 @@ import org.apache.spark.sql.{
 }
 
 import zio._
-import zio.spark.internal.Impure.ImpureBox
-import zio.spark.rdd.RDD
+import zio.spark.rdd._
+import zio.spark.sql._
 
-final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
-    extends ExtraDatasetFeature[T](underlyingDataset) {
-  import underlyingDataset._
+/** Handmade functions for Dataset shared for all Scala versions. */
+class DatasetOverlay[T](self: Dataset[T]) {
+  import self._
+
+  // template:on
 
   /** Transforms the Dataset into a RelationalGroupedDataset. */
   def group(f: UnderlyingDataset[T] => UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
-    succeedNow(f.andThen(x => RelationalGroupedDataset(x)))
+    RelationalGroupedDataset(f(underlyingDataset))
 
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)
@@ -52,7 +52,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    */
   def show(numRows: Int, truncate: Boolean): ZIO[Console, Throwable, Unit] = {
     val trunc         = if (truncate) 20 else 0
-    val stringifiedDf = underlyingDataset.succeedNow(d => Sniffer.datasetShowString(d, numRows, truncate = trunc))
+    val stringifiedDf = Sniffer.datasetShowString(underlyingDataset, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
   }
 
@@ -70,7 +70,7 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking: UIO[Dataset[T]] = succeed(ds => Dataset(ds.unpersist(blocking = true)))
+  def unpersistBlocking: UIO[Dataset[T]] = UIO(transformation(_.unpersist(blocking = true)))
 
   /** Alias for [[headOption]]. */
   def firstOption: Task[Option[T]] = headOption
@@ -83,19 +83,17 @@ final case class Dataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
    *
    * See [[UnderlyingDataset.rdd]] for more information.
    */
-  def rdd: RDD[T] = RDD(succeedNow(_.rdd))
+  def rdd: RDD[T] = RDD(get(_.rdd))
 
   /**
    * Chains custom transformations.
    *
    * See [[UnderlyingDataset.transform]] for more information.
    */
-  def transform[U](t: Dataset[T] => Dataset[U]): Dataset[U] = t(this)
+  def transform[U](t: Dataset[T] => Dataset[U]): Dataset[U] = t(self)
 
   /** Create a DataFrameWrite from this dataset. */
-  def write: DataFrameWriter[T] = DataFrameWriter(this)
-}
+  def write: DataFrameWriter[T] = DataFrameWriter(self)
 
-object Dataset {
-  def apply[T](underlyingDataset: UnderlyingDataset[T]): Dataset[T] = Dataset(ImpureBox(underlyingDataset))
+  // template:off
 }

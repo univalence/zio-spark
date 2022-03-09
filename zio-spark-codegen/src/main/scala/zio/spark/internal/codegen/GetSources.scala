@@ -56,10 +56,4 @@ object GetSources {
     }
 
   type Classpath = Seq[Attributed[File]]
-
-  def classLoaderToClasspath(classLoader: ClassLoader): Classpath =
-    classLoader match {
-      case classLoader: URLClassLoader => classLoader.getURLs.map(_.getFile).map(x => Attributed.blank(new File(x)))
-      case _                           => Seq.empty
-    }
 }

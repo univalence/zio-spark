@@ -1,15 +1,20 @@
-package zio.spark.sql
-
-import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 import org.apache.spark.sql.execution.command.ExplainCommand
 
 import zio._
-import zio.spark.internal.Impure.ImpureBox
-import zio.spark.internal.codegen.BaseDataset
+import zio.spark.sql._
 
-abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
-    extends BaseDataset(underlyingDataset) {
-  import underlyingDataset._
+/** Handmade functions for Dataset shared for one Scala version. */
+class DatasetOverlaySpecific[T](self: Dataset[T]) {
+  import self._
+
+  // template:on
+  /**
+   * Computes specified statistics for numeric and string columns.
+   *
+   * See [[UnderlyingDataset.summary]] for more information.
+   */
+  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
+    self.summary(statistics.map(_.toString): _*)
 
   /**
    * Prints the plans (logical and physical) to the console for
@@ -19,12 +24,12 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
    * @since 1.6.0
    */
   def explain(extended: Boolean): RIO[SparkSession with Console, Unit] = {
-    val queryExecution = succeedNow(_.queryExecution)
+    val queryExecution = underlyingDataset.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
     for {
       ss   <- ZIO.service[SparkSession]
-      rows <- ss.sessionState.map(_.executePlan(explain).executedPlan.executeCollect())
+      rows <- ss.attempt(_.sessionState.executePlan(explain).executedPlan.executeCollect())
       _    <- ZIO.foreach(rows)(r => Console.printLine(r.getString(0)))
     } yield ()
   }
@@ -44,4 +49,5 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
    * @since 1.6.0
    */
   def printSchema: RIO[Console, Unit] = Console.printLine(schema.treeString)
+  // template:off
 }

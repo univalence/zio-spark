@@ -11,8 +11,7 @@ import scala.reflect._
  * Zio Spark structure.
  */
 abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStructure: ClassTag](
-    allowedNewMethods: Seq[String],
-    isImpure:          Boolean
+    allowedNewMethods: Seq[String]
 ) extends DefaultRunnableSpec {
 
   // scalafix:off
@@ -46,16 +45,6 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
       "andThen"
     )
 
-  /** Methods provided by the Impure class. */
-  def impureMethods: Seq[String] =
-    Seq(
-      "attemptBlocking",
-      "attempt"
-    )
-
-  def hasSameElementsPlusImpure(elements: Seq[String]): Assertion[Seq[String]] =
-    hasSameElements(impureMethods ++ elements)
-
   override def spec: ZSpec[TestEnvironment, Any] =
     suite(s"Verifying compatibility between $sparkStructurePath and $zioSparkStructurePath")(
       test(s"$zioSparkStructurePath should implement all $sparkStructurePath methods") {
@@ -70,8 +59,7 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
         val methods: Seq[String]               = getAllMethods[ZioSparkStructure]
         val notImplementedMethods: Seq[String] = methods.filter(!underlyingMethods.contains(_))
 
-        def assertion(elements: Seq[String]) =
-          if (isImpure) hasSameElementsPlusImpure(elements) else hasSameElements(elements)
+        def assertion(elements: Seq[String]) = hasSameElements(elements)
 
         assert(notImplementedMethods)(assertion(allowedNewMethods))
       }

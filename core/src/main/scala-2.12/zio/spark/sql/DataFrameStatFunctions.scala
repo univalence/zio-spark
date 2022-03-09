@@ -5,7 +5,7 @@
  * this file directly.
  */
 
-package zio.spark.internal.codegen
+package zio.spark.sql
 
 import org.apache.spark.sql.{
   Column,
@@ -14,16 +14,19 @@ import org.apache.spark.sql.{
 }
 import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
 
-import zio.spark.internal.Impure
-import zio.spark.internal.Impure.ImpureBox
-import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
+final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: UnderlyingDataFrameStatFunctions) { self =>
 
-final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: ImpureBox[UnderlyingDataFrameStatFunctions])
-    extends Impure[UnderlyingDataFrameStatFunctions](underlyingDataFrameStatFunctions) {
-  import underlyingDataFrameStatFunctions._
+  /** Applies an action to the underlying DataFrameStatFunctions. */
+  def get[U](f: UnderlyingDataFrameStatFunctions => U): U = f(underlyingDataFrameStatFunctions)
 
   /** Wraps a function into a TryAnalysis. */
-  def withAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] = TryAnalysis(succeedNow(f))
+  def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] = TryAnalysis(get(f))
+
+  /**
+   * Applies a transformation to the underlying DataFrameStatFunctions.
+   */
+  def transformation(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): DataFrame =
+    Dataset(f(underlyingDataFrameStatFunctions))
 
   /**
    * Applies a transformation to the underlying DataFrameStatFunctions,
@@ -31,7 +34,11 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * AnalysisException.
    */
   def transformationWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
-    TryAnalysis(succeedNow(f.andThen(x => Dataset(x))))
+    TryAnalysis(transformation(f))
+
+  // Handmade functions specific to zio-spark
+
+  // Generated functions coming from spark
 
   /**
    * Builds a Bloom filter over a specified column.
@@ -45,7 +52,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def bloomFilter(colName: String, expectedNumItems: Long, fpp: Double): TryAnalysis[BloomFilter] =
-    withAnalysis(_.bloomFilter(colName, expectedNumItems, fpp))
+    getWithAnalysis(_.bloomFilter(colName, expectedNumItems, fpp))
 
   /**
    * Builds a Bloom filter over a specified column.
@@ -59,7 +66,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def bloomFilter(col: Column, expectedNumItems: Long, fpp: Double): TryAnalysis[BloomFilter] =
-    withAnalysis(_.bloomFilter(col, expectedNumItems, fpp))
+    getWithAnalysis(_.bloomFilter(col, expectedNumItems, fpp))
 
   /**
    * Builds a Bloom filter over a specified column.
@@ -73,7 +80,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def bloomFilter(colName: String, expectedNumItems: Long, numBits: Long): TryAnalysis[BloomFilter] =
-    withAnalysis(_.bloomFilter(colName, expectedNumItems, numBits))
+    getWithAnalysis(_.bloomFilter(colName, expectedNumItems, numBits))
 
   /**
    * Builds a Bloom filter over a specified column.
@@ -87,7 +94,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def bloomFilter(col: Column, expectedNumItems: Long, numBits: Long): TryAnalysis[BloomFilter] =
-    withAnalysis(_.bloomFilter(col, expectedNumItems, numBits))
+    getWithAnalysis(_.bloomFilter(col, expectedNumItems, numBits))
 
   /**
    * Calculates the correlation of two columns of a DataFrame. Currently
@@ -111,7 +118,8 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    *
    * @since 1.4.0
    */
-  def corr(col1: String, col2: String, method: String): TryAnalysis[Double] = withAnalysis(_.corr(col1, col2, method))
+  def corr(col1: String, col2: String, method: String): TryAnalysis[Double] =
+    getWithAnalysis(_.corr(col1, col2, method))
 
   /**
    * Calculates the Pearson Correlation Coefficient of two columns of a
@@ -133,7 +141,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    *
    * @since 1.4.0
    */
-  def corr(col1: String, col2: String): TryAnalysis[Double] = withAnalysis(_.corr(col1, col2))
+  def corr(col1: String, col2: String): TryAnalysis[Double] = getWithAnalysis(_.corr(col1, col2))
 
   /**
    * Builds a Count-min Sketch over a specified column.
@@ -151,7 +159,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def countMinSketch(colName: String, depth: Int, width: Int, seed: Int): TryAnalysis[CountMinSketch] =
-    withAnalysis(_.countMinSketch(colName, depth, width, seed))
+    getWithAnalysis(_.countMinSketch(colName, depth, width, seed))
 
   /**
    * Builds a Count-min Sketch over a specified column.
@@ -169,7 +177,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def countMinSketch(colName: String, eps: Double, confidence: Double, seed: Int): TryAnalysis[CountMinSketch] =
-    withAnalysis(_.countMinSketch(colName, eps, confidence, seed))
+    getWithAnalysis(_.countMinSketch(colName, eps, confidence, seed))
 
   /**
    * Builds a Count-min Sketch over a specified column.
@@ -187,7 +195,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def countMinSketch(col: Column, depth: Int, width: Int, seed: Int): TryAnalysis[CountMinSketch] =
-    withAnalysis(_.countMinSketch(col, depth, width, seed))
+    getWithAnalysis(_.countMinSketch(col, depth, width, seed))
 
   /**
    * Builds a Count-min Sketch over a specified column.
@@ -205,7 +213,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    * @since 2.0.0
    */
   def countMinSketch(col: Column, eps: Double, confidence: Double, seed: Int): TryAnalysis[CountMinSketch] =
-    withAnalysis(_.countMinSketch(col, eps, confidence, seed))
+    getWithAnalysis(_.countMinSketch(col, eps, confidence, seed))
 
   /**
    * Calculate the sample covariance of two numerical columns of a
@@ -226,7 +234,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Impure
    *
    * @since 1.4.0
    */
-  def cov(col1: String, col2: String): TryAnalysis[Double] = withAnalysis(_.cov(col1, col2))
+  def cov(col1: String, col2: String): TryAnalysis[Double] = getWithAnalysis(_.cov(col1, col2))
 
   // ===============
 
