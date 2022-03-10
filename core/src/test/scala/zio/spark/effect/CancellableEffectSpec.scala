@@ -28,7 +28,7 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       _ <-
         UIO(removeSparkListener(sc, listener))
           .delay(1.seconds)
-          .provideSomeLayer(Clock.live) // wait a bit the last events to be publish
+          .provideSomeLayer(Clock.live) // wait a bit the last events to be published
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 

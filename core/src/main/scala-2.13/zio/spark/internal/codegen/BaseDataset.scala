@@ -43,7 +43,7 @@ abstract class BaseDataset[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]]
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
-  def action[U](f: UnderlyingDataset[T] => U): Task[U] = attemptBlocking(f)
+  def action[U](f: UnderlyingDataset[T] => U): Task[U] = attempt(f)
 
   /** Applies a transformation to the underlying Dataset. */
   def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] =

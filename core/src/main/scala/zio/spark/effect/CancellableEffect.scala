@@ -21,10 +21,10 @@ object CancellableEffect {
         newGroupName.flatMap(groupName =>
           job
             .onExecutionContext(executorContext(sc, groupName))
+            .disconnect // you need to disconnect first, before adding onInterrupt
             .onInterrupt(UIO(sc.cancelJobGroup(groupName)))
         )
       )
-      .disconnect
   }
 
   private def executorContext(sparkContext: SparkContext, groupName: String): ExecutionContext =

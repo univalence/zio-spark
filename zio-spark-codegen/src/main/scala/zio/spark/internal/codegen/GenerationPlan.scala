@@ -141,9 +141,12 @@ object GenerationPlan {
     }
 
     final def helpers: String = {
+      //NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
+      // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
+      // 2. It's necessary for "makeItCancellable" to work
       val defaultHelpers =
         s"""/** Applies an action to the underlying $name. */
-           |def action[U](f: Underlying$name[T] => U): Task[U] = attemptBlocking(f)
+           |def action[U](f: Underlying$name[T] => U): Task[U] = attempt(f)
            |
            |/** Applies a transformation to the underlying $name. */
            |def transformation[U](f: Underlying$name[T] => Underlying$name[U]): $name[U] = succeedNow(f.andThen(x => $name(x)))""".stripMargin
