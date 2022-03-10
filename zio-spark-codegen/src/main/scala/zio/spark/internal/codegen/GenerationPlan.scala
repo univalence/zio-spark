@@ -9,12 +9,14 @@ import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
 import zio.spark.internal.codegen.structure.Method
 
 import scala.collection.immutable
+import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.meta.*
-import scala.meta.contrib.AssociatedComments
+import scala.meta.contrib.{AssociatedComments, TemplateWithComments}
 import scala.meta.tokens.Token.Comment
 import scala.util.Try
 
-sealed trait ScalaBinaryVersion { self =>
+sealed trait ScalaBinaryVersion {
+  self =>
   override def toString: String =
     self match {
       case ScalaBinaryVersion.V2_11 => "2.11"
@@ -22,9 +24,12 @@ sealed trait ScalaBinaryVersion { self =>
       case ScalaBinaryVersion.V2_13 => "2.13"
     }
 }
+
 object ScalaBinaryVersion {
   case object V2_11 extends ScalaBinaryVersion
+
   case object V2_12 extends ScalaBinaryVersion
+
   case object V2_13 extends ScalaBinaryVersion
 
   def versioned(file: File, scalaVersion: ScalaBinaryVersion): File = new File(file.getPath + "-" + scalaVersion)
@@ -37,6 +42,7 @@ case class GenerationPlan(
     overlaySpecific:    Option[meta.Source],
     scalaBinaryVersion: ScalaBinaryVersion
 ) {
+
   import GenerationPlan.*
 
   /**
@@ -47,16 +53,18 @@ case class GenerationPlan(
    * @return
    *   The sequence of functions
    */
-  def functionsFromFile(source: Source): Seq[Method] = {
-    val template                     = getTemplateFromSource(source)
-    val scalametaMethods             = collectFunctionsFromTemplate(template)
-    val comments: AssociatedComments = contrib.AssociatedComments(template)
-    scalametaMethods.map(m => Method.fromScalaMeta(m, comments, planType, scalaBinaryVersion))
+  def functionsFromFile(source: Source, filterOverlay: Boolean): Seq[Method] = {
+    val template: TemplateWithComments =
+      if (filterOverlay) getTemplateFromSourceOverlay(source)
+      else getTemplateFromSource(source)
+
+    val scalametaMethods = collectFunctionsFromTemplate(template)
+    scalametaMethods.map(m => Method.fromScalaMeta(m, template.comments, planType, scalaBinaryVersion))
   }
 
   /** @return the methods of the spark source file. */
   lazy val sourceMethods: Seq[Method] =
-    functionsFromFile(source)
+    functionsFromFile(source, false)
       .filterNot(_.fullName.contains("$"))
       .filterNot(_.fullName.contains("java.lang.Object"))
       .filterNot(_.fullName.contains("scala.Any"))
@@ -67,13 +75,14 @@ case class GenerationPlan(
       .filterNot(_.anyParameters.map(_.signature).exists(_.contains("Array"))) // Java specific implementation
 
   lazy val overlayMethods: Seq[Method] =
-    overlay.map(functionsFromFile).getOrElse(Seq.empty) ++ overlaySpecific.map(functionsFromFile).getOrElse(Seq.empty)
+    overlay.map(functionsFromFile(_, true)).getOrElse(Seq.empty) ++ overlaySpecific.map(functionsFromFile(_, true)).getOrElse(Seq.empty)
 
   lazy val methods: Seq[Method] = sourceMethods ++ overlayMethods
 }
 
 object GenerationPlan {
-  sealed abstract class PlanType(module: String, path: String) { self =>
+  sealed abstract class PlanType(module: String, path: String) {
+    self =>
     final def name: String = path.replace(".scala", "").split('/').last
 
     final def pkg: String = path.replace(".scala", "").replace('/', '.')
@@ -323,9 +332,12 @@ object GenerationPlan {
       }
   }
 
-  case object RDDPlan                    extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-  case object DatasetPlan                extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-  case object DataFrameNaFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object RDDPlan extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
+
+  case object DatasetPlan extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
+
+  case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+
   case object DataFrameStatFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
@@ -341,27 +353,16 @@ object GenerationPlan {
   def collectFunctionsFromTemplate(template: Template): immutable.Seq[Defn.Def] =
     template.stats.collect { case d: Defn.Def if checkMods(d.mods) => d }
 
-  def getTemplateFromSourceOverlay(source: Source): Template = filterTemplate(source.children.collectFirst { case c: Defn.Class => c.templ }.get)
+  def getTemplateFromSourceOverlay(source: Source): TemplateWithComments =
+    new TemplateWithComments(source.children.collectFirst { case c: Defn.Class => c.templ }.get, true)
 
-  def getTemplateFromSource(source: Source): Template =
-    source.children
-      .flatMap(_.children)
-      .collectFirst { case c: Defn.Class => c.templ }
-      .getOrElse(getTemplateFromSourceOverlay(source))
-
-  def filterTemplate(template: Template): Template = {
-    implicit class TreeOps[T <: Tree](list: List[T]) {
-      def filterBetween(start: Position, end: Position): List[T] = list.dropWhile(_.pos.end <= start.end).takeWhile(_.pos.start < end.start)
-    }
-
-    val comments = template.tokens.collect { case d: Comment => (d.value, d.pos) }
-    val start    = comments.find { case (content, _) => content.contains("template:on") }.get._2
-    val end      = comments.find { case (content, _) => content.contains("template:off") }.get._2
-
-    template.copy(
-      early = template.early.filterBetween(start, end),
-      inits = template.inits.filterBetween(start, end),
-      stats = template.stats.filterBetween(start, end)
+  def getTemplateFromSource(source: Source): TemplateWithComments =
+    new TemplateWithComments(
+      source.children
+        .flatMap(_.children)
+        .collectFirst { case c: Defn.Class => c.templ }
+        .get,
+      false
     )
-  }
+
 }
