@@ -5,21 +5,11 @@ import org.apache.spark.sql.{
   RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
 }
 
-import zio.spark.internal.Impure
-import zio.spark.internal.Impure.ImpureBox
-
-object RelationalGroupedDataset {
-  def apply(underlyingRelationalGroupedDataset: UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
-    RelationalGroupedDataset(ImpureBox(underlyingRelationalGroupedDataset))
-}
-
-final case class RelationalGroupedDataset(underlyingRelationalDataset: ImpureBox[UnderlyingRelationalGroupedDataset])
-    extends Impure(underlyingRelationalDataset) {
-  import underlyingRelationalDataset._
+final case class RelationalGroupedDataset(underlyingRelationalDataset: UnderlyingRelationalGroupedDataset) {
 
   /** Transforms the RelationalGroupedDataset into a DataFrame. */
   private def ungroup(f: UnderlyingRelationalGroupedDataset => UnderlyingDataFrame): DataFrame =
-    succeedNow(f.andThen(x => Dataset(x)))
+    Dataset(f(underlyingRelationalDataset))
 
   /**
    * Computes the average for each numeric columns.

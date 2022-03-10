@@ -3,10 +3,8 @@ package zio.spark.sql
 import org.apache.spark.sql.{Sniffer213, SparkSession => UnderlyingSparkSession}
 
 import zio.Task
-import zio.spark.internal.Impure
-import zio.spark.internal.Impure.ImpureBox
 
-abstract class ExtraSparkSessionFeature(underlyingSparkSession: ImpureBox[UnderlyingSparkSession])
-    extends Impure(underlyingSparkSession) {
-  def withActive[T](block: => T): Task[T] = attempt(Sniffer213.sparkSessionWithActive(_, block))
+abstract class ExtraSparkSessionFeature(underlyingSparkSession: UnderlyingSparkSession) {
+  def withActive[T](block: => T): Task[T] =
+    Task.attempt(Sniffer213.sparkSessionWithActive(underlyingSparkSession, block))
 }
