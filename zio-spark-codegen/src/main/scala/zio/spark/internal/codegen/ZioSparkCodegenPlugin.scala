@@ -39,10 +39,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
         val planTypes: Seq[PlanType] =
           List(
-            GenerationPlan.RDDPlan,
-            GenerationPlan.DatasetPlan,
-            GenerationPlan.DataFrameNaFunctionsPlan,
-            GenerationPlan.DataFrameStatFunctionsPlan
+            // GenerationPlan.RDDPlan,
+            GenerationPlan.DatasetPlan
+            // GenerationPlan.DataFrameNaFunctionsPlan,
+            // GenerationPlan.DataFrameStatFunctionsPlan
           )
 
         val generationPlans =
