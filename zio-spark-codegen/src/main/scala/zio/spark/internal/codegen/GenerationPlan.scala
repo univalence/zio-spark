@@ -323,11 +323,10 @@ object GenerationPlan {
       }
   }
 
-  case object RDDPlan                  extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-  case object DatasetPlan              extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-  case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
-  case object DataFrameStatFunctionsPlan
-      extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
+  case object RDDPlan                    extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
+  case object DatasetPlan                extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
+  case object DataFrameNaFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object DataFrameStatFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
 
@@ -342,8 +341,7 @@ object GenerationPlan {
   def collectFunctionsFromTemplate(template: Template): immutable.Seq[Defn.Def] =
     template.stats.collect { case d: Defn.Def if checkMods(d.mods) => d }
 
-  def getTemplateFromSourceOverlay(source: Source): Template =
-    filterTemplate(source.children.collectFirst { case c: Defn.Class => c.templ }.get)
+  def getTemplateFromSourceOverlay(source: Source): Template = filterTemplate(source.children.collectFirst { case c: Defn.Class => c.templ }.get)
 
   def getTemplateFromSource(source: Source): Template =
     source.children
@@ -353,8 +351,7 @@ object GenerationPlan {
 
   def filterTemplate(template: Template): Template = {
     implicit class TreeOps[T <: Tree](list: List[T]) {
-      def filterBetween(start: Position, end: Position): List[T] =
-        list.dropWhile(_.pos.end <= start.end).takeWhile(_.pos.start < end.start)
+      def filterBetween(start: Position, end: Position): List[T] = list.dropWhile(_.pos.end <= start.end).takeWhile(_.pos.start < end.start)
     }
 
     val comments = template.tokens.collect { case d: Comment => (d.value, d.pos) }
