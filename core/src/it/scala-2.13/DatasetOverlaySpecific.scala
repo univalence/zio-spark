@@ -1,14 +1,13 @@
-package zio.spark.sql
-
-import org.apache.spark.sql.{Dataset => UnderlyingDataset}
 import org.apache.spark.sql.execution.ExplainMode
 
-import zio.{Console, RIO, Task, ZIO}
-import zio.spark.internal.Impure.ImpureBox
-import zio.spark.internal.codegen.BaseDataset
+import zio._
+import zio.spark.sql._
 
-abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDataset[T]])
-    extends BaseDataset(underlyingDataset) {
+/** Handmade functions for Dataset shared for one Scala version. */
+class DatasetOverlaySpecific[T](self: Dataset[T]) {
+  import self._
+
+  // template:on
 
   /** Alias for [[tail]]. */
   def last: Task[T] = tail
@@ -16,25 +15,26 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
   /**
    * Takes the last element of a dataset or throws an exception.
    *
-   * See [[UnderlyingDataset.tail]] for more information.
+   * See [[Dataset.tail]] for more information.
    */
-  def tail: Task[T] = tail(1).map(_.head)
+  def tail: Task[T] = self.tail(1).map(_.head)
 
   /** Alias for [[tailOption]]. */
   def lastOption: Task[Option[T]] = tailOption
 
   /** Takes the last element of a dataset or None. */
-  def tailOption: Task[Option[T]] = tail(1).map(_.headOption)
+  def tailOption: Task[Option[T]] = self.tail(1).map(_.headOption)
 
   /** Alias for [[tail]]. */
-  def takeRight(n: Int): Task[Seq[T]] = tail(n)
+  def takeRight(n: Int): Task[Seq[T]] = self.tail(n)
 
   /**
    * Computes specified statistics for numeric and string columns.
    *
-   * See [[UnderlyingDataset.summary]] for more information.
+   * See [[org.apache.spark.sql.Dataset.summary]] for more information.
    */
-  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame = summary(statistics.map(_.toString): _*)
+  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
+    self.summary(statistics.map(_.toString): _*)
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -63,7 +63,7 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
   def explain(mode: ExplainMode): RIO[SparkSession with Console, Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
-      plan <- ss.withActive(underlyingDataset.succeedNow(_.queryExecution.explainString(mode)))
+      plan <- ss.withActive(underlyingDataset.queryExecution.explainString(mode))
       _    <- Console.printLine(plan)
     } yield ()
 
@@ -83,4 +83,6 @@ abstract class ExtraDatasetFeature[T](underlyingDataset: ImpureBox[UnderlyingDat
    * @since 3.0.0
    */
   def printSchema(level: Int): RIO[Console, Unit] = Console.printLine(schema.treeString(level))
+
+  // template:off
 }

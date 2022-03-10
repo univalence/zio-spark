@@ -5,23 +5,17 @@
  * this file directly.
  */
 
-package zio.spark.internal.codegen
+package zio.spark.sql
 
 import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions}
 
-import zio.spark.internal.Impure
-import zio.spark.internal.Impure.ImpureBox
-import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
-
-final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
-    extends Impure[UnderlyingDataFrameNaFunctions](underlyingDataFrameNaFunctions) {
-  import underlyingDataFrameNaFunctions._
+final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: UnderlyingDataFrameNaFunctions) { self =>
 
   /**
    * Applies a transformation to the underlying DataFrameNaFunctions.
    */
   def transformation(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
-    succeedNow(f.andThen(x => Dataset(x)))
+    Dataset(f(underlyingDataFrameNaFunctions))
 
   /**
    * Applies a transformation to the underlying DataFrameNaFunctions, it
@@ -30,6 +24,10 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
    */
   def transformationWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
     TryAnalysis(transformation(f))
+
+  // Handmade functions specific to zio-spark
+
+  // Generated functions coming from spark
 
   /**
    * Returns a new `DataFrame` that drops rows containing any null or
@@ -63,7 +61,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
    * Returns a new `DataFrame` that replaces null or NaN values in
    * numeric columns with `value`.
    *
-   * @since 2.2.0
+   * @since 2.1.1
    */
   def fill(value: Long): DataFrame = transformation(_.fill(value))
 
@@ -81,14 +79,6 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
    * @since 1.3.1
    */
   def fill(value: String): DataFrame = transformation(_.fill(value))
-
-  /**
-   * Returns a new `DataFrame` that replaces null values in boolean
-   * columns with `value`.
-   *
-   * @since 2.3.0
-   */
-  def fill(value: Boolean): DataFrame = transformation(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null values.
@@ -148,7 +138,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
    * specified numeric columns. If a specified column is not a numeric
    * column, it is ignored.
    *
-   * @since 2.2.0
+   * @since 2.1.1
    */
   def fill(value: Long, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
@@ -171,16 +161,11 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
   def fill(value: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
   /**
-   * Returns a new `DataFrame` that replaces null values in specified
-   * boolean columns. If a specified column is not a boolean column, it
-   * is ignored.
-   *
-   * @since 2.3.0
-   */
-  def fill(value: Boolean, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
-
-  /**
-   * Replaces values matching keys in `replacement` map.
+   * Replaces values matching keys in `replacement` map. Key and value
+   * of `replacement` map must have the same type, and can only be
+   * doubles, strings or booleans. If `col` is "*", then the replacement
+   * is applied on all string columns , numeric columns or boolean
+   * columns.
    *
    * {{{
    *   // Replaces all occurrences of 1.0 with 2.0 in column "height".
@@ -194,13 +179,9 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
    * }}}
    *
    * @param col
-   *   name of the column to apply the value replacement. If `col` is
-   *   "*", replacement is applied on all string, numeric or boolean
-   *   columns.
+   *   name of the column to apply the value replacement
    * @param replacement
-   *   value replacement map. Key and value of `replacement` map must
-   *   have the same type, and can only be doubles, strings or booleans.
-   *   The map value can have nulls.
+   *   value replacement map, as explained above
    *
    * @since 1.3.1
    */
@@ -208,7 +189,9 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
     transformationWithAnalysis(_.replace(col, replacement))
 
   /**
-   * Replaces values matching keys in `replacement` map.
+   * Replaces values matching keys in `replacement` map. Key and value
+   * of `replacement` map must have the same type, and can only be
+   * doubles , strings or booleans.
    *
    * {{{
    *   // Replaces all occurrences of 1.0 with 2.0 in column "height" and "weight".
@@ -219,12 +202,9 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
    * }}}
    *
    * @param cols
-   *   list of columns to apply the value replacement. If `col` is "*",
-   *   replacement is applied on all string, numeric or boolean columns.
+   *   list of columns to apply the value replacement
    * @param replacement
-   *   value replacement map. Key and value of `replacement` map must
-   *   have the same type, and can only be doubles, strings or booleans.
-   *   The map value can have nulls.
+   *   value replacement map, as explained above
    *
    * @since 1.3.1
    */

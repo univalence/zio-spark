@@ -18,6 +18,19 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
   val fullName: String               = s"${planType.pkg}.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
 
+  val comment =
+    if (comments.leading(df).isEmpty) ""
+    else
+      comments
+        .leading(df)
+        .mkString("  ", "\n  ", "")
+        .replace("numPartitions = 1", "{{{ numPartitions = 1 }}}")
+        .replace("(Scala-specific) ", "")
+
+  val raw: String =
+    s"""$comment
+       |$df""".stripMargin
+
   def toCode(methodType: MethodType): String =
     methodType match {
       case MethodType.Ignored     => s"[[$fullName]]"
@@ -31,10 +44,10 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
           methodType match {
             case MethodType.DriverAction               => "action"
             case MethodType.DistributedComputation     => "action"
-            case MethodType.SuccessWithAnalysis        => "withAnalysis"
+            case MethodType.GetWithAnalysis            => "getWithAnalysis"
             case MethodType.TransformationWithAnalysis => "transformationWithAnalysis"
             case MethodType.Transformation             => "transformation"
-            case _                                     => "succeedNow"
+            case _                                     => "get"
           }
 
         val cleanReturnType = cleanType(returnType, planType.pkg)
@@ -43,21 +56,12 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
           methodType match {
             case MethodType.DriverAction               => s"Task[$cleanReturnType]"
             case MethodType.DistributedComputation     => s"Task[$cleanReturnType]"
-            case MethodType.SuccessWithAnalysis        => s"TryAnalysis[$cleanReturnType]"
+            case MethodType.GetWithAnalysis            => s"TryAnalysis[$cleanReturnType]"
             case MethodType.TransformationWithAnalysis => s"TryAnalysis[$cleanReturnType]"
             case _                                     => cleanReturnType
           }
 
         val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode).mkString(", ")}]" else ""
-
-        val comment =
-          if (comments.leading(df).isEmpty) ""
-          else
-            comments
-              .leading(df)
-              .mkString("  ", "\n  ", "")
-              .replace("numPartitions = 1", "{{{ numPartitions = 1 }}}")
-              .replace("(Scala-specific) ", "")
 
         val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
 
@@ -67,10 +71,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             .map(_.toString)
             .getOrElse("")
 
-        val mod: String = if (planType.isAbstractClass) "final " else ""
-
         s"""$comment$deprecation
-           |${mod}def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)""".stripMargin
+           |def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)""".stripMargin
     }
 
   def isSetter: Boolean = name.startsWith("set")

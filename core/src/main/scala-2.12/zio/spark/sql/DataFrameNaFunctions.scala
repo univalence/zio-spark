@@ -5,23 +5,17 @@
  * this file directly.
  */
 
-package zio.spark.internal.codegen
+package zio.spark.sql
 
 import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions}
 
-import zio.spark.internal.Impure
-import zio.spark.internal.Impure.ImpureBox
-import zio.spark.sql.{DataFrame, Dataset, TryAnalysis}
-
-final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[UnderlyingDataFrameNaFunctions])
-    extends Impure[UnderlyingDataFrameNaFunctions](underlyingDataFrameNaFunctions) {
-  import underlyingDataFrameNaFunctions._
+final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: UnderlyingDataFrameNaFunctions) { self =>
 
   /**
    * Applies a transformation to the underlying DataFrameNaFunctions.
    */
   def transformation(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
-    succeedNow(f.andThen(x => Dataset(x)))
+    Dataset(f(underlyingDataFrameNaFunctions))
 
   /**
    * Applies a transformation to the underlying DataFrameNaFunctions, it
@@ -30,6 +24,10 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: ImpureBox[
    */
   def transformationWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
     TryAnalysis(transformation(f))
+
+  // Handmade functions specific to zio-spark
+
+  // Generated functions coming from spark
 
   /**
    * Returns a new `DataFrame` that drops rows containing any null or

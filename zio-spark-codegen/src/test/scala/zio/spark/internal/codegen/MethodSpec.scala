@@ -13,13 +13,13 @@ object MethodSpec extends DefaultRunnableSpec {
   )(name: String, arity: Int = -1, args: List[String] = Nil)(generatedCode: String): ZSpec[Any, Nothing] = {
     def findMethod(name: String, arity: Int): Option[Method] = {
       val maybeMethod =
-        plan.methods.find { method =>
+        plan.sourceMethods.find { method =>
           val allParams = method.calls.flatMap(_.parameters)
           method.name == name &&
           allParams.size == arity &&
           args.forall(allParams.map(_.name).contains(_))
         }
-      maybeMethod orElse plan.methods.find(_.name == name)
+      maybeMethod orElse plan.sourceMethods.find(_.name == name)
     }
 
     val maybeMethod = findMethod(name, arity)
@@ -32,7 +32,10 @@ object MethodSpec extends DefaultRunnableSpec {
   val rddMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
     val plan =
       zio.Runtime.default.unsafeRun(
-        GenerationPlan.rddPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader), ScalaBinaryVersion.V2_12)
+        GenerationPlan.rddPlan(
+          GetSources.classLoaderToClasspath(this.getClass.getClassLoader),
+          ScalaBinaryVersion.V2_12
+        )
       )
 
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
@@ -57,7 +60,10 @@ object MethodSpec extends DefaultRunnableSpec {
   val datasetMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
     val plan =
       zio.Runtime.default.unsafeRun(
-        GenerationPlan.datasetPlan(GetSources.classLoaderToClasspath(this.getClass.getClassLoader), ScalaBinaryVersion.V2_12)
+        GenerationPlan.datasetPlan(
+          GetSources.classLoaderToClasspath(this.getClass.getClassLoader),
+          ScalaBinaryVersion.V2_12
+        )
       )
 
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
