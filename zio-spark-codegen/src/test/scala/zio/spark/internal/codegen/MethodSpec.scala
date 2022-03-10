@@ -3,16 +3,15 @@ package zio.spark.internal.codegen
 import _root_.sbt.internal.util.Attributed
 
 import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, RDDPlan}
+import zio.spark.internal.codegen.GetSources.Classpath
 import zio.spark.internal.codegen.structure.Method
 import zio.test.*
-import zio.test.TestAspect.*
 
 import java.io.File
 import java.net.URLClassLoader
 
 object MethodSpec extends DefaultRunnableSpec {
-
-  def classLoaderToClasspath(classLoader: ClassLoader) =
+  def classLoaderToClasspath(classLoader: ClassLoader): Classpath =
     classLoader match {
       case classLoader: URLClassLoader => classLoader.getURLs.map(_.getFile).map(x => Attributed.blank(new File(x)))
       case _                           => Seq.empty
@@ -42,11 +41,15 @@ object MethodSpec extends DefaultRunnableSpec {
   }
 
   def getPlan(planType: GenerationPlan.PlanType): GenerationPlan = {
-    val classLoader        = classLoaderToClasspath(this.getClass.getClassLoader)
-    val scalaBinaryVersion = ScalaBinaryVersion.V2_12
+    val classpath = classLoaderToClasspath(this.getClass.getClassLoader)
 
-    zio.Runtime.default.unsafeRun(???)
-    ???
+    zio.Runtime.default.unsafeRun(
+      planType.getGenerationPlan(
+        new File(""),
+        classpath,
+        ScalaBinaryVersion.V2_12
+      )
+    )
   }
 
   val rddMethods: Spec[Annotations, TestFailure[Any], TestSuccess] = {
@@ -82,7 +85,7 @@ object MethodSpec extends DefaultRunnableSpec {
     suite("check gen for Dataset")(
       checkGen("filter", 1, List("conditionExpr"))("filter(conditionExpr: String): TryAnalysis[Dataset[T]]"),
       checkGen("orderBy", arity = 1)("_.orderBy(sortExprs: _*)"),
-      checkGen("explode", arity = 2)("explode[A <: Product : TypeTag](input: Column*)(f: Row => IterableOnce[A])")
+      checkGen("explode", arity = 2)("explode[A <: Product : TypeTag](input: Column*)(f: Row => TraversableOnce[A])")
     )
   }
 
