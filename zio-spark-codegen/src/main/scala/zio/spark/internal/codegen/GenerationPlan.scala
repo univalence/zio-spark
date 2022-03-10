@@ -2,16 +2,15 @@ package zio.spark.internal.codegen
 
 import sbt.*
 import sbt.Keys.scalaBinaryVersion
-
-import zio.spark.internal.codegen.GenerationPlan.{collectFunctionsFromTemplate, PlanType}
+import zio.spark.internal.codegen.GenerationPlan.{PlanType, collectFunctionsFromTemplate}
 import zio.spark.internal.codegen.MethodType.getMethodType
 import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
-import zio.spark.internal.codegen.structure.Method
+import zio.spark.internal.codegen.structure.{Method, TemplateWithComments}
 
 import scala.collection.immutable
 import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.meta.*
-import scala.meta.contrib.{AssociatedComments, TemplateWithComments}
+import scala.meta.contrib.AssociatedComments
 import scala.meta.tokens.Token.Comment
 import scala.util.Try
 
@@ -350,7 +349,7 @@ object GenerationPlan {
       case _                  => false
     }
 
-  def collectFunctionsFromTemplate(template: Template): immutable.Seq[Defn.Def] =
+  def collectFunctionsFromTemplate(template: TemplateWithComments): immutable.Seq[Defn.Def] =
     template.stats.collect { case d: Defn.Def if checkMods(d.mods) => d }
 
   def getTemplateFromSourceOverlay(source: Source): TemplateWithComments =
