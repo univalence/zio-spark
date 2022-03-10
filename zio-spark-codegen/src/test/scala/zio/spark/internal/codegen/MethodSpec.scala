@@ -3,6 +3,9 @@ package zio.spark.internal.codegen
 import _root_.sbt.internal.util.Attributed
 
 import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, RDDPlan}
+import _root_.sbt.internal.util.Attributed
+
+import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, RDDPlan}
 import zio.spark.internal.codegen.GetSources.Classpath
 import zio.spark.internal.codegen.structure.Method
 import zio.test.*
@@ -39,6 +42,7 @@ object MethodSpec extends DefaultRunnableSpec {
       )
     }
   }
+
 
   def getPlan(planType: GenerationPlan.PlanType): GenerationPlan = {
     val classpath = classLoaderToClasspath(this.getClass.getClassLoader)
