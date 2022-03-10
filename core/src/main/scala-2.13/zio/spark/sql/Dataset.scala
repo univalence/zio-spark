@@ -61,8 +61,30 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   // Handmade functions specific to zio-spark
 
+  /**
+   * Prints the plans (logical and physical) with a format specified by
+   * a given explain mode.
+   *
+   * @param mode
+   *   specifies the expected output format of plans. <ul> <li>`simple`
+   *   Print only a physical plan.</li> <li>`extended`: Print both
+   *   logical and physical plans.</li> <li>`codegen`: Print a physical
+   *   plan and generated codes if they are available.</li> <li>`cost`:
+   *   Print a logical plan and statistics if they are available.</li>
+   *   <li>`formatted`: Split explain output into two sections: a
+   *   physical plan outline and node details.</li> </ul>
+   * @group basic
+   * @since 3.0.0
+   */
   def explain(mode: String): RIO[SparkSession with Console, Unit] = explain(ExplainMode.fromString(mode))
 
+  /**
+   * Prints the plans (logical and physical) with a format specified by
+   * a given explain mode.
+   *
+   * @group basic
+   * @since 3.0.0
+   */
   def explain(mode: ExplainMode): RIO[SparkSession with Console, Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
@@ -70,52 +92,130 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
       _    <- Console.printLine(plan)
     } yield ()
 
+  /** Alias for [[headOption]]. */
   def firstOption: Task[Option[T]] = headOption
 
+  // template:on
+  /** Transforms the Dataset into a RelationalGroupedDataset. */
   def group(f: UnderlyingDataset[T] => UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
     RelationalGroupedDataset(f(underlyingDataset))
 
+  /**
+   * Groups the Dataset using the specified columns, so we ca run
+   * aggregations on them.
+   *
+   * See [[UnderlyingDataset.groupBy]] for more information.
+   */
   def groupBy(cols: Column*): RelationalGroupedDataset = group(_.groupBy(cols: _*))
 
+  /** Takes the first element of a dataset or None. */
   def headOption: Task[Option[T]] = head(1).map(_.headOption)
 
+  // template:on
+  /** Alias for [[tail]]. */
   def last: Task[T] = tail
 
+  /** Alias for [[tailOption]]. */
   def lastOption: Task[Option[T]] = tailOption
 
+  /**
+   * Prints the schema to the console in a nice tree format.
+   *
+   * @group basic
+   * @since 1.6.0
+   */
   def printSchema: RIO[Console, Unit] = printSchema(Int.MaxValue)
 
+  /**
+   * Prints the schema up to the given level to the console in a nice
+   * tree format.
+   *
+   * @group basic
+   * @since 3.0.0
+   */
   def printSchema(level: Int): RIO[Console, Unit] = Console.printLine(schema.treeString(level))
 
+  /**
+   * Transform the dataset into a [[RDD]].
+   *
+   * See [[UnderlyingDataset.rdd]] for more information.
+   */
   def rdd: RDD[T] = RDD(get(_.rdd))
 
+  /**
+   * Displays the top rows of Dataset in a tabular form. Strings with
+   * more than 20 characters will be truncated.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
   def show(numRows: Int): ZIO[Console, Throwable, Unit] = show(numRows, truncate = true)
 
+  /**
+   * Displays the top 20 rows of Dataset in a tabular form. Strings with
+   * more than 20 characters will be truncated.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
   def show: ZIO[Console, Throwable, Unit] = show(20)
 
+  /**
+   * Displays the top 20 rows of Dataset in a tabular form.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
   def show(truncate: Boolean): ZIO[Console, Throwable, Unit] = show(20, truncate)
 
+  /**
+   * Displays the top rows of Dataset in a tabular form.
+   *
+   * See [[UnderlyingDataset.show]] for more information.
+   */
   def show(numRows: Int, truncate: Boolean): ZIO[Console, Throwable, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlyingDataset, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
   }
 
+  /**
+   * Computes specified statistics for numeric and string columns.
+   *
+   * See [[org.apache.spark.sql.Dataset.summary]] for more information.
+   */
   def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
     self.summary(statistics.map(_.toString): _*)
 
+  /**
+   * Takes the last element of a dataset or throws an exception.
+   *
+   * See [[Dataset.tail]] for more information.
+   */
   def tail: Task[T] = self.tail(1).map(_.head)
 
+  /** Takes the last element of a dataset or None. */
   def tailOption: Task[Option[T]] = self.tail(1).map(_.headOption)
 
+  /** Alias for [[tail]]. */
   def takeRight(n: Int): Task[Seq[T]] = self.tail(n)
 
+  /**
+   * Chains custom transformations.
+   *
+   * See [[UnderlyingDataset.transform]] for more information.
+   */
   def transform[U](t: Dataset[T] => Dataset[U]): Dataset[U] = t(self)
 
+  /**
+   * Mark the Dataset as non-persistent, and remove all blocks for it
+   * from memory and disk in a blocking way.
+   *
+   * See [[UnderlyingDataset.unpersist]] for more information.
+   */
   def unpersistBlocking: UIO[Dataset[T]] = UIO(transformation(_.unpersist(blocking = true)))
 
+  /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)
 
+  /** Create a DataFrameWrite from this dataset. */
   def write: DataFrameWriter[T] = DataFrameWriter(self)
 
   // Generated functions coming from spark

@@ -1,17 +1,12 @@
 package zio.spark.internal.codegen
 
 import sbt.*
-import sbt.Keys.scalaBinaryVersion
-import zio.spark.internal.codegen.GenerationPlan.{PlanType, collectFunctionsFromTemplate}
-import zio.spark.internal.codegen.MethodType.getMethodType
+import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
 import zio.spark.internal.codegen.structure.{Method, TemplateWithComments}
 
 import scala.collection.immutable
-import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.meta.*
-import scala.meta.contrib.AssociatedComments
-import scala.meta.tokens.Token.Comment
 import scala.util.Try
 
 sealed trait ScalaBinaryVersion {
@@ -331,9 +326,12 @@ object GenerationPlan {
       }
   }
 
-  case object RDDPlan                    extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-  case object DatasetPlan                extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-  case object DataFrameNaFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object RDDPlan extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
+
+  case object DatasetPlan extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
+
+  case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+
   case object DataFrameStatFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
@@ -349,7 +347,8 @@ object GenerationPlan {
   def collectFunctionsFromTemplate(template: TemplateWithComments): immutable.Seq[Defn.Def] =
     template.stats.collect { case d: Defn.Def if checkMods(d.mods) => d }
 
-  def getTemplateFromSourceOverlay(source: Source): TemplateWithComments = new TemplateWithComments(source.children.collectFirst { case c: Defn.Class => c.templ }.get, true)
+  def getTemplateFromSourceOverlay(source: Source): TemplateWithComments =
+    new TemplateWithComments(source.children.collectFirst { case c: Defn.Class => c.templ }.get, true)
 
   def getTemplateFromSource(source: Source): TemplateWithComments =
     new TemplateWithComments(
