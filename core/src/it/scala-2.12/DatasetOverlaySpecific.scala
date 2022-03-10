@@ -28,8 +28,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
     for {
-      ss   <- ZIO.service[SparkSession]
-      rows <- ss.attempt(_.sessionState.executePlan(explain).executedPlan.executeCollect())
+      rows <- SparkSession.attempt(_.sessionState.executePlan(explain).executedPlan.executeCollect())
       _    <- ZIO.foreach(rows)(r => Console.printLine(r.getString(0)))
     } yield ()
   }

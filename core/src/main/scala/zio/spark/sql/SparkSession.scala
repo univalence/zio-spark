@@ -3,31 +3,25 @@ package zio.spark.sql
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
-import zio.spark.internal.Impure.ImpureBox
 import zio.spark.parameter._
 import zio.spark.sql.SparkSession.Conf
 
-final case class SparkSession(underlyingSparkSession: ImpureBox[UnderlyingSparkSession])
+final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
     extends ExtraSparkSessionFeature(underlyingSparkSession) {
-  import underlyingSparkSession._
 
   /** Closes the current SparkSession. */
-  def close: Task[Unit] = attemptBlocking(_.close())
+  def close: Task[Unit] = ZIO.attemptBlocking(underlyingSparkSession.close())
 
   /** Executes a SQL query using Spark. */
-  def sql(sqlText: String): Task[DataFrame] = attemptBlocking(ss => Dataset(ss.sql(sqlText)))
+  def sql(sqlText: String): Task[DataFrame] = ZIO.attemptBlocking(Dataset(underlyingSparkSession.sql(sqlText)))
 
   def conf: Conf =
     new Conf {
-      override def getAll: UIO[Map[String, String]] = succeed(_.conf.getAll)
+      override def getAll: UIO[Map[String, String]] = UIO.succeed(underlyingSparkSession.conf.getAll)
     }
 }
 
 object SparkSession extends Accessible[SparkSession] {
-
-  def apply(underlyingSparkSession: UnderlyingSparkSession): SparkSession =
-    SparkSession(ImpureBox(underlyingSparkSession))
-
   trait Conf {
     def getAll: UIO[Map[String, String]]
   }
@@ -42,7 +36,8 @@ object SparkSession extends Accessible[SparkSession] {
    */
   def builder: Builder = Builder(UnderlyingSparkSession.builder(), Map.empty)
 
-  def attempt[Out](f: UnderlyingSparkSession => Out): Spark[Out] = ZIO.serviceWithZIO[SparkSession](_.attempt(f))
+  def attempt[Out](f: UnderlyingSparkSession => Out): Spark[Out] =
+    ZIO.serviceWithZIO[SparkSession](ss => ZIO.attempt(f(ss.underlyingSparkSession)))
 
   final case class Builder(builder: UnderlyingSparkSession.Builder, extraConfigs: Map[String, String]) {
     self =>

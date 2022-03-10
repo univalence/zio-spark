@@ -2,10 +2,8 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{Sniffer211, SparkSession => UnderlyingSparkSession}
 
-import zio.spark.internal.Impure
-import zio.spark.internal.Impure.ImpureBox
+import zio.Task
 
-abstract class ExtraSparkSessionFeature(underlyingSparkSession: ImpureBox[UnderlyingSparkSession])
-    extends Impure(underlyingSparkSession) {
-  lazy val sessionState = attempt(Sniffer211.sessionState)
+abstract class ExtraSparkSessionFeature(underlyingSparkSession: UnderlyingSparkSession) {
+  lazy val sessionState = Task.attempt(Sniffer211.sessionState(underlyingSparkSession))
 }
