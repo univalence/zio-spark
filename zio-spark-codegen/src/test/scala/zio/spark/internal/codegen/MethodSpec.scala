@@ -2,9 +2,8 @@ package zio.spark.internal.codegen
 
 import _root_.sbt.internal.util.Attributed
 
-import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, RDDPlan}
-
 import zio.{Task, ZIO}
+import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, RDDPlan}
 import zio.spark.internal.codegen.GetSources.Classpath
 import zio.spark.internal.codegen.structure.Method
 import zio.test.*
