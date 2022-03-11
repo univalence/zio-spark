@@ -45,8 +45,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             GenerationPlan.DataFrameStatFunctionsPlan
           )
 
-        val generationPlans =
-          planTypes.map(_.getGenerationPlan(itFile, classpath, version)).map(zio.Runtime.default.unsafeRun)
+        val generationPlans = planTypes.map(_.getGenerationPlan(itFile, classpath, version)).map(zio.Runtime.default.unsafeRun)
 
         val generatedFiles = generationPlans.map(plan => versionedMainFile / plan.planType.zioSparkPath)
 
