@@ -72,7 +72,7 @@ jobs:
         uses: coursier/cache-action@v6
       - name: Run tests for codegen
         working-directory: ./zio-spark-codegen
-        run: sbt ++${{ matrix.scala }}! test
+        run: sbt test
 
   publish:
     runs-on: ubuntu-20.04
