@@ -44,8 +44,8 @@ jobs:
         if: ${{ startsWith(matrix.scala, '2.13.') }}
         run: sbt ++${{ matrix.scala }}! "project core" testSpecificWithCoverage
       - name: Run tests for codegen
-        if: ${{ startsWith(matrix.scala, '2.13.') }}
-        run: cd zio-spark-codegen && sbt test
+        if: ${{ startsWith(matrix.scala, '2.12.') }}
+        run: cd zio-spark-codegen && sbt ++${{ matrix.scala }}! test
       - name: Publish coverage to codecov
         if: ${{ startsWith(matrix.scala, '2.13.') }}
         uses: codecov/codecov-action@v2
