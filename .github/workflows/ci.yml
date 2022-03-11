@@ -43,12 +43,36 @@ jobs:
       - name: Run tests 2.13.X with coverage
         if: ${{ startsWith(matrix.scala, '2.13.') }}
         run: sbt ++${{ matrix.scala }}! "project core" testSpecificWithCoverage
-      - name: Run tests for codegen
-        if: ${{ startsWith(matrix.scala, '2.12.') }}
-        run: cd zio-spark-codegen && sbt ++${{ matrix.scala }}! test
       - name: Publish coverage to codecov
         if: ${{ startsWith(matrix.scala, '2.13.') }}
         uses: codecov/codecov-action@v2
+
+  check-codegen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2.4.0
+      - name: Setup Scala and Java
+        uses: olafurpg/setup-scala@v13
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+      - name: Check formatting and linting
+        working-directory: ./zio-spark-codegen
+        run: sbt check
+
+  test-codegen:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2.4.0
+      - name: Setup Scala and Java
+        uses: olafurpg/setup-scala@v13
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+      - name: Run tests for codegen
+        working-directory: ./zio-spark-codegen
+        run: sbt ++${{ matrix.scala }}! test
 
   publish:
     runs-on: ubuntu-20.04
@@ -57,7 +81,7 @@ jobs:
       fail-fast: false
       matrix:
         scala: [ "2.11.12", "2.12.15", "2.13.8" ]
-    needs: [check, test]
+    needs: [check, test, check-codegen, test-codegen]
     if: github.event_name != 'pull_request'
     steps:
       - name: Checkout current branch
