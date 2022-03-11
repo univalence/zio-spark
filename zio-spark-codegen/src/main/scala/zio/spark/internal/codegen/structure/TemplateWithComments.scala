@@ -1,11 +1,11 @@
 package zio.spark.internal.codegen.structure
 
 import scala.math.Ordering.Implicits.infixOrderingOps
+import scala.meta.{Position, Stat, Template, Tree}
 import scala.meta.contrib.AssociatedComments
 import scala.meta.tokens.Token.Comment
-import scala.meta.{Position, Stat, Template, Tree}
 
-class TemplateWithComments(template: Template, filterOverlay: Boolean)  {
+class TemplateWithComments(template: Template, filterOverlay: Boolean) {
   val comments: AssociatedComments = AssociatedComments(template)
 
   private lazy val commentTokens                   = template.tokens.collect { case d: Comment => (d.value, d.pos) }
@@ -23,7 +23,7 @@ class TemplateWithComments(template: Template, filterOverlay: Boolean)  {
     } else
       lst
 
-  private def filtered[T <: Tree](f: Template => List[T]):List[T] = fo(f(template))
+  private def filtered[T <: Tree](f: Template => List[T]): List[T] = fo(f(template))
 
   def stats: List[Stat] = filtered(_.stats)
 }

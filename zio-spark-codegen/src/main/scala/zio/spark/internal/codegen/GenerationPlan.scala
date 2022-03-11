@@ -2,7 +2,8 @@ package zio.spark.internal.codegen
 
 import sbt.*
 import sbt.Keys.scalaBinaryVersion
-import zio.spark.internal.codegen.GenerationPlan.{PlanType, collectFunctionsFromTemplate}
+
+import zio.spark.internal.codegen.GenerationPlan.{collectFunctionsFromTemplate, PlanType}
 import zio.spark.internal.codegen.MethodType.getMethodType
 import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
 import zio.spark.internal.codegen.structure.{Method, TemplateWithComments}
