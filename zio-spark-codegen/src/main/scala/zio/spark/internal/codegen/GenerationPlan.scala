@@ -1,6 +1,7 @@
 package zio.spark.internal.codegen
 
 import sbt.*
+
 import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
 import zio.spark.internal.codegen.structure.{Method, TemplateWithComments}
