@@ -32,7 +32,7 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 
-  def waitBlocking(seconds: Int): UIO[Int] = UIO.blocking(UIO(Thread.sleep(seconds * 1000L))).as(seconds)
+  def waitBlocking(seconds: Int): UIO[Int] = UIO.unit.delay(seconds.seconds).provide(Clock.live).as(seconds)
 
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
@@ -44,7 +44,9 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       },
       test("smoke") {
         val job: Spark[Long] =
-          CancellableEffect.makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000L)).count))
+          CancellableEffect
+            .makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000L)).count))
+            .disconnect
 
         listenSparkEvents(waitBlocking(5).race(job)).map { case (events, n) =>
           assertTrue(
@@ -56,6 +58,6 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
             }
           )
         }
-      } @@ timeout(90.seconds)
+      } @@ timeout(45.seconds)
     ).provideCustomLayerShared(SparkSessionRunner.session)
 }
