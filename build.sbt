@@ -57,9 +57,12 @@ ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "
 // SCoverage configuration
 val excludedPackages: Seq[String] =
   Seq(
-    "zio\\.spark\\.internal\\.codegen\\..*",
-    "zio\\.spark\\.sql\\.implicits.*",
-    "zio\\.spark\\.sql\\.LowPrioritySQLImplicits.*"
+    "zio\\.spark\\.rdd\\.RDD.*",                    // Generated source
+    "zio\\.spark\\.sql\\.Dataset.*",                // Generated source
+    "zio\\.spark\\.sql\\.DataFrameNaFunctions.*",   // Generated source
+    "zio\\.spark\\.sql\\.DataFrameStatFunctions.*", // Generated source
+    "zio\\.spark\\.sql\\.implicits.*",              // Spark implicits
+    "zio\\.spark\\.sql\\.LowPrioritySQLImplicits.*" // Spark implicits
   )
 
 ThisBuild / coverageFailOnMinimum           := false
@@ -102,7 +105,8 @@ lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
 
 lazy val core =
-  (project in file("core"))
+  (project in file("zio-spark-core"))
+    .configs(IntegrationTest)
     .settings(
       name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
@@ -110,7 +114,8 @@ lazy val core =
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= generateLibraryDependencies(scalaMajorVersion.value),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
-      scalacOptions ~= fatalWarningsAsProperties
+      scalacOptions ~= fatalWarningsAsProperties,
+      Defaults.itSettings
     )
     .enablePlugins(ZioSparkCodegenPlugin)
 

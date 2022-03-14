@@ -1,6 +1,6 @@
 package zio.spark.internal.codegen
 
-import zio.spark.internal.codegen.GenerationPlan.{DataFrameNaFunctionsPlan, PlanType}
+import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.structure.Method
 
 sealed trait MethodType
@@ -9,8 +9,8 @@ object MethodType {
   case object Ignored                    extends MethodType
   case object Transformation             extends MethodType
   case object TransformationWithAnalysis extends MethodType
-  case object SuccessWithAnalysis        extends MethodType
-  case object SuccessNow                 extends MethodType
+  case object GetWithAnalysis            extends MethodType
+  case object Get                        extends MethodType
   case object DriverAction               extends MethodType
   case object DistributedComputation     extends MethodType
   case object TODO                       extends MethodType
@@ -18,8 +18,8 @@ object MethodType {
 
   def methodTypeOrdering(methodType: MethodType): Int =
     methodType match {
-      case MethodType.SuccessNow                 => 0
-      case MethodType.SuccessWithAnalysis        => 1
+      case MethodType.Get                        => 0
+      case MethodType.GetWithAnalysis            => 1
       case MethodType.DistributedComputation     => 2
       case MethodType.DriverAction               => 3
       case MethodType.Transformation             => 4
@@ -62,7 +62,8 @@ object MethodType {
         "inputFiles"
       )
 
-    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+    val partitionOps =
+      Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
 
     val pureInfo = Set("schema", "columns", "toDebugString")
 
@@ -123,35 +124,37 @@ object MethodType {
       elements.exists(element => candidates.exists(candidate => element.contains(candidate)))
 
     method.name match {
-      case _ if method.fullName.startsWith("java.lang.Object")                                                     => Ignored
-      case _ if method.fullName.startsWith("scala.Any")                                                            => Ignored
-      case _ if method.isSetter                                                                                    => Ignored
-      case name if name == "groupBy" && method.fullName.contains("RDD")                                            => Ignored
-      case name if methodsToIgnore(name)                                                                           => Ignored
-      case name if name.contains("$")                                                                              => Ignored
-      case _ if method.calls.flatMap(_.parameters.map(_.signature)).exists(_.contains("Function"))                 => Ignored
-      case name if methodsToImplement(name)                                                                        => ToImplement
-      case name if methodsTodo(name)                                                                               => TODO
-      case "drop" if planType.name == "Dataset"                                                                    => Transformation
-      case "apply" | "col" | "colRegex" | "withColumn" if method.fullName.contains("Dataset")                      => SuccessWithAnalysis
-      case "bloomFilter" | "corr" | "countMinSketch" | "cov" if method.fullName.contains("DataFrameStatFunctions") => SuccessWithAnalysis
-      case _ if oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)            => TransformationWithAnalysis
-      case name if method.anyParameters.isEmpty && name == "as"                                                    => TransformationWithAnalysis
-      case name if action(name)                                                                                    => DistributedComputation
-      case name if name.startsWith("take")                                                                         => DistributedComputation
-      case name if name.startsWith("foreach")                                                                      => DistributedComputation
-      case name if name.startsWith("count")                                                                        => DistributedComputation
-      case name if name.startsWith("saveAs")                                                                       => DistributedComputation
-      case "iterator"                                                                                              => DistributedComputation
-      case name if cacheElements(name)                                                                             => DriverAction
-      case name if getters(name)                                                                                   => DriverAction
-      case name if pureInfo(name)                                                                                  => SuccessNow
-      case name if partitionOps(name)                                                                              => SuccessNow
-      case "na" | "stat"                                                                                           => SuccessNow
-      case _ if method.returnType.startsWith("RDD")                                                                => Transformation
-      case _ if method.returnType.startsWith("Dataset")                                                            => Transformation
-      case _ if method.returnType == "DataFrame"                                                                   => Transformation
-      case _ if method.returnType.contains("this.type")                                                            => Transformation
+      case _ if method.fullName.startsWith("java.lang.Object")                                     => Ignored
+      case _ if method.fullName.startsWith("scala.Any")                                            => Ignored
+      case _ if method.isSetter                                                                    => Ignored
+      case name if name == "groupBy" && method.fullName.contains("RDD")                            => Ignored
+      case name if methodsToIgnore(name)                                                           => Ignored
+      case name if name.contains("$")                                                              => Ignored
+      case _ if method.calls.flatMap(_.parameters.map(_.signature)).exists(_.contains("Function")) => Ignored
+      case name if methodsToImplement(name)                                                        => ToImplement
+      case name if methodsTodo(name)                                                               => TODO
+      case "drop" if planType.name == "Dataset"                                                    => Transformation
+      case "apply" | "col" | "colRegex" | "withColumn" if method.fullName.contains("Dataset")      => GetWithAnalysis
+      case "bloomFilter" | "corr" | "countMinSketch" | "cov" if method.fullName.contains("DataFrameStatFunctions") =>
+        GetWithAnalysis
+      case _ if oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis) =>
+        TransformationWithAnalysis
+      case name if method.anyParameters.isEmpty && name == "as" => TransformationWithAnalysis
+      case name if action(name)                                 => DistributedComputation
+      case name if name.startsWith("take")                      => DistributedComputation
+      case name if name.startsWith("foreach")                   => DistributedComputation
+      case name if name.startsWith("count")                     => DistributedComputation
+      case name if name.startsWith("saveAs")                    => DistributedComputation
+      case "iterator"                                           => DistributedComputation
+      case name if cacheElements(name)                          => DriverAction
+      case name if getters(name)                                => DriverAction
+      case name if pureInfo(name)                               => Get
+      case name if partitionOps(name)                           => Get
+      case "na" | "stat"                                        => Get
+      case _ if method.returnType.startsWith("RDD")             => Transformation
+      case _ if method.returnType.startsWith("Dataset")         => Transformation
+      case _ if method.returnType == "DataFrame"                => Transformation
+      case _ if method.returnType.contains("this.type")         => Transformation
     }
   }
 }

@@ -6,6 +6,7 @@ import sbt.Keys.*
 
 import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.MethodType.*
+import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
 
 import java.nio.file.*
 
@@ -24,14 +25,17 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
   override lazy val projectSettings =
     Seq(
       Compile / sourceGenerators += Def.task {
-        val classpath: Classpath = (Compile / dependencyClasspathAsJars).value
-
         val version =
           scalaBinaryVersion.value match {
             case "2.11" => ScalaBinaryVersion.V2_11
             case "2.12" => ScalaBinaryVersion.V2_12
             case "2.13" => ScalaBinaryVersion.V2_13
           }
+
+        val mainFile: File          = (Compile / scalaSource).value
+        val versionedMainFile: File = versioned(mainFile, version)
+        val itFile: File            = new File(mainFile.getPath.replace("main", "it"))
+        val classpath: Classpath    = (Compile / dependencyClasspathAsJars).value
 
         val planTypes: Seq[PlanType] =
           List(
@@ -41,14 +45,10 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             GenerationPlan.DataFrameStatFunctionsPlan
           )
 
-        val generationPlans = planTypes.map(_.getGenerationPlan(classpath, version)).map(zio.Runtime.default.unsafeRun)
+        val generationPlans =
+          planTypes.map(_.getGenerationPlan(itFile, classpath, version)).map(zio.Runtime.default.unsafeRun)
 
-        val generatedFiles =
-          generationPlans.map { plan =>
-            val scalaDir: File = (Compile / scalaSource).value
-            val basePath: File = new File(scalaDir.getPath + "-" + scalaBinaryVersion.value)
-            basePath / "zio" / "spark" / "internal" / "codegen" / s"${plan.planType.outputName}.scala"
-          }
+        val generatedFiles = generationPlans.map(plan => versionedMainFile / plan.planType.zioSparkPath)
 
         /**
          * Checks that all methods that need to be implemented are
@@ -62,9 +62,13 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
         def checkAllMethodsAreImplemented(plans: Seq[GenerationPlan]): Unit = {
           val plansWithMissingMethods: Seq[(String, Set[String])] =
             plans.filter(_.planType.fold(true, true, false, false)).map { plan =>
-              val allMethods                  = plan.getFinalClassMethods((Compile / scalaSource).value)
-              val methodsToImplement          = plan.methodsWithTypes.getOrElse(MethodType.ToImplement, Seq.empty).map(_.name).toSet
-              val missingMethods: Set[String] = methodsToImplement -- allMethods
+              val methodsToImplement =
+                plan.sourceMethods
+                  .groupBy(getMethodType(_, plan.planType))
+                  .getOrElse(MethodType.ToImplement, Seq.empty)
+                  .map(_.name)
+                  .toSet
+              val missingMethods: Set[String] = methodsToImplement -- plan.overlayMethods.map(_.name).toSet
               plan.planType.name -> missingMethods
             }
 
@@ -112,7 +116,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
         generationPlans.zip(generatedFiles).foreach { case (plan, file) =>
           val body: String =
-            plan.methodsWithTypes.toList
+            plan.sourceMethods
+              .groupBy(getMethodType(_, plan.planType))
+              .toList
               .sortBy(_._1)
               .map { case (methodType, methods) =>
                 val sep =
@@ -134,7 +140,9 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               }
               .mkString("\n\n  // ===============\n\n")
 
-          val sourceCode: String    = plan.planType.sourceCode(body, version)
+          val overlay: String = plan.overlayMethods.sortBy(_.fullName).map(_.raw).mkString("\n\n")
+
+          val sourceCode: String    = plan.planType.sourceCode(body, overlay, version)
           val formattedCode: String = scalafmt.format(config, file.toPath, sourceCode)
 
           checkPostFormatting(formattedCode)
