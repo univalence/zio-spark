@@ -41,11 +41,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
-<<<<<<< HEAD:core/src/main/scala-2.13/zio/spark/internal/codegen/BaseDataset.scala
-  def action[U](f: UnderlyingDataset[T] => U): Task[U] = attempt(f)
-=======
-  def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
->>>>>>> 0662c14e3001c9fe90dca0d3bef924bccc307611:zio-spark-core/src/main/scala-2.13/zio/spark/sql/Dataset.scala
+  def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying Dataset. */
   def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(get(f))

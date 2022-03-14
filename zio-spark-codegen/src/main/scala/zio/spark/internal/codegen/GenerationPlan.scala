@@ -338,8 +338,7 @@ object GenerationPlan {
 
   case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
 
-  case object DataFrameStatFunctionsPlan
-      extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
+  case object DataFrameStatFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
 

@@ -62,8 +62,7 @@ object MethodType {
         "inputFiles"
       )
 
-    val partitionOps =
-      Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
 
     val pureInfo = Set("schema", "columns", "toDebugString")
 

@@ -32,11 +32,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   // scalafix:on
 
   /** Applies an action to the underlying RDD. */
-<<<<<<< HEAD:core/src/main/scala-2.13/zio/spark/internal/codegen/BaseRDD.scala
-  def action[U](f: UnderlyingRDD[T] => U): Task[U] = attempt(f)
-=======
-  def action[U](f: UnderlyingRDD[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
->>>>>>> 0662c14e3001c9fe90dca0d3bef924bccc307611:zio-spark-core/src/main/scala-2.13/zio/spark/rdd/RDD.scala
+  def action[U](f: UnderlyingRDD[T] => U): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying RDD. */
   def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = RDD(get(f))
