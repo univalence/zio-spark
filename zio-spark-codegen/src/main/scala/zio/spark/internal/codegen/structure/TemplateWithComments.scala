@@ -1,5 +1,7 @@
 package zio.spark.internal.codegen.structure
 
+import org.scalameta.UnreachableError
+
 import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.meta.{Position, Stat, Template, Tree}
 import scala.meta.contrib.AssociatedComments
@@ -18,7 +20,7 @@ class TemplateWithComments(template: Template, filterOverlay: Boolean) {
     if (filterOverlay) {
       (startTemplate, endTemplate) match {
         case (Some(start), Some(end)) => lst.filter(_.tokens.forall(token => token.pos >= start && token.pos <= end))
-        case _                        => ???
+        case _                        => throw new UnreachableError("Template should have both 'template:on' and 'template:off'.")
       }
     } else
       lst
