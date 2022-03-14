@@ -56,6 +56,6 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
             }
           )
         }
-      } @@ timeout(45.seconds)
+      } @@ timeout(90.seconds)
     ).provideCustomLayerShared(SparkSessionRunner.session)
 }
