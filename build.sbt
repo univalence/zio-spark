@@ -105,7 +105,7 @@ lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
 lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
 
 lazy val core =
-  (project in file("core"))
+  (project in file("zio-spark-core"))
     .configs(IntegrationTest)
     .settings(
       name               := "zio-spark",
