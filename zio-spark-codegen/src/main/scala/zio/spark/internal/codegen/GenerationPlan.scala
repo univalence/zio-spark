@@ -1,17 +1,13 @@
 package zio.spark.internal.codegen
 
 import sbt.*
-import sbt.Keys.scalaBinaryVersion
-import zio.spark.internal.codegen.GenerationPlan.{PlanType, collectFunctionsFromTemplate}
-import zio.spark.internal.codegen.MethodType.getMethodType
+
+import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
 import zio.spark.internal.codegen.structure.{Method, TemplateWithComments}
 
 import scala.collection.immutable
-import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.meta.*
-import scala.meta.contrib.AssociatedComments
-import scala.meta.tokens.Token.Comment
 import scala.util.Try
 
 sealed trait ScalaBinaryVersion {
