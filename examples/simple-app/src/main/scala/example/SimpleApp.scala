@@ -6,7 +6,7 @@ import zio._
 import zio.spark.parameter._
 import zio.spark.sql._
 
-object Main extends ZIOAppDefault {
+object SimpleApp extends ZIOAppDefault {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 

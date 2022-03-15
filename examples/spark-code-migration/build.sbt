@@ -1,8 +1,8 @@
 name         := "spark-code-migration"
-scalaVersion := "2.12.15"
+scalaVersion := "2.13.8"
 
 libraryDependencies ++= Seq(
   "io.univalence"    %% "zio-spark"  % "0.1.0",
-  "org.apache.spark" %% "spark-core" % "2.4.0",
-  "org.apache.spark" %% "spark-sql"  % "2.4.0"
+  "org.apache.spark" %% "spark-core" % "3.2.1",
+  "org.apache.spark" %% "spark-sql"  % "3.2.1"
 )
