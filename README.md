@@ -53,6 +53,10 @@ There are many reasons why we decide to build this library, such as:
 * improving some performances.
 * taking advantage of ZIO allowing our jobs to retry and to be run in parallel.
 
+## Alternatives
+
+- [ZparkIO](https://github.com/leobenkel/ZparkIO) a framework for Spark, ZIO
+
 ## Contributions
 
 Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements. If you want to add
