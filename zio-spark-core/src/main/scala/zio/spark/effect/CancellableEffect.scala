@@ -56,5 +56,4 @@ object CancellableEffect {
       x <- job.onExecutor(executor).disconnect.onInterrupt(UIO(sc.cancelJobGroup(groupName)))
     } yield x
 
-
 }
