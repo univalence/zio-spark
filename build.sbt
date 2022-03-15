@@ -122,8 +122,8 @@ def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
-    "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided
+    "org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources (),
+    "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()
   )
 }
 
@@ -146,8 +146,8 @@ def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
  */
 def sparkScalaVersionMapping(scalaMinor: Long): String =
   scalaMinor match {
-    case 11 => "2.1.3"
-    case 12 => "2.4.8"
+    case 11 => "2.4.8"
+    case 12 => "3.2.1"
     case 13 => "3.2.1"
     case _  => throw new Exception("It should be unreachable.")
   }

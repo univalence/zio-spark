@@ -280,8 +280,8 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
   /**
    * Finding frequent items for columns, possibly with false positives.
    * Using the frequent element count algorithm described in <a
-   * href="http://dx.doi.org/10.1145/762471.762473">here</a>, proposed
-   * by Karp, Schenker, and Papadimitriou.
+   * href="https://doi.org/10.1145/762471.762473">here</a>, proposed by
+   * Karp, Schenker, and Papadimitriou.
    *
    * This function is meant for exploratory data analysis, as we make no
    * guarantee about the backward compatibility of the schema of the
@@ -327,9 +327,8 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
   /**
    * Finding frequent items for columns, possibly with false positives.
    * Using the frequent element count algorithm described in <a
-   * href="http://dx.doi.org/10.1145/762471.762473">here</a>, proposed
-   * by Karp, Schenker, and Papadimitriou. Uses a `default` support of
-   * 1%.
+   * href="https://doi.org/10.1145/762471.762473">here</a>, proposed by
+   * Karp, Schenker, and Papadimitriou. Uses a `default` support of 1%.
    *
    * This function is meant for exploratory data analysis, as we make no
    * guarantee about the backward compatibility of the schema of the
@@ -377,6 +376,43 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * @since 1.5.0
    */
   def sampleBy[T](col: String, fractions: Map[T, Double], seed: Long): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.sampleBy(col, fractions, seed))
+
+  /**
+   * Returns a stratified sample without replacement based on the
+   * fraction given on each stratum.
+   * @param col
+   *   column that defines strata
+   * @param fractions
+   *   sampling fraction for each stratum. If a stratum is not
+   *   specified, we treat its fraction as zero.
+   * @param seed
+   *   random seed
+   * @tparam T
+   *   stratum type
+   * @return
+   *   a new `DataFrame` that represents the stratified sample
+   *
+   * The stratified sample can be performed over multiple columns:
+   * {{{
+   *     import org.apache.spark.sql.Row
+   *     import org.apache.spark.sql.functions.struct
+   *
+   *     val df = spark.createDataFrame(Seq(("Bob", 17), ("Alice", 10), ("Nico", 8), ("Bob", 17),
+   *       ("Alice", 10))).toDF("name", "age")
+   *     val fractions = Map(Row("Alice", 10) -> 0.3, Row("Nico", 8) -> 1.0)
+   *     df.stat.sampleBy(struct($"name", $"age"), fractions, 36L).show()
+   *     +-----+---+
+   *     | name|age|
+   *     +-----+---+
+   *     | Nico|  8|
+   *     |Alice| 10|
+   *     +-----+---+
+   * }}}
+   *
+   * @since 3.0.0
+   */
+  def sampleBy[T](col: Column, fractions: Map[T, Double], seed: Long): TryAnalysis[DataFrame] =
     transformationWithAnalysis(_.sampleBy(col, fractions, seed))
 
 }
