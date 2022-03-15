@@ -1,13 +1,14 @@
+package example
+
 import org.apache.spark.sql.Row
 
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql._
 
-object CommonDatasetOperation extends ZIOAppDefault {
+object Main extends ZIOAppDefault {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
-  import zio.spark.sql.implicits._
 
   final case class Person(name: String, age: Int)
 
@@ -31,7 +32,7 @@ object CommonDatasetOperation extends ZIOAppDefault {
         }
     } yield ()
 
-  private val session = SparkSession.builder.master(localAllNodes).appName("zio-spark").getOrCreateLayer
+  private val session = SparkSession.builder.master(localAllNodes).appName("app").getOrCreateLayer
 
   override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
 }

@@ -1,5 +1,3 @@
-import sbt.librarymanagement.Configuration
-
 // Common configuration
 inThisBuild(
   List(
@@ -119,24 +117,13 @@ lazy val core =
     )
     .enablePlugins(ZioSparkCodegenPlugin)
 
-lazy val examples =
-  (project in file("examples"))
-    .settings(
-      scalaVersion      := scala.v213,
-      publish / skip    := true,
-      scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
-      libraryDependencies ++= generateSparkLibraryDependencies(scalaMajorVersion.value, conf = Compile),
-      scalacOptions ~= fatalWarningsAsProperties
-    )
-    .dependsOn(core)
-
 /** Generates required libraries for spark. */
-def generateSparkLibraryDependencies(scalaMinor: Long, conf: Configuration = Provided): Seq[ModuleID] = {
+def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core" % sparkVersion % conf,
-    "org.apache.spark" %% "spark-sql"  % sparkVersion % conf
+    "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
+    "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided
   )
 }
 
