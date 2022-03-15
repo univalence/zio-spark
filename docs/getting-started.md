@@ -22,4 +22,5 @@ zio-spark is available for Scala 2.11, Scala 2.12 and Scala 2.13.
 
 ## Examples
 
-To start with zio-spark, we advice you to look at the [examples](https://github.com/univalence/zio-spark/tree/master/examples/src/main/scala).
+To start with zio-spark, we advise you to look at the 
+[examples](https://github.com/univalence/zio-spark/tree/master/examples/src/main/scala).

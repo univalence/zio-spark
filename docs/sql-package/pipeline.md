@@ -30,4 +30,5 @@ It creates a description of our job, you can then transform it into a ZIO effect
 val job: Spark[Long] = pipeline.run
 ```
 
-`Spark[Long]` is an alias for `ZIO[SparkSession, Throwable, Long]` meaning that it returns an effect that need a SparkSession and will return a Long (the number of rows of the DataFrame).
+`Spark[Long]` is an alias for `ZIO[SparkSession, Throwable, Long]` meaning that it returns an effect that need a 
+SparkSession and will return a Long (the number of rows of the DataFrame).
