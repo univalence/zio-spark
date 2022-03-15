@@ -117,6 +117,19 @@ lazy val core =
     )
     .enablePlugins(ZioSparkCodegenPlugin)
 
+val exampleNames =
+  Seq(
+    "simple-app",
+    "spark-code-migration",
+    "using-older-spark-version",
+    "word-count"
+  )
+
+lazy val exampleSimpleApp              = (project in file("examples/simple-app")).dependsOn(core)
+lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).dependsOn(core)
+lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).dependsOn(core)
+lazy val exampleWordCount              = (project in file("examples/word-count")).dependsOn(core)
+
 /** Generates required libraries for spark. */
 def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)

@@ -21,6 +21,22 @@ jobs:
       - name: Check formatting and linting
         run: sbt "-Dfatal-warnings=true" check
 
+  example:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [ "SimpleApp", "SparkCodeMigration", "UsingOlderSparkVersion", "WordCount" ]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2.4.0
+      - name: Setup Scala and Java
+        uses: olafurpg/setup-scala@v13
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+      - name: Run example
+        run: sbt "project example${{ matrix.example }}" run
   test:
     runs-on: ubuntu-20.04
     timeout-minutes: 60

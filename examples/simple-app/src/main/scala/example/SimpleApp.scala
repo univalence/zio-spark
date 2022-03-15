@@ -5,6 +5,7 @@ import org.apache.spark.sql.Row
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql._
+import zio.spark.sql.implicits._
 
 object SimpleApp extends ZIOAppDefault {
 
@@ -12,7 +13,7 @@ object SimpleApp extends ZIOAppDefault {
 
   final case class Person(name: String, age: Int)
 
-  val filePath: String = getClass.getResource("/data.csv").getPath
+  val filePath: String = "examples/simple-app/src/main/resources/data.csv"
 
   def read: Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
 

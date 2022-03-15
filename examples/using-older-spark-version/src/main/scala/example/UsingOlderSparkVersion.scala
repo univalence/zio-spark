@@ -12,7 +12,7 @@ object UsingOlderSparkVersion extends ZIOAppDefault {
 
   final case class Person(name: String, age: Int)
 
-  val filePath: String = getClass.getResource("/data.csv").getPath
+  val filePath: String = "examples/using-older-spark-version/src/main/resources/data.csv"
 
   def read: Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
 
