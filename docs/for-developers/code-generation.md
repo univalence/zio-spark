@@ -40,11 +40,11 @@ At the begining, the generated code contains only one kind of code: the code aut
 You can then use this code to generate an overlays. They allow us to add our scala version specific and non-specific
 functions.
 
-These overlays can be found in `core/src/it/scala...`.
+These overlays can be found in `zio-spark-core/src/it/scala...`.
 
 For Dataset, you will find four overlays:
-- `core/src/it/scala/DatasetOverlay_$SUFFIX.scala` -> The code shared by all scala versions
-- `core/src/it/scala-$version/DatasetOverlay_$SUFFIX.scala` -> The code specific for all scala versions
+- `zio-spark-core/src/it/scala/DatasetOverlay_$SUFFIX.scala` -> The code shared by all scala versions
+- `zio-spark-core/src/it/scala-$version/DatasetOverlay_$SUFFIX.scala` -> The code specific for all scala versions
 
 A `$SUFFIX` can be used to split the code into different parts and avoid collision between a scala version specific 
 overlay and a non version specific (it wouldn't stop the code generation from working, however it will break the 
