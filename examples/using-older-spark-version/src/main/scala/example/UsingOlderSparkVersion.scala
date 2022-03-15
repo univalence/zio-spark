@@ -5,6 +5,7 @@ import org.apache.spark.sql.Row
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql._
+import zio.spark.sql.implicits._
 
 object UsingOlderSparkVersion extends ZIOAppDefault {
 

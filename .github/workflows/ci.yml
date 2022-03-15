@@ -37,6 +37,7 @@ jobs:
         uses: coursier/cache-action@v6
       - name: Run example
         run: sbt "project example${{ matrix.example }}" run
+
   test:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
