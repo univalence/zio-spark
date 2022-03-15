@@ -61,7 +61,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   // Handmade functions specific to zio-spark
 
-  // template:on
   /**
    * Prints the plans (logical and physical) to the console for
    * debugging purposes.
@@ -74,8 +73,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
     for {
-      ss   <- ZIO.service[SparkSession]
-      rows <- ss.sessionState.map(_.executePlan(explain).executedPlan.executeCollect())
+      rows <- SparkSession.attempt(_.sessionState.executePlan(explain).executedPlan.executeCollect())
       _    <- ZIO.foreach(rows)(r => Console.printLine(r.getString(0)))
     } yield ()
   }
@@ -156,6 +154,15 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     Console.printLine(stringifiedDf)
   }
 
+  // template:on
+  /**
+   * Computes specified statistics for numeric and string columns.
+   *
+   * See [[UnderlyingDataset.summary]] for more information.
+   */
+  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
+    self.summary(statistics.map(_.toString): _*)
+
   /**
    * Chains custom transformations.
    *
@@ -224,7 +231,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // ===============
 
   /**
-   * Selects column based on the column name and return it as a
+   * Selects column based on the column name and returns it as a
    * [[Column]].
    *
    * @note
@@ -236,7 +243,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def apply(colName: String): TryAnalysis[Column] = getWithAnalysis(_.apply(colName))
 
   /**
-   * Selects column based on the column name and return it as a
+   * Selects column based on the column name and returns it as a
    * [[Column]].
    *
    * @note
@@ -248,8 +255,20 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def col(colName: String): TryAnalysis[Column] = getWithAnalysis(_.col(colName))
 
   /**
+   * Selects column based on the column name specified as a regex and
+   * returns it as [[Column]].
+   * @group untypedrel
+   * @since 2.3.0
+   */
+  def colRegex(colName: String): TryAnalysis[Column] = getWithAnalysis(_.colRegex(colName))
+
+  /**
    * Returns a new Dataset by adding a column or replacing the existing
    * column that has the same name.
+   *
+   * `column`'s expression must only refer to attributes supplied by
+   * this Dataset. It is an error to add a column that refers to some
+   * other Dataset.
    *
    * @group untypedrel
    * @since 2.0.0
@@ -259,7 +278,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // ===============
 
   /**
-   * Returns an array that contains all of [[Row]]s in this Dataset.
+   * Returns an array that contains all rows in this Dataset.
    *
    * Running collect requires moving all the data into the application's
    * driver process, and doing so on a very large dataset can crash the
@@ -323,6 +342,14 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def head: Task[T] = action(_.head())
 
   /**
+   * Returns true if the `Dataset` is empty.
+   *
+   * @group basic
+   * @since 2.4.0
+   */
+  def isEmpty: Task[Boolean] = action(_.isEmpty)
+
+  /**
    * :: Experimental :: (Scala-specific) Reduces the elements of this
    * Dataset using the specified binary function. The given `func` must
    * be commutative and associative or the result may be
@@ -346,7 +373,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def take(n: Int): Task[Seq[T]] = action(_.take(n).toSeq)
 
   /**
-   * Return an iterator that contains all of [[Row]]s in this Dataset.
+   * Returns an iterator that contains all rows in this Dataset.
    *
    * The iterator will consume as much memory as the largest partition
    * in this Dataset.
@@ -404,17 +431,34 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * Global temporary view is cross-session. Its lifetime is the
    * lifetime of the Spark application,
    * i.e. it will be automatically dropped when the application
-   * terminates. It's tied to a system preserved database
-   * `_global_temp`, and we must use the qualified name to refer a
-   * global temp view, e.g. `SELECT * FROM _global_temp.view1`.
+   * terminates. It's tied to a system preserved database `global_temp`,
+   * and we must use the qualified name to refer a global temp view,
+   * e.g. `SELECT * FROM global_temp.view1`.
    *
    * @throws AnalysisException
-   *   if the view name already exists
+   *   if the view name is invalid or already exists
    *
    * @group basic
    * @since 2.1.0
    */
   def createGlobalTempView(viewName: String): Task[Unit] = action(_.createGlobalTempView(viewName))
+
+  /**
+   * Creates or replaces a global temporary view using the given name.
+   * The lifetime of this temporary view is tied to this Spark
+   * application.
+   *
+   * Global temporary view is cross-session. Its lifetime is the
+   * lifetime of the Spark application,
+   * i.e. it will be automatically dropped when the application
+   * terminates. It's tied to a system preserved database `global_temp`,
+   * and we must use the qualified name to refer a global temp view,
+   * e.g. `SELECT * FROM global_temp.view1`.
+   *
+   * @group basic
+   * @since 2.2.0
+   */
+  def createOrReplaceGlobalTempView(viewName: String): Task[Unit] = action(_.createOrReplaceGlobalTempView(viewName))
 
   /**
    * Creates a local temporary view using the given name. The lifetime
@@ -438,7 +482,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * temporary view.
    *
    * @throws AnalysisException
-   *   if the view name already exists
+   *   if the view name is invalid or already exists
    *
    * @group basic
    * @since 2.0.0
@@ -488,6 +532,32 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def isStreaming: Task[Boolean] = action(_.isStreaming)
 
   /**
+   * Eagerly locally checkpoints a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. Local checkpoints are written to
+   * executor storage and despite potentially faster they are unreliable
+   * and may compromise job completion.
+   *
+   * @group basic
+   * @since 2.3.0
+   */
+  def localCheckpoint: Task[Dataset[T]] = action(_.localCheckpoint())
+
+  /**
+   * Locally checkpoints a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. Local checkpoints are written to
+   * executor storage and despite potentially faster they are unreliable
+   * and may compromise job completion.
+   *
+   * @group basic
+   * @since 2.3.0
+   */
+  def localCheckpoint(eager: Boolean): Task[Dataset[T]] = action(_.localCheckpoint(eager))
+
+  /**
    * Persist this Dataset with the default storage level
    * (`MEMORY_AND_DISK`).
    *
@@ -530,7 +600,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
-   * from memory and disk.
+   * from memory and disk. This will not un-persist any cached data that
+   * is built upon this Dataset.
    *
    * @param blocking
    *   Whether to block until all blocks are deleted.
@@ -542,7 +613,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
-   * from memory and disk.
+   * from memory and disk. This will not un-persist any cached data that
+   * is built upon this Dataset.
    *
    * @group basic
    * @since 1.6.0
@@ -584,13 +656,13 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def as(alias: Symbol): Dataset[T] = transformation(_.as(alias))
 
   /**
-   * Returns a new Dataset that has exactly `numPartitions` partitions.
-   * Similar to coalesce defined on an `RDD`, this operation results in
-   * a narrow dependency, e.g. if you go from 1000 partitions to 100
-   * partitions, there will not be a shuffle, instead each of the 100
-   * new partitions will claim 10 of the current partitions. If a larger
-   * number of partitions is requested, it will stay at the current
-   * number of partitions.
+   * Returns a new Dataset that has exactly `numPartitions` partitions,
+   * when the fewer partitions are requested. If a larger number of
+   * partitions is requested, it will stay at the current number of
+   * partitions. Similar to coalesce defined on an `RDD`, this operation
+   * results in a narrow dependency, e.g. if you go from 1000 partitions
+   * to 100 partitions, there will not be a shuffle, instead each of the
+   * 100 new partitions will claim 10 of the current partitions.
    *
    * However, if you're doing a drastic coalesce, e.g. to
    * {{{numPartitions = 1}}}, this may result in your computation taking
@@ -672,6 +744,14 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * Returns a new Dataset that contains only the unique rows from this
    * Dataset. This is an alias for `distinct`.
    *
+   * For a static batch [[Dataset]], it just drops duplicate rows. For a
+   * streaming [[Dataset]], it will keep all data across triggers as
+   * intermediate state to drop duplicates rows. You can use
+   * [[withWatermark]] to limit how late the duplicate data can be and
+   * system will accordingly limit the state. In addition, too late data
+   * older than watermark will be dropped to avoid any possibility of
+   * duplicates.
+   *
    * @group typedrel
    * @since 2.0.0
    */
@@ -679,7 +759,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   /**
    * Returns a new Dataset containing rows in this Dataset but not in
-   * another Dataset. This is equivalent to `EXCEPT` in SQL.
+   * another Dataset. This is equivalent to `EXCEPT DISTINCT` in SQL.
    *
    * @note
    *   Equality checking is performed directly on the encoded
@@ -690,6 +770,22 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def except(other: Dataset[T]): Dataset[T] = transformation(_.except(other))
+
+  /**
+   * Returns a new Dataset containing rows in this Dataset but not in
+   * another Dataset while preserving the duplicates. This is equivalent
+   * to `EXCEPT ALL` in SQL.
+   *
+   * @note
+   *   Equality checking is performed directly on the encoded
+   *   representation of the data and thus is not affected by a custom
+   *   `equals` function defined on `T`. Also as standard in SQL, this
+   *   function resolves columns by position (not by name).
+   *
+   * @group typedrel
+   * @since 2.4.0
+   */
+  def exceptAll(other: Dataset[T]): Dataset[T] = transformation(_.exceptAll(other))
 
   /**
    * Returns a new Dataset where each row has been expanded to zero or
@@ -744,6 +840,19 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def flatMap[U: Encoder](func: T => TraversableOnce[U]): Dataset[U] = transformation(_.flatMap(func))
 
   /**
+   * Specifies some hint on the current Dataset. As an example, the
+   * following code specifies that one of the plan can be broadcasted:
+   *
+   * {{{
+   *   df1.join(df2.hint("broadcast"))
+   * }}}
+   *
+   * @group basic
+   * @since 2.2.0
+   */
+  def hint(name: String, parameters: Any*): Dataset[T] = transformation(_.hint(name, parameters: _*))
+
+  /**
    * Returns a new Dataset containing rows only in both this Dataset and
    * another Dataset. This is equivalent to `INTERSECT` in SQL.
    *
@@ -756,6 +865,22 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   def intersect(other: Dataset[T]): Dataset[T] = transformation(_.intersect(other))
+
+  /**
+   * Returns a new Dataset containing rows only in both this Dataset and
+   * another Dataset while preserving the duplicates. This is equivalent
+   * to `INTERSECT ALL` in SQL.
+   *
+   * @note
+   *   Equality checking is performed directly on the encoded
+   *   representation of the data and thus is not affected by a custom
+   *   `equals` function defined on `T`. Also as standard in SQL, this
+   *   function resolves columns by position (not by name).
+   *
+   * @group typedrel
+   * @since 2.4.0
+   */
+  def intersectAll(other: Dataset[T]): Dataset[T] = transformation(_.intersectAll(other))
 
   /**
    * Join with another `DataFrame`.
@@ -808,13 +933,47 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def repartition(numPartitions: Int): Dataset[T] = transformation(_.repartition(numPartitions))
 
   /**
+   * Returns a new [[Dataset]] by sampling a fraction of rows (without
+   * replacement), using a user-supplied seed.
+   *
+   * @param fraction
+   *   Fraction of rows to generate, range [0.0, 1.0].
+   * @param seed
+   *   Seed for sampling.
+   *
+   * @note
+   *   This is NOT guaranteed to provide exactly the fraction of the
+   *   count of the given [[Dataset]].
+   *
+   * @group typedrel
+   * @since 2.3.0
+   */
+  def sample(fraction: Double, seed: Long): Dataset[T] = transformation(_.sample(fraction, seed))
+
+  /**
+   * Returns a new [[Dataset]] by sampling a fraction of rows (without
+   * replacement), using a random seed.
+   *
+   * @param fraction
+   *   Fraction of rows to generate, range [0.0, 1.0].
+   *
+   * @note
+   *   This is NOT guaranteed to provide exactly the fraction of the
+   *   count of the given [[Dataset]].
+   *
+   * @group typedrel
+   * @since 2.3.0
+   */
+  def sample(fraction: Double): Dataset[T] = transformation(_.sample(fraction))
+
+  /**
    * Returns a new [[Dataset]] by sampling a fraction of rows, using a
    * user-supplied seed.
    *
    * @param withReplacement
    *   Sample with replacement or not.
    * @param fraction
-   *   Fraction of rows to generate.
+   *   Fraction of rows to generate, range [0.0, 1.0].
    * @param seed
    *   Seed for sampling.
    *
@@ -835,7 +994,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @param withReplacement
    *   Sample with replacement or not.
    * @param fraction
-   *   Fraction of rows to generate.
+   *   Fraction of rows to generate, range [0.0, 1.0].
    *
    * @note
    *   This is NOT guaranteed to provide exactly the fraction of the
@@ -914,6 +1073,70 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   ): Dataset[(U1, U2, U3, U4, U5)] = transformation(_.select(c1, c2, c3, c4, c5))
 
   /**
+   * Computes specified statistics for numeric and string columns.
+   * Available statistics are:
+   *
+   *   - count
+   *   - mean
+   *   - stddev
+   *   - min
+   *   - max
+   *   - arbitrary approximate percentiles specified as a percentage
+   *     (eg, 75%)
+   *
+   * If no statistics are given, this function computes count, mean,
+   * stddev, min, approximate quartiles (percentiles at 25%, 50%, and
+   * 75%), and max.
+   *
+   * This function is meant for exploratory data analysis, as we make no
+   * guarantee about the backward compatibility of the schema of the
+   * resulting Dataset. If you want to programmatically compute summary
+   * statistics, use the `agg` function instead.
+   *
+   * {{{
+   *   ds.summary().show()
+   *
+   *   // output:
+   *   // summary age   height
+   *   // count   10.0  10.0
+   *   // mean    53.3  178.05
+   *   // stddev  11.6  15.7
+   *   // min     18.0  163.0
+   *   // 25%     24.0  176.0
+   *   // 50%     24.0  176.0
+   *   // 75%     32.0  180.0
+   *   // max     92.0  192.0
+   * }}}
+   *
+   * {{{
+   *   ds.summary("count", "min", "25%", "75%", "max").show()
+   *
+   *   // output:
+   *   // summary age   height
+   *   // count   10.0  10.0
+   *   // min     18.0  163.0
+   *   // 25%     24.0  176.0
+   *   // 75%     32.0  180.0
+   *   // max     92.0  192.0
+   * }}}
+   *
+   * To do a summary for specific columns first select them:
+   *
+   * {{{
+   *   ds.select("age", "height").summary().show()
+   * }}}
+   *
+   * See also [[describe]] for basic statistics.
+   *
+   * @param statistics
+   *   Statistics from above list to be computed.
+   *
+   * @group action
+   * @since 2.3.0
+   */
+  def summary(statistics: String*): DataFrame = transformation(_.summary(statistics: _*))
+
+  /**
    * Converts this strongly typed collection of data to generic
    * Dataframe. In contrast to the strongly typed objects that Dataset
    * operations work on, a Dataframe returns generic [[Row]] objects
@@ -934,10 +1157,34 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
-   * another Dataset. This is equivalent to `UNION ALL` in SQL.
+   * another Dataset.
    *
-   * To do a SQL-style set union (that does deduplication of elements),
-   * use this function followed by a [[distinct]].
+   * This is equivalent to `UNION ALL` in SQL. To do a SQL-style set
+   * union (that does deduplication of elements), use this function
+   * followed by a [[distinct]].
+   *
+   * Also as standard in SQL, this function resolves columns by position
+   * (not by name):
+   *
+   * {{{
+   *   val df1 = Seq((1, 2, 3)).toDF("col0", "col1", "col2")
+   *   val df2 = Seq((4, 5, 6)).toDF("col1", "col2", "col0")
+   *   df1.union(df2).show
+   *
+   *   // output:
+   *   // +----+----+----+
+   *   // |col0|col1|col2|
+   *   // +----+----+----+
+   *   // |   1|   2|   3|
+   *   // |   4|   5|   6|
+   *   // +----+----+----+
+   * }}}
+   *
+   * Notice that the column positions in the schema aren't necessarily
+   * matched with the fields in the strongly typed objects in a Dataset.
+   * This function resolves columns by their positions in the schema,
+   * not the fields in the strongly typed objects. Use [[unionByName]]
+   * to resolve columns by field name in the typed objects.
    *
    * @group typedrel
    * @since 2.0.0
@@ -946,16 +1193,50 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
-   * another Dataset. This is equivalent to `UNION ALL` in SQL.
+   * another Dataset.
    *
-   * To do a SQL-style set union (that does deduplication of elements),
-   * use this function followed by a [[distinct]].
+   * This is equivalent to `UNION ALL` in SQL. To do a SQL-style set
+   * union (that does deduplication of elements), use this function
+   * followed by a [[distinct]].
+   *
+   * Also as standard in SQL, this function resolves columns by position
+   * (not by name).
    *
    * @group typedrel
    * @since 2.0.0
    */
   @deprecated("use union()", "2.0.0")
   def unionAll(other: Dataset[T]): Dataset[T] = transformation(_.unionAll(other))
+
+  /**
+   * Returns a new Dataset containing union of rows in this Dataset and
+   * another Dataset.
+   *
+   * This is different from both `UNION ALL` and `UNION DISTINCT` in
+   * SQL. To do a SQL-style set union (that does deduplication of
+   * elements), use this function followed by a [[distinct]].
+   *
+   * The difference between this function and [[union]] is that this
+   * function resolves columns by name (not by position):
+   *
+   * {{{
+   *   val df1 = Seq((1, 2, 3)).toDF("col0", "col1", "col2")
+   *   val df2 = Seq((4, 5, 6)).toDF("col1", "col2", "col0")
+   *   df1.unionByName(df2).show
+   *
+   *   // output:
+   *   // +----+----+----+
+   *   // |col0|col1|col2|
+   *   // +----+----+----+
+   *   // |   1|   2|   3|
+   *   // |   6|   4|   5|
+   *   // +----+----+----+
+   * }}}
+   *
+   * @group typedrel
+   * @since 2.3.0
+   */
+  def unionByName(other: Dataset[T]): Dataset[T] = transformation(_.unionByName(other))
 
   /**
    * Returns a new Dataset with a column renamed. This is a no-op if
@@ -968,16 +1249,17 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     transformation(_.withColumnRenamed(existingName, newName))
 
   /**
-   * :: Experimental :: Defines an event time watermark for this
-   * [[Dataset]]. A watermark tracks a point in time before which we
-   * assume no more late data is going to arrive.
+   * Defines an event time watermark for this [[Dataset]]. A watermark
+   * tracks a point in time before which we assume no more late data is
+   * going to arrive.
    *
    * Spark will use this watermark for several purposes:
    *   - To know when a given time window aggregation can be finalized
    *     and thus can be emitted when using output modes that do not
    *     allow updates.
    *   - To minimize the amount of state that we need to keep for
-   *     on-going aggregations.
+   *     on-going aggregations, `mapGroupsWithState` and
+   *     `dropDuplicates` operators.
    *
    * The current watermark is computed by looking at the
    * `MAX(eventTime)` seen across all of the partitions in the query
@@ -1050,7 +1332,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *   - When `U` is a class, fields for the class will be mapped to
    *     columns of the same name (case sensitivity is determined by
    *     `spark.sql.caseSensitive`).
-   *   - When `U` is a tuple, the columns will be be mapped by ordinal
+   *   - When `U` is a tuple, the columns will be mapped by ordinal
    *     (i.e. the first column will be assigned to `_1`).
    *   - When `U` is a primitive type (i.e. String, Int, etc), then the
    *     first column of the `DataFrame` will be used.
@@ -1070,7 +1352,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as)
 
   /**
-   * Computes statistics for numeric and string columns, including
+   * Computes basic statistics for numeric and string columns, including
    * count, mean, stddev, min, and max. If no columns are given, this
    * function computes statistics for all numerical or string columns.
    *
@@ -1091,6 +1373,12 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *   // max     92.0  192.0
    * }}}
    *
+   * Use [[summary]] for expanded statistics and control over which
+   * statistics to compute.
+   *
+   * @param cols
+   *   Columns to compute statistics on.
+   *
    * @group action
    * @since 1.6.0
    */
@@ -1099,6 +1387,14 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   /**
    * Returns a new Dataset with duplicate rows removed, considering only
    * the subset of columns.
+   *
+   * For a static batch [[Dataset]], it just drops duplicate rows. For a
+   * streaming [[Dataset]], it will keep all data across triggers as
+   * intermediate state to drop duplicates rows. You can use
+   * [[withWatermark]] to limit how late the duplicate data can be and
+   * system will accordingly limit the state. In addition, too late data
+   * older than watermark will be dropped to avoid any possibility of
+   * duplicates.
    *
    * @group typedrel
    * @since 2.0.0
@@ -1109,6 +1405,14 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   /**
    * Returns a new [[Dataset]] with duplicate rows removed, considering
    * only the subset of columns.
+   *
+   * For a static batch [[Dataset]], it just drops duplicate rows. For a
+   * streaming [[Dataset]], it will keep all data across triggers as
+   * intermediate state to drop duplicates rows. You can use
+   * [[withWatermark]] to limit how late the duplicate data can be and
+   * system will accordingly limit the state. In addition, too late data
+   * older than watermark will be dropped to avoid any possibility of
+   * duplicates.
    *
    * @group typedrel
    * @since 2.0.0
@@ -1323,7 +1627,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @param joinType
    *   Type of join to perform. Default `inner`. Must be one of:
    *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
-   *   `left_outer`, `right`, `right_outer`, `left_semi`, `left_anti`.
+   *   `left_outer`, `right`, `right_outer`.
    *
    * @group typedrel
    * @since 1.6.0
@@ -1391,6 +1695,38 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    */
   def repartition(partitionExprs: Column*): TryAnalysis[Dataset[T]] =
     transformationWithAnalysis(_.repartition(partitionExprs: _*))
+
+  /**
+   * Returns a new Dataset partitioned by the given partitioning
+   * expressions into `numPartitions`. The resulting Dataset is range
+   * partitioned.
+   *
+   * At least one partition-by expression must be specified. When no
+   * explicit sort order is specified, "ascending nulls first" is
+   * assumed. Note, the rows are not sorted in each partition of the
+   * resulting Dataset.
+   *
+   * @group typedrel
+   * @since 2.3.0
+   */
+  def repartitionByRange(numPartitions: Int, partitionExprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.repartitionByRange(numPartitions, partitionExprs: _*))
+
+  /**
+   * Returns a new Dataset partitioned by the given partitioning
+   * expressions, using `spark.sql.shuffle.partitions` as number of
+   * partitions. The resulting Dataset is range partitioned.
+   *
+   * At least one partition-by expression must be specified. When no
+   * explicit sort order is specified, "ascending nulls first" is
+   * assumed. Note, the rows are not sorted in each partition of the
+   * resulting Dataset.
+   *
+   * @group typedrel
+   * @since 2.3.0
+   */
+  def repartitionByRange(partitionExprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.repartitionByRange(partitionExprs: _*))
 
   /**
    * Selects a set of column based expressions.

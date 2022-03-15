@@ -61,7 +61,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * Returns a new `DataFrame` that replaces null or NaN values in
    * numeric columns with `value`.
    *
-   * @since 2.1.1
+   * @since 2.2.0
    */
   def fill(value: Long): DataFrame = transformation(_.fill(value))
 
@@ -79,6 +79,14 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * @since 1.3.1
    */
   def fill(value: String): DataFrame = transformation(_.fill(value))
+
+  /**
+   * Returns a new `DataFrame` that replaces null values in boolean
+   * columns with `value`.
+   *
+   * @since 2.3.0
+   */
+  def fill(value: Boolean): DataFrame = transformation(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null values.
@@ -138,7 +146,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * specified numeric columns. If a specified column is not a numeric
    * column, it is ignored.
    *
-   * @since 2.1.1
+   * @since 2.2.0
    */
   def fill(value: Long, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
@@ -161,11 +169,16 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
   def fill(value: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
 
   /**
-   * Replaces values matching keys in `replacement` map. Key and value
-   * of `replacement` map must have the same type, and can only be
-   * doubles, strings or booleans. If `col` is "*", then the replacement
-   * is applied on all string columns , numeric columns or boolean
-   * columns.
+   * Returns a new `DataFrame` that replaces null values in specified
+   * boolean columns. If a specified column is not a boolean column, it
+   * is ignored.
+   *
+   * @since 2.3.0
+   */
+  def fill(value: Boolean, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
+
+  /**
+   * Replaces values matching keys in `replacement` map.
    *
    * {{{
    *   // Replaces all occurrences of 1.0 with 2.0 in column "height".
@@ -179,9 +192,13 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * }}}
    *
    * @param col
-   *   name of the column to apply the value replacement
+   *   name of the column to apply the value replacement. If `col` is
+   *   "*", replacement is applied on all string, numeric or boolean
+   *   columns.
    * @param replacement
-   *   value replacement map, as explained above
+   *   value replacement map. Key and value of `replacement` map must
+   *   have the same type, and can only be doubles, strings or booleans.
+   *   The map value can have nulls.
    *
    * @since 1.3.1
    */
@@ -189,9 +206,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
     transformationWithAnalysis(_.replace(col, replacement))
 
   /**
-   * Replaces values matching keys in `replacement` map. Key and value
-   * of `replacement` map must have the same type, and can only be
-   * doubles , strings or booleans.
+   * Replaces values matching keys in `replacement` map.
    *
    * {{{
    *   // Replaces all occurrences of 1.0 with 2.0 in column "height" and "weight".
@@ -202,9 +217,12 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * }}}
    *
    * @param cols
-   *   list of columns to apply the value replacement
+   *   list of columns to apply the value replacement. If `col` is "*",
+   *   replacement is applied on all string, numeric or boolean columns.
    * @param replacement
-   *   value replacement map, as explained above
+   *   value replacement map. Key and value of `replacement` map must
+   *   have the same type, and can only be doubles, strings or booleans.
+   *   The map value can have nulls.
    *
    * @since 1.3.1
    */

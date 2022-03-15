@@ -204,14 +204,13 @@ object GenerationPlan {
 
           val rddSpecificImports =
             scalaBinaryVersion match {
-              case ScalaBinaryVersion.V2_13 =>
+              case ScalaBinaryVersion.V2_11 =>
+                s"""import org.apache.spark.rdd.RDDBarrier
+                   |""".stripMargin
+              case _ =>
                 s"""import org.apache.spark.rdd.RDDBarrier
                    |import org.apache.spark.resource.ResourceProfile
                    |""".stripMargin
-              case ScalaBinaryVersion.V2_12 =>
-                s"""import org.apache.spark.rdd.RDDBarrier
-                   |""".stripMargin
-              case _ => ""
             }
 
           s"""$rddCommonImports
@@ -245,7 +244,11 @@ object GenerationPlan {
                 s"""import org.apache.spark.sql.execution.ExplainMode
                    |import scala.jdk.CollectionConverters._
                    |""".stripMargin
-              case _ =>
+              case ScalaBinaryVersion.V2_12 =>
+                s"""import org.apache.spark.sql.execution.ExplainMode
+                   |import scala.collection.JavaConverters._
+                   |""".stripMargin
+              case ScalaBinaryVersion.V2_11 =>
                 s"""import org.apache.spark.sql.execution.command.ExplainCommand
                    |import scala.collection.JavaConverters._
                    |""".stripMargin
