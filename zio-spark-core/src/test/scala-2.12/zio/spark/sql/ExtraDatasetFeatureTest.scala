@@ -29,7 +29,7 @@ object ExtraDatasetFeatureTest {
         for {
           df     <- read
           transformedDf = df.withColumnRenamed("name", "fullname").filter($"age" > 30)
-          _      <- transformedDf.explain
+          _      <- transformedDf.explain("simple")
           output <- TestConsole.output
           representation = output.mkString("\n")
         } yield assertTrue(representation.contains("== Physical Plan =="))

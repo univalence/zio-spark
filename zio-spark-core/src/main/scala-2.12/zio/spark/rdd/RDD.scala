@@ -12,6 +12,7 @@ import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
 import org.apache.spark.partial.{BoundedDouble, PartialResult}
 import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD}
 import org.apache.spark.rdd.RDDBarrier
+import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.storage.StorageLevel
 
 import zio._
@@ -131,7 +132,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * The algorithm used is based on streamlib's implementation of
    * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
    * Art Cardinality Estimation Algorithm", available <a
-   * href="http://dx.doi.org/10.1145/2452376.2452456">here</a>.
+   * href="https://doi.org/10.1145/2452376.2452456">here</a>.
    *
    * The relative accuracy is approximately `1.054 / sqrt(2^p)`. Setting
    * a nonzero (`sp` is greater than `p`) would trigger sparse
@@ -153,7 +154,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * The algorithm used is based on streamlib's implementation of
    * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
    * Art Cardinality Estimation Algorithm", available <a
-   * href="http://dx.doi.org/10.1145/2452376.2452456">here</a>.
+   * href="https://doi.org/10.1145/2452376.2452456">here</a>.
    *
    * @param relativeSD
    *   Relative accuracy. Smaller values create counters that require
@@ -246,7 +247,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   /**
    * Internal method to this RDD; will read from cache if applicable, or
    * otherwise compute it. This should ''not'' be called by users
-   * directly, but is available for implementors of custom subclasses of
+   * directly, but is available for implementers of custom subclasses of
    * RDD.
    */
   def iterator(split: Partition, context: TaskContext): Task[Iterator[T]] = action(_.iterator(split, context))
@@ -463,6 +464,15 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   def getCheckpointFile: Task[Option[String]] = action(_.getCheckpointFile)
 
   /**
+   * Get the ResourceProfile specified with this RDD or null if it
+   * wasn't specified.
+   * @return
+   *   the user specified ResourceProfile or null (for Java
+   *   compatibility) if none was specified
+   */
+  def getResourceProfile: Task[ResourceProfile] = action(_.getResourceProfile())
+
+  /**
    * Get the RDD's current storage level, or StorageLevel.NONE if none
    * is set.
    */
@@ -519,11 +529,11 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * memory and disk.
    *
    * @param blocking
-   *   Whether to block until all blocks are deleted.
+   *   Whether to block until all blocks are deleted (default: false)
    * @return
    *   This RDD.
    */
-  def unpersist(blocking: Boolean = true): Task[RDD[T]] = action(_.unpersist(blocking))
+  def unpersist(blocking: Boolean = false): Task[RDD[T]] = action(_.unpersist(blocking))
 
   // ===============
 
@@ -741,9 +751,6 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    *
    * If you are decreasing the number of partitions in this RDD,
    * consider using `coalesce`, which can avoid performing a shuffle.
-   *
-   * TODO Fix the Shuffle+Repartition data loss issue described in
-   * SPARK-23207.
    */
   def repartition(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T] =
     transformation(_.repartition(numPartitions))
@@ -804,6 +811,14 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * them).
    */
   def union(other: RDD[T]): RDD[T] = transformation(_.union(other))
+
+  /**
+   * Specify a ResourceProfile to use when calculating this RDD. This is
+   * only supported on certain cluster managers and currently requires
+   * dynamic allocation to be enabled. It will result in new executors
+   * with the resources specified being acquired to calculate the RDD.
+   */
+  def withResources(rp: ResourceProfile): RDD[T] = transformation(_.withResources(rp))
 
   /**
    * Zips this RDD with another one, returning key-value pairs with the

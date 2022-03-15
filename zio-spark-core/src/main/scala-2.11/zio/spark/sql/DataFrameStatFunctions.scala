@@ -245,10 +245,10 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * frequencies will be returned. The first column of each row will be
    * the distinct values of `col1` and the column names will be the
    * distinct values of `col2`. The name of the first column will be
-   * `$col1_$col2`. Counts will be returned as `Long`s. Pairs that have
-   * no occurrences will have zero as their counts. Null elements will
-   * be replaced by "null", and back ticks will be dropped from elements
-   * if they exist.
+   * `col1_col2`. Counts will be returned as `Long`s. Pairs that have no
+   * occurrences will have zero as their counts. Null elements will be
+   * replaced by "null", and back ticks will be dropped from elements if
+   * they exist.
    *
    * @param col1
    *   The name of the first column. Distinct items will make the first
