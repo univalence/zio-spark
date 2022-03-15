@@ -3,13 +3,34 @@ package zio.spark.effect
 import org.apache.spark.SparkContext
 import org.apache.spark.annotation.Experimental
 
-import zio.UIO
-import zio.spark.sql.Spark
+import zio.{Executor, UIO, ZIO}
+import zio.internal.ExecutionMetrics
+import zio.spark.sql.{Spark, SparkSession}
 
-import scala.concurrent.ExecutionContext
 import scala.util.Random
 
 object CancellableEffect {
+
+  private def setGroupNameExecutor(
+      executor: zio.Executor,
+      sparkContext: SparkContext,
+      groupName: String
+  ): zio.Executor =
+    new Executor {
+      override def unsafeMetrics: Option[ExecutionMetrics] = executor.unsafeMetrics
+
+      override def unsafeSubmit(runnable: Runnable): Boolean =
+        executor.unsafeSubmit(new Runnable {
+          override def run(): Unit = {
+            if (!Option(sparkContext.getLocalProperty("spark.jobGroup.id")).contains(groupName))
+              sparkContext.setJobGroup(groupName, "cancellable job group")
+
+            runnable.run()
+          }
+        })
+
+      override def yieldOpCount: Int = executor.yieldOpCount
+    }
 
   /**
    * Make a spark job cancellable by using a unique jobGroup to send a
@@ -26,36 +47,14 @@ object CancellableEffect {
    * @return
    */
   @Experimental
-  def makeItCancellable[T](job: Spark[T]): Spark[T] = {
-    val newGroupName = UIO("cancellable-group-" + Random.alphanumeric.take(6).mkString)
+  def makeItCancellable[T](job: Spark[T]): Spark[T] =
+    for {
+      groupName <- UIO("cancellable-group-" + Random.alphanumeric.take(6).mkString) // FIND A SEQ GEN ?
+      sc        <- zio.spark.sql.fromSpark(_.sparkContext)
+      runtime   <- ZIO.runtime[SparkSession]
+      executor = setGroupNameExecutor(runtime.runtimeConfig.executor, sc, groupName)
+      x <- job.onExecutor(executor).disconnect.onInterrupt(UIO(sc.cancelJobGroup(groupName)))
+    } yield x
 
-    zio.spark.sql
-      .fromSpark(_.sparkContext)
-      .flatMap(sc =>
-        newGroupName.flatMap(groupName =>
-          job
-            .onExecutionContext(executorContext(sc, groupName))
-            .disconnect // you need to disconnect first, before adding onInterrupt
-            .onInterrupt(UIO(sc.cancelJobGroup(groupName)))
-        )
-      )
-  }
 
-  //TODO : BUILD EXECUTION CONTEXT FROM THE EXISTING ZIO CONTEXT (zio.Runtime.config ...)
-  private def executorContext(sparkContext: SparkContext, groupName: String): ExecutionContext =
-    new ExecutionContext {
-      val global: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-
-      override def execute(runnable: Runnable): Unit =
-        global.execute(new Runnable {
-          override def run(): Unit = {
-            if (!Option(sparkContext.getLocalProperty("spark.jobGroup.id")).contains(groupName))
-              sparkContext.setJobGroup(groupName, "cancellable job group")
-
-            runnable.run()
-          }
-        })
-
-      override def reportFailure(cause: Throwable): Unit = global.reportFailure(cause)
-    }
 }
