@@ -12,7 +12,7 @@ object SimpleApp extends ZIOAppDefault {
 
   final case class Person(name: String, age: Int)
 
-  val filePath: String = "examples/src/main/resources/data.csv"
+  val filePath: String = getClass.getResource("/data.csv").getPath
 
   def read: Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
 

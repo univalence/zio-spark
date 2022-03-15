@@ -6,15 +6,13 @@ import zio._
 import zio.spark.parameter._
 import zio.spark.sql._
 
-import scala.io.Source
-
 object UsingOlderSparkVersion extends ZIOAppDefault {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
   final case class Person(name: String, age: Int)
 
-  val filePath: String = Source.fromURL(getClass.getResource("/data.csv"))
+  val filePath: String = getClass.getResource("/data.csv").getPath
 
   def read: Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
 
