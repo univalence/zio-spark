@@ -59,7 +59,7 @@ case class GenerationPlan(
 
   /** @return the methods of the spark source file. */
   lazy val sourceMethods: Seq[Method] =
-    functionsFromFile(source, false)
+    functionsFromFile(source, filterOverlay = false)
       .filterNot(_.fullName.contains("$"))
       .filterNot(_.fullName.contains("java.lang.Object"))
       .filterNot(_.fullName.contains("scala.Any"))
@@ -70,7 +70,9 @@ case class GenerationPlan(
       .filterNot(_.anyParameters.map(_.signature).exists(_.contains("Array"))) // Java specific implementation
 
   lazy val overlayMethods: Seq[Method] =
-    overlay.map(functionsFromFile(_, true)).getOrElse(Seq.empty) ++ overlaySpecific.map(functionsFromFile(_, true)).getOrElse(Seq.empty)
+    overlay.map(functionsFromFile(_, filterOverlay = true)).getOrElse(Seq.empty) ++ overlaySpecific
+      .map(functionsFromFile(_, filterOverlay = true))
+      .getOrElse(Seq.empty)
 
   lazy val methods: Seq[Method] = sourceMethods ++ overlayMethods
 }
@@ -116,9 +118,12 @@ object GenerationPlan {
           case DatasetPlan =>
             s"""$defaultImplicits
                |
-               |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = iterator.asScala
-               |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions = DataFrameNaFunctions(x)
-               |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions = DataFrameStatFunctions(x)""".stripMargin
+               |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = 
+               |  iterator.asScala
+               |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions = 
+               |  DataFrameNaFunctions(x)
+               |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions = 
+               |  DataFrameStatFunctions(x)""".stripMargin
           case _ => ""
         }
 
@@ -130,60 +135,16 @@ object GenerationPlan {
       } else allImplicits
     }
 
-    final def helpers: String = {
-      val operations =
-        s"""/** Applies an action to the underlying $name. */
-           |def action[U](f: Underlying$name[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
-           |
-           |/** Applies a transformation to the underlying $name. */
-           |def transformation[U](f: Underlying$name[T] => Underlying$name[U]): $name[U] = $name(get(f))""".stripMargin
+    import GenerationPlan.Helper.*
 
-      val get =
-        s"""/** Applies an action to the underlying $name. */
-           |def get[U](f: Underlying$name$tparam => U): U = f(underlying$name)""".stripMargin
-
-      val getWithAnalysis =
-        s"""/**
-           | * Wraps a function into a TryAnalysis.
-           | */
-           |def getWithAnalysis[U](f: Underlying$name$tparam => U): TryAnalysis[U] =
-           |  TryAnalysis(get(f))""".stripMargin
-
-      val gets = get + "\n\n" + getWithAnalysis
-
-      val transformations =
-        s"""/**
-           | * Applies a transformation to the underlying $name.
-           | */
-           |def transformation(f: Underlying$name => UnderlyingDataFrame): DataFrame =
-           |  Dataset(f(underlying$name))
-           |
-           |/**
-           | * Applies a transformation to the underlying $name, it is used for
-           | * transformations that can fail due to an AnalysisException.
-           | */
-           |def transformationWithAnalysis(f: Underlying$name => UnderlyingDataFrame): TryAnalysis[DataFrame] =
-           |  TryAnalysis(transformation(f))
-           |""".stripMargin
-
+    final def helpers: Helper =
       fold {
-        case RDDPlan => operations + "\n\n" + get
-        case DatasetPlan =>
-          s"""
-             |$operations
-             |
-             |/**
-             | * Applies a transformation to the underlying dataset, it is used for
-             | * transformations that can fail due to an AnalysisException.
-             | */
-             |def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
-             |  TryAnalysis(transformation(f))
-             |
-             |$gets""".stripMargin
-        case DataFrameNaFunctionsPlan   => transformations
-        case DataFrameStatFunctionsPlan => gets + "\n\n" + transformations
+        case RDDPlan                      => action && transformation && get
+        case DatasetPlan                  => action && transformations && gets
+        case DataFrameNaFunctionsPlan     => unpacks
+        case DataFrameStatFunctionsPlan   => unpacks && transformations && gets
+        case RelationalGroupedDatasetPlan => unpacks && transformations && gets
       }
-    }
 
     final def imports(scalaBinaryVersion: ScalaBinaryVersion): String =
       fold {
@@ -270,6 +231,15 @@ object GenerationPlan {
             |}
             |import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
             |""".stripMargin
+        case RelationalGroupedDatasetPlan =>
+          """import org.apache.spark.sql.{
+            |  Column,
+            |  DataFrame => UnderlyingDataFrame,
+            |  Encoder,
+            |  KeyValueGroupedDataset,
+            |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
+            |}
+            |""".stripMargin
       }
 
     final def suppressWarnings: String =
@@ -295,7 +265,7 @@ object GenerationPlan {
          |$definition { self =>
          |$implicits
          |
-         |$helpers
+         |${helpers.constructor(name, hasTypeParameter)}
          |
          |  // Handmade functions specific to zio-spark
          |  
@@ -320,23 +290,13 @@ object GenerationPlan {
       } yield GenerationPlan(self, sparkSources, overlaySources, overlaySpecificSources, version)
 
     @inline final def fold[C](planType: PlanType => C): C = planType(this)
-
-    final def fold[C](rdd: => C, dataset: => C, dataFrameNa: => C, dataFrameStat: => C): C =
-      this match {
-        case RDDPlan                    => rdd
-        case DatasetPlan                => dataset
-        case DataFrameNaFunctionsPlan   => dataFrameNa
-        case DataFrameStatFunctionsPlan => dataFrameStat
-      }
   }
 
-  case object RDDPlan extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-
-  case object DatasetPlan extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-
-  case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
-
-  case object DataFrameStatFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
+  case object RDDPlan                      extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
+  case object DatasetPlan                  extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
+  case object DataFrameNaFunctionsPlan     extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object DataFrameStatFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
+  case object RelationalGroupedDatasetPlan extends PlanType("spark-sql", "org/apache/spark/sql/RelationalGroupedDataset.scala")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
 
@@ -362,5 +322,78 @@ object GenerationPlan {
         .get,
       false
     )
+
+  case class Helper(constructor: (String, Boolean) => String) { self =>
+    def &&(other: Helper): Helper = Helper((name, withParam) => self.constructor(name, withParam) + "\n\n" + other.constructor(name, withParam))
+  }
+  object Helper {
+    val action: Helper =
+      Helper { (name, withParam) =>
+        val tParam = if (withParam) "[T]" else ""
+        s"""/** Applies an action to the underlying $name. */
+           |def action[U](f: Underlying$name$tParam => U): Task[U] = ZIO.attemptBlocking(get(f))""".stripMargin
+      }
+
+    val transformation: Helper =
+      Helper { (name, withParam) =>
+        val tParam = if (withParam) "[T]" else ""
+        val uParam = if (withParam) "[U]" else ""
+        s"""/** Applies a transformation to the underlying $name. */
+           |def transformation$uParam(f: Underlying$name$tParam => Underlying$name$uParam): $name$uParam = 
+           |  $name(f(underlying$name))""".stripMargin
+      }
+
+    val transformationWithAnalysis: Helper =
+      Helper { (name, withParam) =>
+        val tParam = if (withParam) "[T]" else ""
+        val uParam = if (withParam) "[U]" else ""
+        s"""/** Applies a transformation to the underlying $name, it is used for
+           | * transformations that can fail due to an AnalysisException. */
+           |def transformationWithAnalysis$uParam(f: Underlying$name$tParam => Underlying$name$uParam): TryAnalysis[$name$uParam] = 
+           |  TryAnalysis(transformation(f))""".stripMargin
+      }
+
+    val transformations: Helper = transformation && transformationWithAnalysis
+
+    val get: Helper =
+      Helper { (name, withParam) =>
+        val tParam = if (withParam) "[T]" else ""
+        s"""/** Applies an action to the underlying $name. */
+           |def get[U](f: Underlying$name$tParam => U): U = f(underlying$name)""".stripMargin
+      }
+
+    val getWithAnalysis: Helper =
+      Helper { (name, withParam) =>
+        val tParam = if (withParam) "[T]" else ""
+        s"""/** Applies an action to the underlying $name, it is used for
+           | * transformations that can fail due to an AnalysisException.
+           | */
+           |def getWithAnalysis[U](f: Underlying$name$tParam => U): TryAnalysis[U] = 
+           |  TryAnalysis(f(underlying$name))""".stripMargin
+      }
+
+    val gets: Helper = get && getWithAnalysis
+
+    val unpack: Helper =
+      Helper { (name, _) =>
+        s"""/**
+           | * Unpack the underlying $name into a DataFrame.
+           | */
+           |def unpack(f: Underlying$name => UnderlyingDataFrame): DataFrame =
+           |  Dataset(f(underlying$name))""".stripMargin
+      }
+
+    val unpackWithAnalysis: Helper =
+      Helper { (name, _) =>
+        s"""/**
+           | * Unpack the underlying $name into a DataFrame, it is used for
+           | * transformations that can fail due to an AnalysisException.
+           | */
+           |def unpackWithAnalysis(f: Underlying$name => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+           |  TryAnalysis(unpack(f))""".stripMargin
+      }
+
+    val unpacks: Helper = unpack && unpackWithAnalysis
+  }
 
 }

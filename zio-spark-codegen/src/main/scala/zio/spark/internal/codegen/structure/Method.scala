@@ -47,6 +47,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             case MethodType.GetWithAnalysis            => "getWithAnalysis"
             case MethodType.TransformationWithAnalysis => "transformationWithAnalysis"
             case MethodType.Transformation             => "transformation"
+            case MethodType.UnpackWithAnalysis         => "unpackWithAnalysis"
+            case MethodType.Unpack                     => "unpack"
             case _                                     => "get"
           }
 
@@ -58,6 +60,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             case MethodType.DistributedComputation     => s"Task[$cleanReturnType]"
             case MethodType.GetWithAnalysis            => s"TryAnalysis[$cleanReturnType]"
             case MethodType.TransformationWithAnalysis => s"TryAnalysis[$cleanReturnType]"
+            case MethodType.UnpackWithAnalysis         => s"TryAnalysis[$cleanReturnType]"
             case _                                     => cleanReturnType
           }
 
