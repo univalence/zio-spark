@@ -16,6 +16,7 @@ import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.storage.StorageLevel
 
 import zio._
+import zio.spark.UnavailableMethod
 
 import scala.collection.Map
 import scala.io.Codec
@@ -32,7 +33,12 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   // scalafix:on
 
   /** Applies an action to the underlying RDD. */
-  def action[U](f: UnderlyingRDD[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
+  def action[U](f: UnderlyingRDD[T] => U): Task[U] =
+    ZIO
+      .attempt(get(f))
+      .unrefineWith[Throwable] { case m: NoSuchMethodError =>
+        new UnavailableMethod("0", m)
+      }(identity)
 
   /** Applies a transformation to the underlying RDD. */
   def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = RDD(get(f))

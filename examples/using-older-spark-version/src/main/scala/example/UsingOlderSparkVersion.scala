@@ -33,7 +33,10 @@ object UsingOlderSparkVersion extends ZIOAppDefault {
         }
     } yield ()
 
+  val usingNewMethod: ZIO[SparkSession with Console, Throwable, Unit] =
+    Seq(1, 2, 3).toDataset flatMap (x => x.unionByName(x, allowMissingColumns = true).explain("simple"))
+
   private val session = SparkSession.builder.master(localAllNodes).appName("app").getOrCreateLayer
 
-  override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
+  override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = (job *> usingNewMethod).provideCustomLayer(session)
 }

@@ -23,6 +23,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
 import zio._
+import zio.spark.UnavailableMethod
 import zio.spark.rdd._
 
 import scala.collection.JavaConverters._
@@ -41,7 +42,12 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
-  def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
+  def action[U](f: UnderlyingDataset[T] => U): Task[U] =
+    ZIO
+      .attempt(get(f))
+      .unrefineWith[Throwable] { case m: NoSuchMethodError =>
+        new UnavailableMethod("0", m)
+      }(identity)
 
   /** Applies a transformation to the underlying Dataset. */
   def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(get(f))

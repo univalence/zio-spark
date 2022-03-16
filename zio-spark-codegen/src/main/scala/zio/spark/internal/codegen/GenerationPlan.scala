@@ -131,9 +131,15 @@ object GenerationPlan {
     }
 
     final def helpers: String = {
+      // action should use attempt and not attemptBlocking for now
       val operations =
         s"""/** Applies an action to the underlying $name. */
-           |def action[U](f: Underlying$name[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
+           |def action[U](f: Underlying$name[T] => U): Task[U] = ZIO
+           |      .attempt(get(f))
+           |      .unrefineWith[Throwable]({
+           |        case m: NoSuchMethodError => new UnavailableMethod("0", m)
+           |      })(identity)
+           |
            |
            |/** Applies a transformation to the underlying $name. */
            |def transformation[U](f: Underlying$name[T] => Underlying$name[U]): $name[U] = $name(get(f))""".stripMargin
@@ -196,6 +202,7 @@ object GenerationPlan {
               |import org.apache.spark.storage.StorageLevel
               |
               |import zio._
+              |import zio.spark.UnavailableMethod
               |
               |import scala.collection.Map
               |import scala.io.Codec
@@ -234,6 +241,8 @@ object GenerationPlan {
               |
               |import zio._
               |import zio.spark.rdd._
+              |import zio.spark.UnavailableMethod
+              |
               |
               |import scala.reflect.runtime.universe.TypeTag
               |""".stripMargin

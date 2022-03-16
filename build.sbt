@@ -143,6 +143,7 @@ lazy val exampleWordCount              = (project in file("examples/word-count")
 lazy val examples =
   (project in file("examples"))
     .aggregate(exampleSimpleApp, exampleSparkCodeMigration, exampleUsingOlderSparkVersion, exampleWordCount)
+    .settings(crossScalaVersions := Seq())
 
 /** Generates required libraries for spark. */
 def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
