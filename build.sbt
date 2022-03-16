@@ -1,5 +1,3 @@
-import sbt.librarymanagement.Configuration
-
 // Common configuration
 inThisBuild(
   List(
@@ -119,24 +117,40 @@ lazy val core =
     )
     .enablePlugins(ZioSparkCodegenPlugin)
 
+val exampleNames =
+  Seq(
+    "simple-app",
+    "spark-code-migration",
+    "using-older-spark-version",
+    "word-count"
+  )
+
+def example(project: Project): Project =
+  project
+    .dependsOn(core)
+    // run is forcing the exit of sbt. It could be useful to set fork to true
+    /* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the
+     * project root (./) */
+    /* which lead to errors, eg. Path does not exist:
+     * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
+    .settings(fork := false)
+
+lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
+lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
+lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
+lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
+
 lazy val examples =
   (project in file("examples"))
-    .settings(
-      scalaVersion      := scala.v213,
-      publish / skip    := true,
-      scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
-      libraryDependencies ++= generateSparkLibraryDependencies(scalaMajorVersion.value, conf = Compile),
-      scalacOptions ~= fatalWarningsAsProperties
-    )
-    .dependsOn(core)
+    .aggregate(exampleSimpleApp, exampleSparkCodeMigration, exampleUsingOlderSparkVersion, exampleWordCount)
 
 /** Generates required libraries for spark. */
-def generateSparkLibraryDependencies(scalaMinor: Long, conf: Configuration = Provided): Seq[ModuleID] = {
+def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core" % sparkVersion % conf withSources (),
-    "org.apache.spark" %% "spark-sql"  % sparkVersion % conf withSources ()
+    "org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources (),
+    "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()
   )
 }
 

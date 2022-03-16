@@ -1,17 +1,19 @@
+package example
+
 import org.apache.spark.sql.Row
 
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql._
+import zio.spark.sql.implicits._
 
-object CommonDatasetOperation extends ZIOAppDefault {
+object SimpleApp extends ZIOAppDefault {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
-  import zio.spark.sql.implicits._
 
   final case class Person(name: String, age: Int)
 
-  val filePath: String = "examples/src/main/resources/data.csv"
+  val filePath: String = "examples/simple-app/src/main/resources/data.csv"
 
   def read: Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
 
@@ -31,7 +33,7 @@ object CommonDatasetOperation extends ZIOAppDefault {
         }
     } yield ()
 
-  private val session = SparkSession.builder.master(localAllNodes).appName("zio-spark").getOrCreateLayer
+  private val session = SparkSession.builder.master(localAllNodes).appName("app").getOrCreateLayer
 
   override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
 }
