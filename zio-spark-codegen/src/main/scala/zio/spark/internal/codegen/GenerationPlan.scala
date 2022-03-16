@@ -289,13 +289,11 @@ object GenerationPlan {
     @inline final def fold[C](planType: PlanType => C): C = planType(this)
   }
 
-  case object RDDPlan                  extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-  case object DatasetPlan              extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-  case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
-  case object DataFrameStatFunctionsPlan
-      extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
-  case object RelationalGroupedDatasetPlan
-      extends PlanType("spark-sql", "org/apache/spark/sql/RelationalGroupedDataset.scala")
+  case object RDDPlan                      extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
+  case object DatasetPlan                  extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
+  case object DataFrameNaFunctionsPlan     extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object DataFrameStatFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
+  case object RelationalGroupedDatasetPlan extends PlanType("spark-sql", "org/apache/spark/sql/RelationalGroupedDataset.scala")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
 
@@ -323,8 +321,7 @@ object GenerationPlan {
     )
 
   case class Helper(constructor: (String, Boolean) => String) { self =>
-    def &&(other: Helper): Helper =
-      Helper((name, withParam) => self.constructor(name, withParam) + "\n\n" + other.constructor(name, withParam))
+    def &&(other: Helper): Helper = Helper((name, withParam) => self.constructor(name, withParam) + "\n\n" + other.constructor(name, withParam))
   }
   object Helper {
     val action: Helper =
