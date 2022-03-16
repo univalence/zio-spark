@@ -125,10 +125,24 @@ val exampleNames =
     "word-count"
   )
 
-lazy val exampleSimpleApp              = (project in file("examples/simple-app")).dependsOn(core)
-lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).dependsOn(core)
-lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).dependsOn(core)
-lazy val exampleWordCount              = (project in file("examples/word-count")).dependsOn(core)
+def example(project: Project): Project =
+  project
+    .dependsOn(core)
+    // run is forcing the exit of sbt. It could be useful to set fork to true
+    /* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the
+     * project root (./) */
+    /* which lead to errors, eg. Path does not exist:
+     * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
+    .settings(fork := false)
+
+lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
+lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
+lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
+lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
+
+lazy val examples =
+  (project in file("examples"))
+    .aggregate(exampleSimpleApp, exampleSparkCodeMigration, exampleUsingOlderSparkVersion, exampleWordCount)
 
 /** Generates required libraries for spark. */
 def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
