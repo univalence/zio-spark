@@ -34,7 +34,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   def action[U](f: UnderlyingRDD[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
 
   /** Applies a transformation to the underlying RDD. */
-  def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = RDD(get(f))
+  def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = RDD(f(underlyingRDD))
 
   /** Applies an action to the underlying RDD. */
   def get[U](f: UnderlyingRDD[T] => U): U = f(underlyingRDD)

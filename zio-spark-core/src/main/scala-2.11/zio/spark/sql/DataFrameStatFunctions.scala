@@ -16,25 +16,42 @@ import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
 
 final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: UnderlyingDataFrameStatFunctions) { self =>
 
-  /** Applies an action to the underlying DataFrameStatFunctions. */
-  def get[U](f: UnderlyingDataFrameStatFunctions => U): U = f(underlyingDataFrameStatFunctions)
+  /** Unpack the underlying DataFrameStatFunctions into a DataFrame. */
+  def unpack(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): DataFrame =
+    Dataset(f(underlyingDataFrameStatFunctions))
 
-  /** Wraps a function into a TryAnalysis. */
-  def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] = TryAnalysis(get(f))
+  /**
+   * Unpack the underlying DataFrameStatFunctions into a DataFrame, it
+   * is used for transformations that can fail due to an
+   * AnalysisException.
+   */
+  def unpackWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+    TryAnalysis(unpack(f))
 
   /**
    * Applies a transformation to the underlying DataFrameStatFunctions.
    */
-  def transformation(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): DataFrame =
-    Dataset(f(underlyingDataFrameStatFunctions))
+  def transformation(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
+    DataFrameStatFunctions(f(underlyingDataFrameStatFunctions))
 
   /**
    * Applies a transformation to the underlying DataFrameStatFunctions,
    * it is used for transformations that can fail due to an
    * AnalysisException.
    */
-  def transformationWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
-    TryAnalysis(transformation(f))
+  def transformationWithAnalysis(
+      f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrameStatFunctions
+  ): TryAnalysis[DataFrameStatFunctions] = TryAnalysis(transformation(f))
+
+  /** Applies an action to the underlying DataFrameStatFunctions. */
+  def get[U](f: UnderlyingDataFrameStatFunctions => U): U = f(underlyingDataFrameStatFunctions)
+
+  /**
+   * Applies an action to the underlying DataFrameStatFunctions, it is
+   * used for transformations that can fail due to an AnalysisException.
+   */
+  def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] =
+    TryAnalysis(f(underlyingDataFrameStatFunctions))
 
   // Handmade functions specific to zio-spark
 
@@ -275,7 +292,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    *
    * @since 1.4.0
    */
-  def crosstab(col1: String, col2: String): TryAnalysis[DataFrame] = transformationWithAnalysis(_.crosstab(col1, col2))
+  def crosstab(col1: String, col2: String): TryAnalysis[DataFrame] = unpackWithAnalysis(_.crosstab(col1, col2))
 
   /**
    * Finding frequent items for columns, possibly with false positives.
@@ -322,7 +339,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * @since 1.4.0
    */
   def freqItems(cols: Seq[String], support: Double): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.freqItems(cols, support))
+    unpackWithAnalysis(_.freqItems(cols, support))
 
   /**
    * Finding frequent items for columns, possibly with false positives.
@@ -343,7 +360,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    *
    * @since 1.4.0
    */
-  def freqItems(cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.freqItems(cols))
+  def freqItems(cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.freqItems(cols))
 
   /**
    * Returns a stratified sample without replacement based on the
@@ -377,6 +394,6 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * @since 1.5.0
    */
   def sampleBy[T](col: String, fractions: Map[T, Double], seed: Long): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.sampleBy(col, fractions, seed))
+    unpackWithAnalysis(_.sampleBy(col, fractions, seed))
 
 }

@@ -4,14 +4,10 @@ import sbt.internal.util.Attributed
 
 import zio.{Task, UIO, ZManaged}
 
-import scala.collection.immutable
 import scala.meta.*
-import scala.meta.tokens.Token
 import scala.util.matching.Regex
 
 import java.io.File
-import java.net.URLClassLoader
-import java.nio.file.{Files, Path}
 import java.util.jar.JarFile
 object GetSources {
 
@@ -36,9 +32,9 @@ object GetSources {
 
   def getSource(module: String, file: String)(classpath: sbt.Def.Classpath): zio.Task[meta.Source] =
     Task {
-      import scala.io.{BufferedSource, Source}
       import java.io.InputStream
       import java.util.zip.ZipEntry
+      import scala.io.{BufferedSource, Source}
 
       ZManaged
         .acquireReleaseWith(findSourceJar(module, classpath))(x => Task(x.close()).ignore)

@@ -44,10 +44,10 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
 
   /** Applies a transformation to the underlying Dataset. */
-  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(get(f))
+  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlyingDataset))
 
   /**
-   * Applies a transformation to the underlying dataset, it is used for
+   * Applies a transformation to the underlying Dataset, it is used for
    * transformations that can fail due to an AnalysisException.
    */
   def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
@@ -56,8 +56,11 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   /** Applies an action to the underlying Dataset. */
   def get[U](f: UnderlyingDataset[T] => U): U = f(underlyingDataset)
 
-  /** Wraps a function into a TryAnalysis. */
-  def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(get(f))
+  /**
+   * Applies an action to the underlying Dataset, it is used for
+   * transformations that can fail due to an AnalysisException.
+   */
+  def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(f(underlyingDataset))
 
   // Handmade functions specific to zio-spark
 
