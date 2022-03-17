@@ -38,6 +38,19 @@ If you want to get the very last version of this library you can still download 
 libraryDependencies += "io.univalence" %% "zio-spark" % "0.1.0"
 ```
 
+### Snapshots
+
+If you want to get the latest snapshots (the version associated with the last commit on master), you can still download
+it using:
+
+```scala
+resolvers += Resolver.sonatypeRepo("snapshots"),
+libraryDependencies += "io.univalence" %% "zio-spark" % "<snapshot-version>"
+```
+
+You can find the latest version on 
+[nexus repository manager](https://oss.sonatype.org/#nexus-search;gav~io.univalence~zio-spark_2.13~~~~kw,versionexpand).
+
 ### Spark Version
 
 zio-spark is built against spark 2.4.x and scala 2.12. Spark is provided, you should your Spark version (as you would
