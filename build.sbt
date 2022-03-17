@@ -1,6 +1,7 @@
 // Common configuration
 inThisBuild(
   List(
+    version ~= addVersionPadding,
     organization  := "io.univalence",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
     licenses      := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
@@ -91,14 +92,11 @@ lazy val libVersion =
     val zioPrelude = "1.0.0-RC10"
   }
 
-lazy val scala =
-  new {
-    val v211 = "2.11.12"
-    val v212 = "2.12.15"
-    val v213 = "2.13.8"
-  }
+lazy val scala211 = "2.11.12"
+lazy val scala212 = "2.12.15"
+lazy val scala213 = "2.13.8"
 
-lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
+lazy val supportedScalaVersions = List(scala211, scala212, scala213)
 
 lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
 
@@ -108,7 +106,7 @@ lazy val core =
     .settings(
       name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala.v213,
+      scalaVersion       := scala213,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= generateLibraryDependencies(scalaMajorVersion.value),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
@@ -187,3 +185,26 @@ def sparkScalaVersionMapping(scalaMinor: Long): String =
 def fatalWarningsAsProperties(options: Seq[String]): Seq[String] =
   if (sys.props.getOrElse("fatal-warnings", "false") == "true") options
   else options.filterNot(Set("-Xfatal-warnings"))
+
+/**
+ * Add padding to change: 0.1.0+48-bfcea99ap20220317-1157-SNAPSHOT into
+ * 0.1.0+0048-bfcea99ap20220317-1157-SNAPSHOT. It helps to retrieve the
+ * latest snapshots from
+ * https://oss.sonatype.org/#nexus-search;gav~io.univalence~zio-spark_2.13~~~~kw,versionexpand.
+ */
+def addVersionPadding(baseVersion: String): String = {
+  import scala.util.matching.Regex
+
+  val paddingSize    = 5
+  val counter: Regex = "\\+([0-9]+)-".r
+
+  val counterWithPadding: String =
+    counter.findFirstMatchIn(baseVersion) match {
+      case Some(regex) =>
+        val count = regex.group(1)
+        "0" * (paddingSize - count.length) + count
+      case None => throw new RuntimeException("This should never happen")
+    }
+
+  counter.replaceFirstIn(baseVersion, s"+$counterWithPadding-")
+}
