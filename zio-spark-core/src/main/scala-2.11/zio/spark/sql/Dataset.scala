@@ -234,6 +234,40 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // ===============
 
   /**
+   * Selects column based on the column name and returns it as a
+   * [[Column]].
+   *
+   * @note
+   *   The column name can also reference to a nested column like `a.b`.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def apply(colName: String): TryAnalysis[Column] = getWithAnalysis(_.apply(colName))
+
+  /**
+   * Selects column based on the column name and returns it as a
+   * [[Column]].
+   *
+   * @note
+   *   The column name can also reference to a nested column like `a.b`.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def col(colName: String): TryAnalysis[Column] = getWithAnalysis(_.col(colName))
+
+  /**
+   * Selects column based on the column name specified as a regex and
+   * returns it as [[Column]].
+   * @group untypedrel
+   * @since 2.3.0
+   */
+  def colRegex(colName: String): TryAnalysis[Column] = getWithAnalysis(_.colRegex(colName))
+
+  // ===============
+
+  /**
    * Returns an array that contains all rows in this Dataset.
    *
    * Running collect requires moving all the data into the application's
@@ -357,6 +391,30 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def cache: Task[Dataset[T]] = action(_.cache())
 
   /**
+   * Eagerly checkpoint a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. It will be saved to files inside
+   * the checkpoint directory set with `SparkContext#setCheckpointDir`.
+   *
+   * @group basic
+   * @since 2.1.0
+   */
+  def checkpoint: Task[Dataset[T]] = action(_.checkpoint())
+
+  /**
+   * Returns a checkpointed version of this Dataset. Checkpointing can
+   * be used to truncate the logical plan of this Dataset, which is
+   * especially useful in iterative algorithms where the plan may grow
+   * exponentially. It will be saved to files inside the checkpoint
+   * directory set with `SparkContext#setCheckpointDir`.
+   *
+   * @group basic
+   * @since 2.1.0
+   */
+  def checkpoint(eager: Boolean): Task[Dataset[T]] = action(_.checkpoint(eager))
+
+  /**
    * Creates a global temporary view using the given name. The lifetime
    * of this temporary view is tied to this Spark application.
    *
@@ -464,6 +522,32 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def isStreaming: Task[Boolean] = action(_.isStreaming)
 
   /**
+   * Eagerly locally checkpoints a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. Local checkpoints are written to
+   * executor storage and despite potentially faster they are unreliable
+   * and may compromise job completion.
+   *
+   * @group basic
+   * @since 2.3.0
+   */
+  def localCheckpoint: Task[Dataset[T]] = action(_.localCheckpoint())
+
+  /**
+   * Locally checkpoints a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. Local checkpoints are written to
+   * executor storage and despite potentially faster they are unreliable
+   * and may compromise job completion.
+   *
+   * @group basic
+   * @since 2.3.0
+   */
+  def localCheckpoint(eager: Boolean): Task[Dataset[T]] = action(_.localCheckpoint(eager))
+
+  /**
    * Persist this Dataset with the default storage level
    * (`MEMORY_AND_DISK`).
    *
@@ -560,30 +644,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def as(alias: Symbol): Dataset[T] = transformation(_.as(alias))
-
-  /**
-   * Eagerly checkpoint a Dataset and return the new Dataset.
-   * Checkpointing can be used to truncate the logical plan of this
-   * Dataset, which is especially useful in iterative algorithms where
-   * the plan may grow exponentially. It will be saved to files inside
-   * the checkpoint directory set with `SparkContext#setCheckpointDir`.
-   *
-   * @group basic
-   * @since 2.1.0
-   */
-  def checkpoint: Dataset[T] = transformation(_.checkpoint())
-
-  /**
-   * Returns a checkpointed version of this Dataset. Checkpointing can
-   * be used to truncate the logical plan of this Dataset, which is
-   * especially useful in iterative algorithms where the plan may grow
-   * exponentially. It will be saved to files inside the checkpoint
-   * directory set with `SparkContext#setCheckpointDir`.
-   *
-   * @group basic
-   * @since 2.1.0
-   */
-  def checkpoint(eager: Boolean): Dataset[T] = transformation(_.checkpoint(eager))
 
   /**
    * Returns a new Dataset that has exactly `numPartitions` partitions,
@@ -801,32 +861,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def limit(n: Int): Dataset[T] = transformation(_.limit(n))
-
-  /**
-   * Eagerly locally checkpoints a Dataset and return the new Dataset.
-   * Checkpointing can be used to truncate the logical plan of this
-   * Dataset, which is especially useful in iterative algorithms where
-   * the plan may grow exponentially. Local checkpoints are written to
-   * executor storage and despite potentially faster they are unreliable
-   * and may compromise job completion.
-   *
-   * @group basic
-   * @since 2.3.0
-   */
-  def localCheckpoint: Dataset[T] = transformation(_.localCheckpoint())
-
-  /**
-   * Locally checkpoints a Dataset and return the new Dataset.
-   * Checkpointing can be used to truncate the logical plan of this
-   * Dataset, which is especially useful in iterative algorithms where
-   * the plan may grow exponentially. Local checkpoints are written to
-   * executor storage and despite potentially faster they are unreliable
-   * and may compromise job completion.
-   *
-   * @group basic
-   * @since 2.3.0
-   */
-  def localCheckpoint(eager: Boolean): Dataset[T] = transformation(_.localCheckpoint(eager))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that
@@ -1856,9 +1890,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   // Ignored methods
   //
-  // [[org.apache.spark.sql.Dataset.apply]]
-  // [[org.apache.spark.sql.Dataset.col]]
-  // [[org.apache.spark.sql.Dataset.colRegex]]
   // [[org.apache.spark.sql.Dataset.collectAsList]]
   // [[org.apache.spark.sql.Dataset.filter]]
   // [[org.apache.spark.sql.Dataset.flatMap]]
