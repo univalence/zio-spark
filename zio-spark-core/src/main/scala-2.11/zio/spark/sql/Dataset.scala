@@ -234,53 +234,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // ===============
 
   /**
-   * Selects column based on the column name and returns it as a
-   * [[Column]].
-   *
-   * @note
-   *   The column name can also reference to a nested column like `a.b`.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def apply(colName: String): TryAnalysis[Column] = getWithAnalysis(_.apply(colName))
-
-  /**
-   * Selects column based on the column name and returns it as a
-   * [[Column]].
-   *
-   * @note
-   *   The column name can also reference to a nested column like `a.b`.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def col(colName: String): TryAnalysis[Column] = getWithAnalysis(_.col(colName))
-
-  /**
-   * Selects column based on the column name specified as a regex and
-   * returns it as [[Column]].
-   * @group untypedrel
-   * @since 2.3.0
-   */
-  def colRegex(colName: String): TryAnalysis[Column] = getWithAnalysis(_.colRegex(colName))
-
-  /**
-   * Returns a new Dataset by adding a column or replacing the existing
-   * column that has the same name.
-   *
-   * `column`'s expression must only refer to attributes supplied by
-   * this Dataset. It is an error to add a column that refers to some
-   * other Dataset.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] = getWithAnalysis(_.withColumn(colName, col))
-
-  // ===============
-
-  /**
    * Returns an array that contains all rows in this Dataset.
    *
    * Running collect requires moving all the data into the application's
@@ -404,30 +357,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def cache: Task[Dataset[T]] = action(_.cache())
 
   /**
-   * Eagerly checkpoint a Dataset and return the new Dataset.
-   * Checkpointing can be used to truncate the logical plan of this
-   * Dataset, which is especially useful in iterative algorithms where
-   * the plan may grow exponentially. It will be saved to files inside
-   * the checkpoint directory set with `SparkContext#setCheckpointDir`.
-   *
-   * @group basic
-   * @since 2.1.0
-   */
-  def checkpoint: Task[Dataset[T]] = action(_.checkpoint())
-
-  /**
-   * Returns a checkpointed version of this Dataset. Checkpointing can
-   * be used to truncate the logical plan of this Dataset, which is
-   * especially useful in iterative algorithms where the plan may grow
-   * exponentially. It will be saved to files inside the checkpoint
-   * directory set with `SparkContext#setCheckpointDir`.
-   *
-   * @group basic
-   * @since 2.1.0
-   */
-  def checkpoint(eager: Boolean): Task[Dataset[T]] = action(_.checkpoint(eager))
-
-  /**
    * Creates a global temporary view using the given name. The lifetime
    * of this temporary view is tied to this Spark application.
    *
@@ -535,32 +464,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def isStreaming: Task[Boolean] = action(_.isStreaming)
 
   /**
-   * Eagerly locally checkpoints a Dataset and return the new Dataset.
-   * Checkpointing can be used to truncate the logical plan of this
-   * Dataset, which is especially useful in iterative algorithms where
-   * the plan may grow exponentially. Local checkpoints are written to
-   * executor storage and despite potentially faster they are unreliable
-   * and may compromise job completion.
-   *
-   * @group basic
-   * @since 2.3.0
-   */
-  def localCheckpoint: Task[Dataset[T]] = action(_.localCheckpoint())
-
-  /**
-   * Locally checkpoints a Dataset and return the new Dataset.
-   * Checkpointing can be used to truncate the logical plan of this
-   * Dataset, which is especially useful in iterative algorithms where
-   * the plan may grow exponentially. Local checkpoints are written to
-   * executor storage and despite potentially faster they are unreliable
-   * and may compromise job completion.
-   *
-   * @group basic
-   * @since 2.3.0
-   */
-  def localCheckpoint(eager: Boolean): Task[Dataset[T]] = action(_.localCheckpoint(eager))
-
-  /**
    * Persist this Dataset with the default storage level
    * (`MEMORY_AND_DISK`).
    *
@@ -659,6 +562,30 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def as(alias: Symbol): Dataset[T] = transformation(_.as(alias))
 
   /**
+   * Eagerly checkpoint a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. It will be saved to files inside
+   * the checkpoint directory set with `SparkContext#setCheckpointDir`.
+   *
+   * @group basic
+   * @since 2.1.0
+   */
+  def checkpoint: Dataset[T] = transformation(_.checkpoint())
+
+  /**
+   * Returns a checkpointed version of this Dataset. Checkpointing can
+   * be used to truncate the logical plan of this Dataset, which is
+   * especially useful in iterative algorithms where the plan may grow
+   * exponentially. It will be saved to files inside the checkpoint
+   * directory set with `SparkContext#setCheckpointDir`.
+   *
+   * @group basic
+   * @since 2.1.0
+   */
+  def checkpoint(eager: Boolean): Dataset[T] = transformation(_.checkpoint(eager))
+
+  /**
    * Returns a new Dataset that has exactly `numPartitions` partitions,
    * when the fewer partitions are requested. If a larger number of
    * partitions is requested, it will stay at the current number of
@@ -708,40 +635,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def distinct: Dataset[T] = transformation(_.distinct())
-
-  /**
-   * Returns a new Dataset with a column dropped. This is a no-op if
-   * schema doesn't contain column name.
-   *
-   * This method can only be used to drop top level columns. the colName
-   * string is treated literally without further interpretation.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def drop(colName: String): DataFrame = transformation(_.drop(colName))
-
-  /**
-   * Returns a new Dataset with columns dropped. This is a no-op if
-   * schema doesn't contain column name(s).
-   *
-   * This method can only be used to drop top level columns. the colName
-   * string is treated literally without further interpretation.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
-
-  /**
-   * Returns a new Dataset with a column dropped. This version of drop
-   * accepts a [[Column]] rather than a name. This is a no-op if the
-   * Dataset doesn't have a column with an equivalent expression.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def drop(col: Column): DataFrame = transformation(_.drop(col))
 
   /**
    * Returns a new Dataset that contains only the unique rows from this
@@ -908,6 +801,32 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def limit(n: Int): Dataset[T] = transformation(_.limit(n))
+
+  /**
+   * Eagerly locally checkpoints a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. Local checkpoints are written to
+   * executor storage and despite potentially faster they are unreliable
+   * and may compromise job completion.
+   *
+   * @group basic
+   * @since 2.3.0
+   */
+  def localCheckpoint: Dataset[T] = transformation(_.localCheckpoint())
+
+  /**
+   * Locally checkpoints a Dataset and return the new Dataset.
+   * Checkpointing can be used to truncate the logical plan of this
+   * Dataset, which is especially useful in iterative algorithms where
+   * the plan may grow exponentially. Local checkpoints are written to
+   * executor storage and despite potentially faster they are unreliable
+   * and may compromise job completion.
+   *
+   * @group basic
+   * @since 2.3.0
+   */
+  def localCheckpoint(eager: Boolean): Dataset[T] = transformation(_.localCheckpoint(eager))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that
@@ -1388,6 +1307,40 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def describe(cols: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.describe(cols: _*))
 
   /**
+   * Returns a new Dataset with a column dropped. This is a no-op if
+   * schema doesn't contain column name.
+   *
+   * This method can only be used to drop top level columns. the colName
+   * string is treated literally without further interpretation.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def drop(colName: String): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(colName))
+
+  /**
+   * Returns a new Dataset with columns dropped. This is a no-op if
+   * schema doesn't contain column name(s).
+   *
+   * This method can only be used to drop top level columns. the colName
+   * string is treated literally without further interpretation.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def drop(colNames: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(colNames: _*))
+
+  /**
+   * Returns a new Dataset with a column dropped. This version of drop
+   * accepts a [[Column]] rather than a name. This is a no-op if the
+   * Dataset doesn't have a column with an equivalent expression.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def drop(col: Column): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(col))
+
+  /**
    * Returns a new Dataset with duplicate rows removed, considering only
    * the subset of columns.
    *
@@ -1865,6 +1818,20 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    */
   def where(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(conditionExpr))
 
+  /**
+   * Returns a new Dataset by adding a column or replacing the existing
+   * column that has the same name.
+   *
+   * `column`'s expression must only refer to attributes supplied by
+   * this Dataset. It is an error to add a column that refers to some
+   * other Dataset.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.withColumn(colName, col))
+
   // ===============
 
   // Methods that need to be implemented
@@ -1889,6 +1856,9 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   // Ignored methods
   //
+  // [[org.apache.spark.sql.Dataset.apply]]
+  // [[org.apache.spark.sql.Dataset.col]]
+  // [[org.apache.spark.sql.Dataset.colRegex]]
   // [[org.apache.spark.sql.Dataset.collectAsList]]
   // [[org.apache.spark.sql.Dataset.filter]]
   // [[org.apache.spark.sql.Dataset.flatMap]]

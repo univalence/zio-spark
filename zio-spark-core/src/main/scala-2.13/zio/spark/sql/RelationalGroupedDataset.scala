@@ -64,16 +64,6 @@ final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: Un
   // Generated functions coming from spark
 
   /**
-   * Returns a `KeyValueGroupedDataset` where the data is grouped by the
-   * grouping expressions of current `RelationalGroupedDataset`.
-   *
-   * @since 3.0.0
-   */
-  def as[K: Encoder, T: Encoder]: TryAnalysis[KeyValueGroupedDataset[K, T]] = getWithAnalysis(_.as)
-
-  // ===============
-
-  /**
    * Pivots a column of the current `DataFrame` and performs the
    * specified aggregation.
    *
@@ -308,6 +298,7 @@ final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: Un
 
   // Ignored methods
   //
+  // [[org.apache.spark.sql.RelationalGroupedDataset.as]]
   // [[org.apache.spark.sql.RelationalGroupedDataset.toString]]
 
 }

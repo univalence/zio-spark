@@ -43,6 +43,42 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
 
   // Generated functions coming from spark
 
+  /**
+   * Return approximate number of distinct elements in the RDD.
+   *
+   * The algorithm used is based on streamlib's implementation of
+   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
+   * Art Cardinality Estimation Algorithm", available <a
+   * href="http://dx.doi.org/10.1145/2452376.2452456">here</a>.
+   *
+   * The relative accuracy is approximately `1.054 / sqrt(2^p)`. Setting
+   * a nonzero (`sp` is greater than `p`) would trigger sparse
+   * representation of registers, which may reduce the memory
+   * consumption and increase accuracy when the cardinality is small.
+   *
+   * @param p
+   *   The precision value for the normal set. `p` must be a value
+   *   between 4 and `sp` if `sp` is not zero (32 max).
+   * @param sp
+   *   The precision value for the sparse set, between 0 and 32. If `sp`
+   *   equals 0, the sparse representation is skipped.
+   */
+  def countApproxDistinct(p: Int, sp: Int): Long = get(_.countApproxDistinct(p, sp))
+
+  /**
+   * Return approximate number of distinct elements in the RDD.
+   *
+   * The algorithm used is based on streamlib's implementation of
+   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
+   * Art Cardinality Estimation Algorithm", available <a
+   * href="http://dx.doi.org/10.1145/2452376.2452456">here</a>.
+   *
+   * @param relativeSD
+   *   Relative accuracy. Smaller values create counters that require
+   *   more space. It must be greater than 0.000017.
+   */
+  def countApproxDistinct(relativeSD: Double = 0.05): Long = get(_.countApproxDistinct(relativeSD))
+
   /** Returns the number of partitions of this RDD. */
   def getNumPartitions: Int = get(_.getNumPartitions)
 
@@ -124,42 +160,6 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    */
   def countApprox(timeout: Long, confidence: Double = 0.95): Task[PartialResult[BoundedDouble]] =
     action(_.countApprox(timeout, confidence))
-
-  /**
-   * Return approximate number of distinct elements in the RDD.
-   *
-   * The algorithm used is based on streamlib's implementation of
-   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
-   * Art Cardinality Estimation Algorithm", available <a
-   * href="http://dx.doi.org/10.1145/2452376.2452456">here</a>.
-   *
-   * The relative accuracy is approximately `1.054 / sqrt(2^p)`. Setting
-   * a nonzero (`sp` is greater than `p`) would trigger sparse
-   * representation of registers, which may reduce the memory
-   * consumption and increase accuracy when the cardinality is small.
-   *
-   * @param p
-   *   The precision value for the normal set. `p` must be a value
-   *   between 4 and `sp` if `sp` is not zero (32 max).
-   * @param sp
-   *   The precision value for the sparse set, between 0 and 32. If `sp`
-   *   equals 0, the sparse representation is skipped.
-   */
-  def countApproxDistinct(p: Int, sp: Int): Task[Long] = action(_.countApproxDistinct(p, sp))
-
-  /**
-   * Return approximate number of distinct elements in the RDD.
-   *
-   * The algorithm used is based on streamlib's implementation of
-   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
-   * Art Cardinality Estimation Algorithm", available <a
-   * href="http://dx.doi.org/10.1145/2452376.2452456">here</a>.
-   *
-   * @param relativeSD
-   *   Relative accuracy. Smaller values create counters that require
-   *   more space. It must be greater than 0.000017.
-   */
-  def countApproxDistinct(relativeSD: Double = 0.05): Task[Long] = action(_.countApproxDistinct(relativeSD))
 
   /**
    * Return the count of each unique value in this RDD as a local map of

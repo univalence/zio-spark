@@ -44,6 +44,42 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
 
   // Generated functions coming from spark
 
+  /**
+   * Return approximate number of distinct elements in the RDD.
+   *
+   * The algorithm used is based on streamlib's implementation of
+   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
+   * Art Cardinality Estimation Algorithm", available <a
+   * href="https://doi.org/10.1145/2452376.2452456">here</a>.
+   *
+   * The relative accuracy is approximately `1.054 / sqrt(2^p)`. Setting
+   * a nonzero (`sp` is greater than `p`) would trigger sparse
+   * representation of registers, which may reduce the memory
+   * consumption and increase accuracy when the cardinality is small.
+   *
+   * @param p
+   *   The precision value for the normal set. `p` must be a value
+   *   between 4 and `sp` if `sp` is not zero (32 max).
+   * @param sp
+   *   The precision value for the sparse set, between 0 and 32. If `sp`
+   *   equals 0, the sparse representation is skipped.
+   */
+  def countApproxDistinct(p: Int, sp: Int): Long = get(_.countApproxDistinct(p, sp))
+
+  /**
+   * Return approximate number of distinct elements in the RDD.
+   *
+   * The algorithm used is based on streamlib's implementation of
+   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
+   * Art Cardinality Estimation Algorithm", available <a
+   * href="https://doi.org/10.1145/2452376.2452456">here</a>.
+   *
+   * @param relativeSD
+   *   Relative accuracy. Smaller values create counters that require
+   *   more space. It must be greater than 0.000017.
+   */
+  def countApproxDistinct(relativeSD: Double = 0.05): Long = get(_.countApproxDistinct(relativeSD))
+
   /** Returns the number of partitions of this RDD. */
   def getNumPartitions: Int = get(_.getNumPartitions)
 
@@ -125,42 +161,6 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    */
   def countApprox(timeout: Long, confidence: Double = 0.95): Task[PartialResult[BoundedDouble]] =
     action(_.countApprox(timeout, confidence))
-
-  /**
-   * Return approximate number of distinct elements in the RDD.
-   *
-   * The algorithm used is based on streamlib's implementation of
-   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
-   * Art Cardinality Estimation Algorithm", available <a
-   * href="https://doi.org/10.1145/2452376.2452456">here</a>.
-   *
-   * The relative accuracy is approximately `1.054 / sqrt(2^p)`. Setting
-   * a nonzero (`sp` is greater than `p`) would trigger sparse
-   * representation of registers, which may reduce the memory
-   * consumption and increase accuracy when the cardinality is small.
-   *
-   * @param p
-   *   The precision value for the normal set. `p` must be a value
-   *   between 4 and `sp` if `sp` is not zero (32 max).
-   * @param sp
-   *   The precision value for the sparse set, between 0 and 32. If `sp`
-   *   equals 0, the sparse representation is skipped.
-   */
-  def countApproxDistinct(p: Int, sp: Int): Task[Long] = action(_.countApproxDistinct(p, sp))
-
-  /**
-   * Return approximate number of distinct elements in the RDD.
-   *
-   * The algorithm used is based on streamlib's implementation of
-   * "HyperLogLog in Practice: Algorithmic Engineering of a State of The
-   * Art Cardinality Estimation Algorithm", available <a
-   * href="https://doi.org/10.1145/2452376.2452456">here</a>.
-   *
-   * @param relativeSD
-   *   Relative accuracy. Smaller values create counters that require
-   *   more space. It must be greater than 0.000017.
-   */
-  def countApproxDistinct(relativeSD: Double = 0.05): Task[Long] = action(_.countApproxDistinct(relativeSD))
 
   /**
    * Return the count of each unique value in this RDD as a local map of
@@ -813,14 +813,6 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   def union(other: RDD[T]): RDD[T] = transformation(_.union(other))
 
   /**
-   * Specify a ResourceProfile to use when calculating this RDD. This is
-   * only supported on certain cluster managers and currently requires
-   * dynamic allocation to be enabled. It will result in new executors
-   * with the resources specified being acquired to calculate the RDD.
-   */
-  def withResources(rp: ResourceProfile): RDD[T] = transformation(_.withResources(rp))
-
-  /**
    * Zips this RDD with another one, returning key-value pairs with the
    * first element in each RDD, second element in each RDD, etc. Assumes
    * that the two RDDs have the *same number of partitions* and the
@@ -916,5 +908,6 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   // [[org.apache.spark.rdd.RDD.setName]]
   // [[org.apache.spark.rdd.RDD.toJavaRDD]]
   // [[org.apache.spark.rdd.RDD.toString]]
+  // [[org.apache.spark.rdd.RDD.withResources]]
 
 }
