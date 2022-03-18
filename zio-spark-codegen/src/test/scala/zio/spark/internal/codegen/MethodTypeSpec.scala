@@ -43,6 +43,5 @@ object MethodTypeSpec extends DefaultRunnableSpec {
       testMethodTypeFor("count")(Unpack)
     ).provideLayer(planLayer(RelationalGroupedDatasetPlan))
 
-  override def spec: ZSpec[TestEnvironment, Any] =
-    rddMethodTypes + datasetMethodTypes + relationalGroupedDatasetMethodTypes
+  override def spec: ZSpec[TestEnvironment, Any] = rddMethodTypes + datasetMethodTypes + relationalGroupedDatasetMethodTypes
 }

@@ -1,10 +1,12 @@
 package zio.spark.internal.codegen
 
 import sbt.Keys.Classpath
+
 import zio.{Task, UIO, ZManaged}
 
-import scala.meta.{Classpath as _, *}
+import scala.meta.*
 import scala.util.matching.Regex
+
 import java.io.File
 import java.util.jar.JarFile
 

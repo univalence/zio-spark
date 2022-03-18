@@ -47,12 +47,40 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
   def drop(how: String): DataFrame = unpack(_.drop(how))
 
   /**
+   * Returns a new `DataFrame` that drops rows containing any null or
+   * NaN values in the specified columns.
+   *
+   * @since 1.3.1
+   */
+  def drop(cols: Seq[String]): DataFrame = unpack(_.drop(cols))
+
+  /**
+   * Returns a new `DataFrame` that drops rows containing null or NaN
+   * values in the specified columns.
+   *
+   * If `how` is "any", then drop rows containing any null or NaN values
+   * in the specified columns. If `how` is "all", then drop rows only if
+   * every specified column is null or NaN for that row.
+   *
+   * @since 1.3.1
+   */
+  def drop(how: String, cols: Seq[String]): DataFrame = unpack(_.drop(how, cols))
+
+  /**
    * Returns a new `DataFrame` that drops rows containing less than
    * `minNonNulls` non-null and non-NaN values.
    *
    * @since 1.3.1
    */
   def drop(minNonNulls: Int): DataFrame = unpack(_.drop(minNonNulls))
+
+  /**
+   * Returns a new `DataFrame` that drops rows containing less than
+   * `minNonNulls` non-null and non-NaN values in the specified columns.
+   *
+   * @since 1.3.1
+   */
+  def drop(minNonNulls: Int, cols: Seq[String]): DataFrame = unpack(_.drop(minNonNulls, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
@@ -108,34 +136,6 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
   def fill(valueMap: Map[String, Any]): DataFrame = unpack(_.fill(valueMap))
 
   // ===============
-
-  /**
-   * Returns a new `DataFrame` that drops rows containing any null or
-   * NaN values in the specified columns.
-   *
-   * @since 1.3.1
-   */
-  def drop(cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.drop(cols))
-
-  /**
-   * Returns a new `DataFrame` that drops rows containing null or NaN
-   * values in the specified columns.
-   *
-   * If `how` is "any", then drop rows containing any null or NaN values
-   * in the specified columns. If `how` is "all", then drop rows only if
-   * every specified column is null or NaN for that row.
-   *
-   * @since 1.3.1
-   */
-  def drop(how: String, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.drop(how, cols))
-
-  /**
-   * Returns a new `DataFrame` that drops rows containing less than
-   * `minNonNulls` non-null and non-NaN values in the specified columns.
-   *
-   * @since 1.3.1
-   */
-  def drop(minNonNulls: Int, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.drop(minNonNulls, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
