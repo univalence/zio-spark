@@ -12,7 +12,7 @@ import zio.test.TestAspect._
 
 import scala.util.Try
 
-object DatasetTest {
+object DatasetSpec {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._

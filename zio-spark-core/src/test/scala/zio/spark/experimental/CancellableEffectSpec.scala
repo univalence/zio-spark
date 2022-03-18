@@ -1,16 +1,15 @@
-package zio.spark.effect
+package zio.spark.experimental
 
 import org.apache.spark.SparkContextCompatibility.removeSparkListener
 import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
-import zio.{durationLong, Chunk, Clock, UIO, ZIO, ZRef}
+import zio.{durationInt, durationLong, Chunk, Clock, UIO, ZIO, ZRef}
 import zio.spark.ZioSparkTestSpec
-import zio.spark.experimental.CancellableEffect
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
-import zio.test._
-import zio.test.TestAspect._
+import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
+import zio.test.TestAspect.{mac, timeout}
 
 object CancellableEffectSpec extends DefaultRunnableSpec {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))

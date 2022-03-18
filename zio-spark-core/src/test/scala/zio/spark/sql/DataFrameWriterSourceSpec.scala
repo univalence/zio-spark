@@ -3,7 +3,7 @@ package zio.spark.sql
 import zio.spark.helper._
 import zio.spark.sql.DataFrameWriter.Source
 
-object DataFrameWriterSourceTest
+object DataFrameWriterSourceSpec
     extends ADTTestFor[Source](
       name = "Source",
       conftests =

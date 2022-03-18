@@ -4,13 +4,13 @@ import org.apache.log4j.{Level, Logger}
 
 import zio._
 import zio.spark.parameter.localAllNodes
-import zio.spark.rdd.{PairRDDFunctionsTest, RDDTest}
+import zio.spark.rdd.{PairRDDFunctionsSpec, RDDSpec}
 import zio.spark.sql.{
-  DataFrameReaderTest,
-  DataFrameWriterTest,
-  DatasetTest,
+  DataFrameReaderSpec,
+  DataFrameWriterSpec,
+  DatasetSpec,
   ExtraDatasetFeatureTest,
-  RelationalGroupedDatasetTest,
+  RelationalGroupedDatasetSpec,
   SparkSession
 }
 import zio.test._
@@ -33,20 +33,20 @@ object ZioSparkTestSpec extends DefaultRunnableSpec {
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {
     val specs =
       Seq(
-        DatasetTest.datasetActionsSpec,
-        DatasetTest.datasetTransformationsSpec,
-        DatasetTest.sqlSpec,
-        DatasetTest.persistencySpec,
-        DatasetTest.errorSpec,
-        DatasetTest.fromSparkSpec,
-        DataFrameReaderTest.dataFrameReaderReadingSpec,
-        DataFrameWriterTest.dataFrameWriterSavingSpec,
-        DataFrameWriterTest.dataFrameWriterOptionDefinitionsSpec,
+        DatasetSpec.datasetActionsSpec,
+        DatasetSpec.datasetTransformationsSpec,
+        DatasetSpec.sqlSpec,
+        DatasetSpec.persistencySpec,
+        DatasetSpec.errorSpec,
+        DatasetSpec.fromSparkSpec,
+        DataFrameReaderSpec.dataFrameReaderReadingSpec,
+        DataFrameWriterSpec.dataFrameWriterSavingSpec,
+        DataFrameWriterSpec.dataFrameWriterOptionDefinitionsSpec,
         ExtraDatasetFeatureTest.spec,
-        RDDTest.rddActionsSpec,
-        RDDTest.rddTransformationsSpec,
-        PairRDDFunctionsTest.spec,
-        RelationalGroupedDatasetTest.relationalGroupedDatasetAggregationSpec
+        RDDSpec.rddActionsSpec,
+        RDDSpec.rddTransformationsSpec,
+        PairRDDFunctionsSpec.spec,
+        RelationalGroupedDatasetSpec.relationalGroupedDatasetAggregationSpec
       )
 
     suite("Spark tests")(specs: _*).provideCustomLayerShared(session)

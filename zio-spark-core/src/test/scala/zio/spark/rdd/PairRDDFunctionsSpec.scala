@@ -6,7 +6,7 @@ import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.Assertion._
 
-object PairRDDFunctionsTest {
+object PairRDDFunctionsSpec {
   def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("PairRDDFunctionsTest Transformations")(
       test("PairRDDFunctionsTest should add reduce by key correctly") {

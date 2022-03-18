@@ -2,7 +2,7 @@ package zio.spark.parameter
 
 import zio.spark.helper._
 
-object SizeTest
+object SizeSpec
     extends ADTTestFor[Size](
       name = "Size",
       conftests =
