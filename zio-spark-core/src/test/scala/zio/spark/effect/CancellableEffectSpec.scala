@@ -32,7 +32,7 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 
-  def waitBlocking(seconds: Int): UIO[Int] = UIO.unit.delay(seconds.seconds).provide(Clock.live).as(seconds)
+  def waitBlocking(seconds: Long): UIO[Long] = UIO.unit.delay(seconds.seconds).provide(Clock.live).as(seconds)
 
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
