@@ -3,7 +3,7 @@ package zio.spark.parameter
 import zio.spark.helper._
 import zio.spark.parameter.Master.MasterNodeConfiguration
 
-object MasterTest
+object MasterSpec
     extends ADTTestFor[Master](
       name = "Master",
       conftests = {

@@ -4,7 +4,7 @@ import zio._
 import zio.spark.effect.NewType.{Ratio, Weight}
 import zio.test._
 
-object CircuitTapTest extends DefaultRunnableSpec {
+object CircuitTapSpec extends DefaultRunnableSpec {
 
   import zio.test._
 

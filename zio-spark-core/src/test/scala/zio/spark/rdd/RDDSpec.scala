@@ -4,7 +4,7 @@ import zio.spark.helper.Fixture.readRDD
 import zio.spark.sql._
 import zio.test._
 
-object RDDTest {
+object RDDSpec {
   def rddActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("RDD Actions")(
       test("RDD should implement count correctly") {

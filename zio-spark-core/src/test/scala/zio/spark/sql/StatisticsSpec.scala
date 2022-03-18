@@ -3,7 +3,7 @@ package zio.spark.sql
 import zio.spark.helper._
 import zio.spark.sql.Statistics._
 
-object StatisticsTest
+object StatisticsSpec
     extends ADTTestFor[Statistics](
       name = "Statistics",
       conftests =

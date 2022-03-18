@@ -4,7 +4,7 @@ import zio.spark.parameter._
 import zio.test._
 import zio.test.Assertion._
 
-object SparkSessionTest extends DefaultRunnableSpec {
+object SparkSessionSpec extends DefaultRunnableSpec {
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
     sparkSessionOptionsSpec + sparkSessionDefinitionsSpec
 
