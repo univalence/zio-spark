@@ -1,5 +1,6 @@
 package zio.spark.sql
 
+import zio.spark.SparkSessionRunner.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.TestAspect._
@@ -20,7 +21,7 @@ object DataFrameReaderTest extends DefaultRunnableSpec {
       }
     )
 
-  def dataFrameReaderReadingSpec: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] =
+  def dataFrameReaderReadingSpec: SparkTestSpec =
     suite("DataFrameReader reading files")(
       test("DataFrameReader can read a CSV file") {
         for {

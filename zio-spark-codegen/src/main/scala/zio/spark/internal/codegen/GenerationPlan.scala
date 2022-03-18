@@ -267,7 +267,7 @@ object GenerationPlan {
          |$definition { self =>
          |$implicits
          |
-         |${helpers.constructor(name, hasTypeParameter)}
+         |${helpers(name, hasTypeParameter)}
          |
          |  // Handmade functions specific to zio-spark
          |  
@@ -325,75 +325,75 @@ object GenerationPlan {
       false
     )
 
-  case class Helper(constructor: (String, Boolean) => String) { self =>
-    def &&(other: Helper): Helper = Helper((name, withParam) => self.constructor(name, withParam) + "\n\n" + other.constructor(name, withParam))
+  trait Helper {
+    self =>
+    def apply(name: String, withParam: Boolean): String
+
+    def &&(other: Helper): Helper = (name: String, withParam: Boolean) => self(name, withParam) + "\n\n" + other(name, withParam)
   }
+
   object Helper {
-    val action: Helper =
-      Helper { (name, withParam) =>
-        val tParam = if (withParam) "[T]" else ""
-        s"""/** Applies an action to the underlying $name. */
-           |def action[U](f: Underlying$name$tParam => U): Task[U] = ZIO.attemptBlocking(get(f))""".stripMargin
-      }
+    val action: Helper = { (name, withParam) =>
+      // NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
+      // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
+      // 2. It's necessary for "makeItCancellable" to work
+      val tParam = if (withParam) "[T]" else ""
+      s"""/** Applies an action to the underlying $name. */
+         |def action[U](f: Underlying$name$tParam => U): Task[U] = ZIO.attempt(get(f))""".stripMargin
+    }
 
-    val transformation: Helper =
-      Helper { (name, withParam) =>
-        val tParam = if (withParam) "[T]" else ""
-        val uParam = if (withParam) "[U]" else ""
-        s"""/** Applies a transformation to the underlying $name. */
-           |def transformation$uParam(f: Underlying$name$tParam => Underlying$name$uParam): $name$uParam = 
-           |  $name(f(underlying$name))""".stripMargin
-      }
+    val transformation: Helper = { (name, withParam) =>
+      val tParam = if (withParam) "[T]" else ""
+      val uParam = if (withParam) "[U]" else ""
+      s"""/** Applies a transformation to the underlying $name. */
+         |def transformation$uParam(f: Underlying$name$tParam => Underlying$name$uParam): $name$uParam = 
+         |  $name(f(underlying$name))""".stripMargin
+    }
 
-    val transformationWithAnalysis: Helper =
-      Helper { (name, withParam) =>
-        val tParam = if (withParam) "[T]" else ""
-        val uParam = if (withParam) "[U]" else ""
-        s"""/** Applies a transformation to the underlying $name, it is used for
-           | * transformations that can fail due to an AnalysisException. */
-           |def transformationWithAnalysis$uParam(f: Underlying$name$tParam => Underlying$name$uParam): TryAnalysis[$name$uParam] = 
-           |  TryAnalysis(transformation(f))""".stripMargin
-      }
+    val transformationWithAnalysis: Helper = { (name, withParam) =>
+      val tParam = if (withParam) "[T]" else ""
+      val uParam = if (withParam) "[U]" else ""
+      s"""/** Applies a transformation to the underlying $name, it is used for
+         | * transformations that can fail due to an AnalysisException. */
+         |def transformationWithAnalysis$uParam(f: Underlying$name$tParam => Underlying$name$uParam): TryAnalysis[$name$uParam] = 
+         |  TryAnalysis(transformation(f))""".stripMargin
+    }
 
     val transformations: Helper = transformation && transformationWithAnalysis
 
-    val get: Helper =
-      Helper { (name, withParam) =>
-        val tParam = if (withParam) "[T]" else ""
-        s"""/** Applies an action to the underlying $name. */
-           |def get[U](f: Underlying$name$tParam => U): U = f(underlying$name)""".stripMargin
-      }
+    val get: Helper = { (name, withParam) =>
+      val tParam = if (withParam) "[T]" else ""
+      s"""/** Applies an action to the underlying $name. */
+         |def get[U](f: Underlying$name$tParam => U): U = f(underlying$name)""".stripMargin
+    }
 
-    val getWithAnalysis: Helper =
-      Helper { (name, withParam) =>
-        val tParam = if (withParam) "[T]" else ""
-        s"""/** Applies an action to the underlying $name, it is used for
-           | * transformations that can fail due to an AnalysisException.
-           | */
-           |def getWithAnalysis[U](f: Underlying$name$tParam => U): TryAnalysis[U] = 
-           |  TryAnalysis(f(underlying$name))""".stripMargin
-      }
+    val getWithAnalysis: Helper = { (name, withParam) =>
+      val tParam = if (withParam) "[T]" else ""
+      s"""/** Applies an action to the underlying $name, it is used for
+         | * transformations that can fail due to an AnalysisException.
+         | */
+         |def getWithAnalysis[U](f: Underlying$name$tParam => U): TryAnalysis[U] = 
+         |  TryAnalysis(f(underlying$name))""".stripMargin
+    }
 
     val gets: Helper = get && getWithAnalysis
 
-    val unpack: Helper =
-      Helper { (name, _) =>
-        s"""/**
-           | * Unpack the underlying $name into a DataFrame.
-           | */
-           |def unpack(f: Underlying$name => UnderlyingDataFrame): DataFrame =
-           |  Dataset(f(underlying$name))""".stripMargin
-      }
+    val unpack: Helper = { (name, _) =>
+      s"""/**
+         | * Unpack the underlying $name into a DataFrame.
+         | */
+         |def unpack(f: Underlying$name => UnderlyingDataFrame): DataFrame =
+         |  Dataset(f(underlying$name))""".stripMargin
+    }
 
-    val unpackWithAnalysis: Helper =
-      Helper { (name, _) =>
-        s"""/**
-           | * Unpack the underlying $name into a DataFrame, it is used for
-           | * transformations that can fail due to an AnalysisException.
-           | */
-           |def unpackWithAnalysis(f: Underlying$name => UnderlyingDataFrame): TryAnalysis[DataFrame] =
-           |  TryAnalysis(unpack(f))""".stripMargin
-      }
+    val unpackWithAnalysis: Helper = { (name, _) =>
+      s"""/**
+         | * Unpack the underlying $name into a DataFrame, it is used for
+         | * transformations that can fail due to an AnalysisException.
+         | */
+         |def unpackWithAnalysis(f: Underlying$name => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+         |  TryAnalysis(unpack(f))""".stripMargin
+    }
 
     val unpacks: Helper = unpack && unpackWithAnalysis
   }
