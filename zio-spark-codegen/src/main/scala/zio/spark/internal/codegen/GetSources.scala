@@ -1,6 +1,6 @@
 package zio.spark.internal.codegen
 
-import sbt.internal.util.Attributed
+import sbt.Keys.Classpath
 
 import zio.{Task, UIO, ZManaged}
 
@@ -9,6 +9,7 @@ import scala.util.matching.Regex
 
 import java.io.File
 import java.util.jar.JarFile
+
 object GetSources {
 
   val RootSparkPattern: Regex = "($(.*)/org/apache/spark)".r
@@ -30,7 +31,7 @@ object GetSources {
 
   def red(text: String): String = "\u001B[31m" + text + "\u001B[0m"
 
-  def getSource(module: String, file: String)(classpath: sbt.Def.Classpath): zio.Task[meta.Source] =
+  def getSource(module: String, file: String)(classpath: Classpath): zio.Task[meta.Source] =
     Task {
       import java.io.InputStream
       import java.util.zip.ZipEntry
@@ -50,6 +51,4 @@ object GetSources {
     }.flatten.onError { _ =>
       zio.UIO(println(s"[${red("error")}] can't find $file in $module from $classpath"))
     }
-
-  type Classpath = Seq[Attributed[File]]
 }

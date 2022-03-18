@@ -125,7 +125,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                   methodType match {
                     case MethodType.ToImplement => "\n"
                     case MethodType.Ignored     => "\n"
-                    case MethodType.TODO        => "\n"
+                    case MethodType.ToHandle    => "\n"
                     case _                      => "\n\n"
                   }
 
@@ -134,7 +134,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
                 methodType match {
                   case MethodType.ToImplement => commentMethods(allMethods, "Methods with handmade implementations")
                   case MethodType.Ignored     => commentMethods(allMethods, "Ignored methods")
-                  case MethodType.TODO        => commentMethods(allMethods, "Methods that need to be implemented")
+                  case MethodType.ToHandle    => commentMethods(allMethods, "Methods that need to be implemented")
                   case _                      => allMethods
                 }
               }

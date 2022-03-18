@@ -265,19 +265,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    */
   def colRegex(colName: String): TryAnalysis[Column] = getWithAnalysis(_.colRegex(colName))
 
-  /**
-   * Returns a new Dataset by adding a column or replacing the existing
-   * column that has the same name.
-   *
-   * `column`'s expression must only refer to attributes supplied by
-   * this Dataset. It is an error to add a column that refers to some
-   * other Dataset.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] = getWithAnalysis(_.withColumn(colName, col))
-
   // ===============
 
   /**
@@ -1864,6 +1851,20 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   def where(conditionExpr: String): TryAnalysis[Dataset[T]] = transformationWithAnalysis(_.where(conditionExpr))
+
+  /**
+   * Returns a new Dataset by adding a column or replacing the existing
+   * column that has the same name.
+   *
+   * `column`'s expression must only refer to attributes supplied by
+   * this Dataset. It is an error to add a column that refers to some
+   * other Dataset.
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.withColumn(colName, col))
 
   // ===============
 

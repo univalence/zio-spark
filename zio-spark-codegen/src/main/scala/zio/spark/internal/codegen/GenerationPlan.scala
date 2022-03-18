@@ -1,6 +1,7 @@
 package zio.spark.internal.codegen
 
 import sbt.*
+import sbt.Keys.Classpath
 
 import zio.spark.internal.codegen.GenerationPlan.PlanType
 import zio.spark.internal.codegen.ScalaBinaryVersion.versioned
@@ -280,7 +281,7 @@ object GenerationPlan {
 
     final def getGenerationPlan(
         itSource: File,
-        classpath: GetSources.Classpath,
+        classpath: Classpath,
         version: ScalaBinaryVersion
     ): zio.Task[GenerationPlan] =
       for {
