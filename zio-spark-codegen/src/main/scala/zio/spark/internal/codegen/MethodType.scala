@@ -214,9 +214,10 @@ object MethodType {
       case RelationalGroupedDatasetPlan if method.name == "as"                  => GetWithAnalysis
       case RelationalGroupedDatasetPlan if method.name == "count"               => Unpack
       case RelationalGroupedDatasetPlan if Set("min", "max")(method.name)       => UnpackWithAnalysis
+      case DatasetPlan if method.name == "drop"                                 => baseMethodType
       case DatasetPlan if datasetWithAnalysis(method.name)                      => baseMethodType.withAnalysis
       case DataFrameStatFunctionsPlan if dataframeStatWithAnalysis(method.name) => baseMethodType.withAnalysis
-      case _ if shouldUseTryAnalysis && method.name != "drop"                   => baseMethodType.withAnalysis
+      case _ if shouldUseTryAnalysis                                            => baseMethodType.withAnalysis
       case _ if method.anyParameters.isEmpty && method.name == "as"             => baseMethodType.withAnalysis
       case _                                                                    => baseMethodType
     }

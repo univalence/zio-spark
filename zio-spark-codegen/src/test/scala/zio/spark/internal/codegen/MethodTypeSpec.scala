@@ -2,6 +2,7 @@ package zio.spark.internal.codegen
 
 import zio.*
 import zio.spark.internal.codegen.GenerationPlan.{
+  DataFrameNaFunctionsPlan,
   DataFrameStatFunctionsPlan,
   DatasetPlan,
   RDDPlan,
@@ -61,6 +62,21 @@ object MethodTypeSpec extends DefaultRunnableSpec {
       testMethodTypeFor("countMinSketch")(GetWithAnalysis)
     ).provideLayer(planLayer(DataFrameStatFunctionsPlan))
 
-  override def spec: ZSpec[TestEnvironment, Any] =
-    rddMethodTypes + datasetMethodTypes + relationalGroupedDatasetMethodTypes + dataFrameStatFunctionsMethodTypes
+  val dataFrameNaFunctionsMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+    suite("Check method types for DataFrameNaFunctions")(
+      testMethodTypeFor("drop", arity = 1, args = List("cols"))(UnpackWithAnalysis)
+    ).provideLayer(planLayer(DataFrameNaFunctionsPlan))
+
+  override def spec: ZSpec[TestEnvironment, Any] = {
+    val specs =
+      Seq(
+        rddMethodTypes,
+        datasetMethodTypes,
+        relationalGroupedDatasetMethodTypes,
+        dataFrameStatFunctionsMethodTypes,
+        dataFrameNaFunctionsMethodTypes
+      )
+
+    specs.reduce(_ + _)
+  }
 }
