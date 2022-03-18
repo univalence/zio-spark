@@ -15,7 +15,7 @@ object UsingOlderSparkVersion extends ZIOAppDefault {
 
   val filePath: String = "examples/using-older-spark-version/src/main/resources/data.csv"
 
-  def read: Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
+  def read: SIO[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
 
   def transform(inputDs: DataFrame): Dataset[Person] = inputDs.as[Person]
 

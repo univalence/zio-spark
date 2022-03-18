@@ -4,7 +4,7 @@ import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.storage.StorageLevel
 
 import zio.{Task, ZIO}
-import zio.spark.SparkSessionRunner.SparkTestSpec
+import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
@@ -123,7 +123,7 @@ object DatasetTest {
       test("Dataset still can dies with AnalysisException using 'throwAnalysisException' implicit") {
 
         val process: DataFrame => DataFrame = _.selectExpr("yolo")
-        val job: Spark[DataFrame]           = read.map(process)
+        val job: SIO[DataFrame]             = read.map(process)
 
         job.exit.map(assert(_)(dies(isSubtype[AnalysisException](anything))))
       },
@@ -348,7 +348,7 @@ object DatasetTest {
   def fromSparkSpec: SparkTestSpec =
     suite("fromSpark")(
       test("Zio-spark can wrap spark code") {
-        val job: Spark[Long] =
+        val job: SIO[Long] =
           fromSpark { ss =>
             val inputDf =
               ss.read

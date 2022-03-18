@@ -16,7 +16,7 @@ import zio.spark.sql.{
 import zio.test._
 
 /** Runs all spark specific tests in the same spark session. */
-object SparkSessionRunner extends DefaultRunnableSpec {
+object ZioSparkTestSpec extends DefaultRunnableSpec {
   Logger.getLogger("org").setLevel(Level.OFF)
 
   val session: ZLayer[Any, Nothing, SparkSession] =

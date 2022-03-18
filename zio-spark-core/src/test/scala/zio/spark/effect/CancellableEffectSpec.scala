@@ -5,14 +5,15 @@ import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
 import zio.{durationLong, Chunk, Clock, UIO, ZIO, ZRef}
-import zio.spark.SparkSessionRunner
-import zio.spark.sql.{fromSpark, Spark, SparkSession}
+import zio.spark.ZioSparkTestSpec
+import zio.spark.experimental.CancellableEffect
+import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
 import zio.test._
 import zio.test.TestAspect._
 
 object CancellableEffectSpec extends DefaultRunnableSpec {
-  val getJobGroup: Spark[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
+  val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
 
   def listenSparkEvents[R, E, A](zio: ZIO[R, E, A]): ZIO[R with SparkSession, E, (Seq[SparkListenerEvent], A)] =
     for {
@@ -43,7 +44,7 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
         CancellableEffect.makeItCancellable(getJobGroup).map(x => assertTrue(x.startsWith("cancellable-group")))
       },
       test("smoke") {
-        val job: Spark[Long] =
+        val job: SIO[Long] =
           CancellableEffect
             .makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000L)).count))
             .disconnect
@@ -58,6 +59,6 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
             }
           )
         }
-      } @@ timeout(45.seconds)
-    ).provideCustomLayerShared(SparkSessionRunner.session)
+      } @@ timeout(45.seconds) @@ mac
+    ).provideCustomLayerShared(ZioSparkTestSpec.session)
 }

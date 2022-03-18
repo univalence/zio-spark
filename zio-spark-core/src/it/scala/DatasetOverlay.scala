@@ -28,7 +28,7 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int): ZIO[Console, Throwable, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int): RIO[Console, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -36,21 +36,21 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show: ZIO[Console, Throwable, Unit] = show(20)
+  def show: RIO[Console, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean): ZIO[Console, Throwable, Unit] = show(20, truncate)
+  def show(truncate: Boolean): RIO[Console, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean): ZIO[Console, Throwable, Unit] = {
+  def show(numRows: Int, truncate: Boolean): RIO[Console, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlyingDataset, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)

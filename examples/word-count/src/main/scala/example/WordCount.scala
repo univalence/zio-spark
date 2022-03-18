@@ -10,7 +10,7 @@ object WordCount extends ZIOAppDefault {
 
   val filePath: String = "build.sbt"
 
-  def read: Spark[Dataset[String]] = SparkSession.read.textFile(filePath)
+  def read: SIO[Dataset[String]] = SparkSession.read.textFile(filePath)
 
   def transform(inputDs: Dataset[String]): RDD[(String, Int)] =
     inputDs

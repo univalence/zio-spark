@@ -41,7 +41,7 @@ object DataFrameWriterTest {
     )
 
   def dataFrameWriterSavingSpec: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] = {
-    def writerTest(extension: String, readAgain: String => Spark[DataFrame], write: String => DataFrame => Task[Unit]) =
+    def writerTest(extension: String, readAgain: String => SIO[DataFrame], write: String => DataFrame => Task[Unit]) =
       test(s"DataFrameWriter can save a DataFrame to $extension") {
         val path: String = s"$targetsPath/test/output/dataframe-writer.$extension"
 
