@@ -190,22 +190,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // Generated functions coming from spark
 
   /**
-   * Returns a new Dataset with an alias set.
-   *
-   * @group typedrel
-   * @since 1.6.0
-   */
-  def as(alias: String): Dataset[T] = get(_.as(alias))
-
-  /**
-   * Returns a new Dataset with an alias set.
-   *
-   * @group typedrel
-   * @since 2.0.0
-   */
-  def as(alias: Symbol): Dataset[T] = get(_.as(alias))
-
-  /**
    * Returns all column names as an array.
    *
    * @group basic
@@ -260,32 +244,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def apply(colName: String): TryAnalysis[Column] = getWithAnalysis(_.apply(colName))
-
-  /**
-   * :: Experimental :: Returns a new Dataset where each record has been
-   * mapped on to the specified type. The method used to map columns
-   * depend on the type of `U`:
-   *   - When `U` is a class, fields for the class will be mapped to
-   *     columns of the same name (case sensitivity is determined by
-   *     `spark.sql.caseSensitive`).
-   *   - When `U` is a tuple, the columns will be mapped by ordinal
-   *     (i.e. the first column will be assigned to `_1`).
-   *   - When `U` is a primitive type (i.e. String, Int, etc), then the
-   *     first column of the `DataFrame` will be used.
-   *
-   * If the schema of the Dataset does not match the desired `U` type,
-   * you can use `select` along with `alias` or `as` to rearrange or
-   * rename as required.
-   *
-   * Note that `as[]` only changes the view of the data that is passed
-   * into typed operations, such as `map()`, and does not eagerly
-   * project away any columns that are not present in the specified
-   * class.
-   *
-   * @group basic
-   * @since 1.6.0
-   */
-  def as[U: Encoder]: TryAnalysis[Dataset[U]] = getWithAnalysis(_.as)
 
   /**
    * Selects column based on the column name and returns it as a
@@ -670,6 +628,22 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def alias(alias: Symbol): Dataset[T] = transformation(_.alias(alias))
+
+  /**
+   * Returns a new Dataset with an alias set.
+   *
+   * @group typedrel
+   * @since 1.6.0
+   */
+  def as(alias: String): Dataset[T] = transformation(_.as(alias))
+
+  /**
+   * Returns a new Dataset with an alias set.
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  def as(alias: Symbol): Dataset[T] = transformation(_.as(alias))
 
   /**
    * Returns a new Dataset that has exactly `numPartitions` partitions,
@@ -1340,6 +1314,32 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def agg(expr: Column, exprs: Column*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(expr, exprs: _*))
+
+  /**
+   * :: Experimental :: Returns a new Dataset where each record has been
+   * mapped on to the specified type. The method used to map columns
+   * depend on the type of `U`:
+   *   - When `U` is a class, fields for the class will be mapped to
+   *     columns of the same name (case sensitivity is determined by
+   *     `spark.sql.caseSensitive`).
+   *   - When `U` is a tuple, the columns will be mapped by ordinal
+   *     (i.e. the first column will be assigned to `_1`).
+   *   - When `U` is a primitive type (i.e. String, Int, etc), then the
+   *     first column of the `DataFrame` will be used.
+   *
+   * If the schema of the Dataset does not match the desired `U` type,
+   * you can use `select` along with `alias` or `as` to rearrange or
+   * rename as required.
+   *
+   * Note that `as[]` only changes the view of the data that is passed
+   * into typed operations, such as `map()`, and does not eagerly
+   * project away any columns that are not present in the specified
+   * class.
+   *
+   * @group basic
+   * @since 1.6.0
+   */
+  def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as)
 
   /**
    * Computes basic statistics for numeric and string columns, including
