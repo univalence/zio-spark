@@ -25,7 +25,7 @@ import zio._
 final case class Pipeline[Source, Output, Result](
     load:      SIO[Dataset[Source]],
     transform: Dataset[Source] => Dataset[Output],
-    action:    Dataset[Output] => Task[Result]
+    action:    Dataset[Output] => SIO[Result]
 ) {
 
   /**
@@ -33,6 +33,22 @@ final case class Pipeline[Source, Output, Result](
    * [[SparkSession]] layer to actually run the effect.
    */
   def run: SIO[Result] = load.map(transform).flatMap(action)
+
+  def cacheOutput: Pipeline[Source, Output, Result] = <*(_.cache.unit)
+
+  def <*(f: Dataset[Output] => SIO[Unit]): Pipeline[Source, Output, Result] =
+    Pipeline(load, transform, ds => action(ds) <* f(ds))
+
+  def actionPar[R](action: Dataset[Output] => SIO[R])(implicit
+      zippable: Zippable[Result, R]
+  ): Pipeline[Source, Output, zippable.Out] = Pipeline(load, transform, ds => this.action(ds).zipPar(action(ds)))
+
+  def actionParCached[R](action: Dataset[Output] => SIO[R])(implicit
+      zippable: Zippable[Result, R]
+  ): Pipeline[Source, Output, zippable.Out] = actionPar(action).cacheOutput
+
+  def map[Out](ds: Dataset[Output] => Dataset[Out]): Pipeline[Source, Out, Result] =
+    Pipeline(load, transform andThen ds, _ => run)
 }
 
 object Pipeline {
@@ -40,7 +56,7 @@ object Pipeline {
   /** Builds a pipeline without processing. */
   def buildWithoutTransformation[Source, Result](load: SIO[Dataset[Source]])(
       action: Dataset[Source] => Task[Result]
-  ): Pipeline[Source, Source, Result] = build(load)(df => df)(action)
+  ): Pipeline[Source, Source, Result] = build(load)(identity)(action)
 
   /**
    * Builds a pipeline using type inference, you can't use Pipeline case
