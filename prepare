@@ -6,6 +6,7 @@ cd $(dirname "$0")
 cd zio-spark-codegen
 sbt scalafmtAll
 sbt scalafmtSbt
+sbt ++compile
 cd ..
 sbt prepare
 sbt scalafmtSbt
