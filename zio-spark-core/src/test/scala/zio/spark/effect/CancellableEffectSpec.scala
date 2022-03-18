@@ -5,14 +5,15 @@ import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
 import zio.{durationLong, Chunk, Clock, UIO, ZIO, ZRef}
-import zio.spark.SparkSessionRunner
-import zio.spark.sql.{fromSpark, Spark, SparkSession}
+import zio.spark.ZioSparkTestSpec
+import zio.spark.experimental.CancellableEffect
+import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
 import zio.test._
 import zio.test.TestAspect._
 
 object CancellableEffectSpec extends DefaultRunnableSpec {
-  val getJobGroup: Spark[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
+  val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
 
   def listenSparkEvents[R, E, A](zio: ZIO[R, E, A]): ZIO[R with SparkSession, E, (Seq[SparkListenerEvent], A)] =
     for {
@@ -28,11 +29,11 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       _ <-
         UIO(removeSparkListener(sc, listener))
           .delay(1.seconds)
-          .provideSomeLayer(Clock.live) // wait a bit the last events to be publish
+          .provideSomeLayer(Clock.live) // wait a bit the last events to be published
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 
-  def waitBlocking(seconds: Int): UIO[Int] = UIO.blocking(UIO(Thread.sleep(seconds * 1000L))).as(seconds)
+  def waitBlocking(seconds: Long): UIO[Long] = UIO.unit.delay(seconds.seconds).provide(Clock.live).as(seconds)
 
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
@@ -43,8 +44,10 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
         CancellableEffect.makeItCancellable(getJobGroup).map(x => assertTrue(x.startsWith("cancellable-group")))
       },
       test("smoke") {
-        val job: Spark[Long] =
-          CancellableEffect.makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000L)).count))
+        val job: SIO[Long] =
+          CancellableEffect
+            .makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000L)).count))
+            .disconnect
 
         listenSparkEvents(waitBlocking(5).race(job)).map { case (events, n) =>
           assertTrue(
@@ -56,6 +59,6 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
             }
           )
         }
-      } @@ timeout(15.seconds) @@ ignore
-    ).provideCustomLayerShared(SparkSessionRunner.session)
+      } @@ timeout(45.seconds) @@ mac
+    ).provideCustomLayerShared(ZioSparkTestSpec.session)
 }

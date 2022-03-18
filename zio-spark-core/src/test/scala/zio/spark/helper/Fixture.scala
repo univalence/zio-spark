@@ -8,17 +8,17 @@ import zio.spark.sql.implicits._
 object Fixture {
   final case class Person(name: String, age: Int)
 
-  def readCsv(path: String): Spark[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(path)
+  def readCsv(path: String): SIO[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(path)
 
   val resourcesPath: String = "zio-spark-core/src/test/resources"
 
   val targetsPath: String = "zio-spark-core/target/test"
 
-  val read: Spark[DataFrame] = readCsv(s"$resourcesPath/data.csv")
+  val read: SIO[DataFrame] = readCsv(s"$resourcesPath/data.csv")
 
-  val readEmpty: Spark[DataFrame] = readCsv(s"$resourcesPath/empty.csv")
+  val readEmpty: SIO[DataFrame] = readCsv(s"$resourcesPath/empty.csv")
 
-  val readLorem: Spark[Dataset[String]] = SparkSession.read.textFile(s"$resourcesPath/lorem.txt")
+  val readLorem: SIO[Dataset[String]] = SparkSession.read.textFile(s"$resourcesPath/lorem.txt")
 
-  val readRDD: Spark[RDD[Person]] = read.map(_.as[Person].rdd)
+  val readRDD: SIO[RDD[Person]] = read.map(_.as[Person].rdd)
 }

@@ -39,7 +39,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain: RIO[SparkSession with Console, Unit] = explain(extended = false)
+  def explain: SRIO[Console, Unit] = explain(extended = false)
 
   /**
    * Prints the schema to the console in a nice tree format.

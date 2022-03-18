@@ -123,10 +123,8 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
               .map { case (methodType, methods) =>
                 val sep =
                   methodType match {
-                    case MethodType.ToImplement => "\n"
-                    case MethodType.Ignored     => "\n"
-                    case MethodType.ToHandle    => "\n"
-                    case _                      => "\n\n"
+                    case MethodType.ToImplement | MethodType.Ignored | MethodType.ToHandle => "\n"
+                    case _                                                                 => "\n\n"
                   }
 
                 val allMethods = methods.sortBy(_.fullName).map(_.toCode(methodType)).distinct.mkString(sep)

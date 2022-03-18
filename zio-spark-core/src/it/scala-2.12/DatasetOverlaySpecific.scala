@@ -51,7 +51,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String): RIO[SparkSession with Console, Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -60,7 +60,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode): RIO[SparkSession with Console, Unit] =
+  def explain(mode: ExplainMode): SRIO[Console, Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlyingDataset.queryExecution.explainString(mode))

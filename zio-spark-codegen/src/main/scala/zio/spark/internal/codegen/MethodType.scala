@@ -106,14 +106,7 @@ object MethodType {
         "iterator"
       )
 
-    method.name match {
-      case name if distributedComputations(name) => true
-      case name if name.startsWith("take")       => true
-      case name if name.startsWith("foreach")    => true
-      case name if name.startsWith("count")      => true
-      case name if name.startsWith("saveAs")     => true
-      case _                                     => false
-    }
+    distributedComputations(method.name) || Array("take", "foreach", "count", "saveAs").exists(method.name.startsWith)
   }
 
   def isIgnoredMethod(method: Method): Boolean = {

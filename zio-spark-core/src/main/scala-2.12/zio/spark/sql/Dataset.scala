@@ -41,7 +41,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
-  def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attemptBlocking(get(f))
+  def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying Dataset. */
   def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlyingDataset))
@@ -79,7 +79,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String): RIO[SparkSession with Console, Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -88,7 +88,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode): RIO[SparkSession with Console, Unit] =
+  def explain(mode: ExplainMode): SRIO[Console, Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlyingDataset.queryExecution.explainString(mode))
@@ -151,7 +151,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int): ZIO[Console, Throwable, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int): RIO[Console, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -159,21 +159,21 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show: ZIO[Console, Throwable, Unit] = show(20)
+  def show: RIO[Console, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean): ZIO[Console, Throwable, Unit] = show(20, truncate)
+  def show(truncate: Boolean): RIO[Console, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean): ZIO[Console, Throwable, Unit] = {
+  def show(numRows: Int, truncate: Boolean): RIO[Console, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlyingDataset, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)

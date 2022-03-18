@@ -119,11 +119,11 @@ object GenerationPlan {
           case DatasetPlan =>
             s"""$defaultImplicits
                |
-               |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] = 
+               |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] =
                |  iterator.asScala
-               |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions = 
+               |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
                |  DataFrameNaFunctions(x)
-               |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions = 
+               |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
                |  DataFrameStatFunctions(x)""".stripMargin
           case _ => ""
         }
@@ -333,6 +333,10 @@ object GenerationPlan {
   }
 
   object Helper {
+
+    // NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
+    // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
+    // 2. It's necessary for "makeItCancellable" to work
     val action: Helper = { (name, withParam) =>
       // NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
       // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
@@ -346,7 +350,7 @@ object GenerationPlan {
       val tParam = if (withParam) "[T]" else ""
       val uParam = if (withParam) "[U]" else ""
       s"""/** Applies a transformation to the underlying $name. */
-         |def transformation$uParam(f: Underlying$name$tParam => Underlying$name$uParam): $name$uParam = 
+         |def transformation$uParam(f: Underlying$name$tParam => Underlying$name$uParam): $name$uParam =
          |  $name(f(underlying$name))""".stripMargin
     }
 
@@ -355,7 +359,7 @@ object GenerationPlan {
       val uParam = if (withParam) "[U]" else ""
       s"""/** Applies a transformation to the underlying $name, it is used for
          | * transformations that can fail due to an AnalysisException. */
-         |def transformationWithAnalysis$uParam(f: Underlying$name$tParam => Underlying$name$uParam): TryAnalysis[$name$uParam] = 
+         |def transformationWithAnalysis$uParam(f: Underlying$name$tParam => Underlying$name$uParam): TryAnalysis[$name$uParam] =
          |  TryAnalysis(transformation(f))""".stripMargin
     }
 
@@ -372,7 +376,7 @@ object GenerationPlan {
       s"""/** Applies an action to the underlying $name, it is used for
          | * transformations that can fail due to an AnalysisException.
          | */
-         |def getWithAnalysis[U](f: Underlying$name$tParam => U): TryAnalysis[U] = 
+         |def getWithAnalysis[U](f: Underlying$name$tParam => U): TryAnalysis[U] =
          |  TryAnalysis(f(underlying$name))""".stripMargin
     }
 

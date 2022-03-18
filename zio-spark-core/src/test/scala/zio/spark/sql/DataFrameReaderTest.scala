@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import zio.spark.SparkSessionRunner.SparkTestSpec
+import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.TestAspect._

@@ -7,7 +7,7 @@ import zio.spark.sql._
 object SparkCodeMigration extends ZIOAppDefault {
   val NUM_SAMPLES: Int = 100000
 
-  val computePiJob: Spark[Long] =
+  val computePiJob: SIO[Long] =
     fromSpark { ss =>
       val landInCircle =
         ss.sparkContext.parallelize(1 to NUM_SAMPLES).filter { _ =>

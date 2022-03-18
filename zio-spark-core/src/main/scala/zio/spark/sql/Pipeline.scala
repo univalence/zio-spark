@@ -23,7 +23,7 @@ import zio._
  *   The result type of the pipeline
  */
 final case class Pipeline[Source, Output, Result](
-    load:      Spark[Dataset[Source]],
+    load:      SIO[Dataset[Source]],
     transform: Dataset[Source] => Dataset[Output],
     action:    Dataset[Output] => Task[Result]
 ) {
@@ -32,13 +32,13 @@ final case class Pipeline[Source, Output, Result](
    * Runs the pipeline computation as a ZIO effect. You must provide a
    * [[SparkSession]] layer to actually run the effect.
    */
-  def run: Spark[Result] = load.map(transform).flatMap(action)
+  def run: SIO[Result] = load.map(transform).flatMap(action)
 }
 
 object Pipeline {
 
   /** Builds a pipeline without processing. */
-  def buildWithoutTransformation[Source, Result](load: Spark[Dataset[Source]])(
+  def buildWithoutTransformation[Source, Result](load: SIO[Dataset[Source]])(
       action: Dataset[Source] => Task[Result]
   ): Pipeline[Source, Source, Result] = build(load)(df => df)(action)
 
@@ -47,7 +47,7 @@ object Pipeline {
    * class constructor without specifying each function types since
    * Scala is not capable to find the correct types by itself.
    */
-  def build[Source, Output, Result](load: Spark[Dataset[Source]])(
+  def build[Source, Output, Result](load: SIO[Dataset[Source]])(
       transform: Dataset[Source] => Dataset[Output]
   )(action: Dataset[Output] => Task[Result]): Pipeline[Source, Output, Result] =
     Pipeline(
