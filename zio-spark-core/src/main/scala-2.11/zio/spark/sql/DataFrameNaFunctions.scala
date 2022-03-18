@@ -11,19 +11,16 @@ import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFuncti
 
 final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: UnderlyingDataFrameNaFunctions) { self =>
 
-  /**
-   * Applies a transformation to the underlying DataFrameNaFunctions.
-   */
-  def transformation(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
+  /** Unpack the underlying DataFrameNaFunctions into a DataFrame. */
+  def unpack(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
     Dataset(f(underlyingDataFrameNaFunctions))
 
   /**
-   * Applies a transformation to the underlying DataFrameNaFunctions, it
-   * is used for transformations that can fail due to an
-   * AnalysisException.
+   * Unpack the underlying DataFrameNaFunctions into a DataFrame, it is
+   * used for transformations that can fail due to an AnalysisException.
    */
-  def transformationWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
-    TryAnalysis(transformation(f))
+  def unpackWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+    TryAnalysis(unpack(f))
 
   // Handmade functions specific to zio-spark
 
@@ -35,7 +32,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def drop: DataFrame = transformation(_.drop())
+  def drop: DataFrame = unpack(_.drop())
 
   /**
    * Returns a new `DataFrame` that drops rows containing null or NaN
@@ -47,7 +44,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def drop(how: String): DataFrame = transformation(_.drop(how))
+  def drop(how: String): DataFrame = unpack(_.drop(how))
 
   /**
    * Returns a new `DataFrame` that drops rows containing less than
@@ -55,22 +52,22 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def drop(minNonNulls: Int): DataFrame = transformation(_.drop(minNonNulls))
+  def drop(minNonNulls: Int): DataFrame = unpack(_.drop(minNonNulls))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
    * numeric columns with `value`.
    *
-   * @since 2.1.1
+   * @since 2.2.0
    */
-  def fill(value: Long): DataFrame = transformation(_.fill(value))
+  def fill(value: Long): DataFrame = unpack(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
    * numeric columns with `value`.
    * @since 1.3.1
    */
-  def fill(value: Double): DataFrame = transformation(_.fill(value))
+  def fill(value: Double): DataFrame = unpack(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null values in string
@@ -78,7 +75,15 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def fill(value: String): DataFrame = transformation(_.fill(value))
+  def fill(value: String): DataFrame = unpack(_.fill(value))
+
+  /**
+   * Returns a new `DataFrame` that replaces null values in boolean
+   * columns with `value`.
+   *
+   * @since 2.3.0
+   */
+  def fill(value: Boolean): DataFrame = unpack(_.fill(value))
 
   /**
    * Returns a new `DataFrame` that replaces null values.
@@ -100,7 +105,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def fill(valueMap: Map[String, Any]): DataFrame = transformation(_.fill(valueMap))
+  def fill(valueMap: Map[String, Any]): DataFrame = unpack(_.fill(valueMap))
 
   // ===============
 
@@ -110,7 +115,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def drop(cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(cols))
+  def drop(cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.drop(cols))
 
   /**
    * Returns a new `DataFrame` that drops rows containing null or NaN
@@ -122,7 +127,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def drop(how: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.drop(how, cols))
+  def drop(how: String, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.drop(how, cols))
 
   /**
    * Returns a new `DataFrame` that drops rows containing less than
@@ -130,17 +135,16 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def drop(minNonNulls: Int, cols: Seq[String]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.drop(minNonNulls, cols))
+  def drop(minNonNulls: Int, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.drop(minNonNulls, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
    * specified numeric columns. If a specified column is not a numeric
    * column, it is ignored.
    *
-   * @since 2.1.1
+   * @since 2.2.0
    */
-  def fill(value: Long, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
+  def fill(value: Long, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.fill(value, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null or NaN values in
@@ -149,7 +153,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def fill(value: Double, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
+  def fill(value: Double, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.fill(value, cols))
 
   /**
    * Returns a new `DataFrame` that replaces null values in specified
@@ -158,14 +162,19 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    *
    * @since 1.3.1
    */
-  def fill(value: String, cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.fill(value, cols))
+  def fill(value: String, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.fill(value, cols))
 
   /**
-   * Replaces values matching keys in `replacement` map. Key and value
-   * of `replacement` map must have the same type, and can only be
-   * doubles, strings or booleans. If `col` is "*", then the replacement
-   * is applied on all string columns , numeric columns or boolean
-   * columns.
+   * Returns a new `DataFrame` that replaces null values in specified
+   * boolean columns. If a specified column is not a boolean column, it
+   * is ignored.
+   *
+   * @since 2.3.0
+   */
+  def fill(value: Boolean, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.fill(value, cols))
+
+  /**
+   * Replaces values matching keys in `replacement` map.
    *
    * {{{
    *   // Replaces all occurrences of 1.0 with 2.0 in column "height".
@@ -179,19 +188,21 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * }}}
    *
    * @param col
-   *   name of the column to apply the value replacement
+   *   name of the column to apply the value replacement. If `col` is
+   *   "*", replacement is applied on all string, numeric or boolean
+   *   columns.
    * @param replacement
-   *   value replacement map, as explained above
+   *   value replacement map. Key and value of `replacement` map must
+   *   have the same type, and can only be doubles, strings or booleans.
+   *   The map value can have nulls.
    *
    * @since 1.3.1
    */
   def replace[T](col: String, replacement: Map[T, T]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.replace(col, replacement))
+    unpackWithAnalysis(_.replace(col, replacement))
 
   /**
-   * Replaces values matching keys in `replacement` map. Key and value
-   * of `replacement` map must have the same type, and can only be
-   * doubles , strings or booleans.
+   * Replaces values matching keys in `replacement` map.
    *
    * {{{
    *   // Replaces all occurrences of 1.0 with 2.0 in column "height" and "weight".
@@ -202,13 +213,16 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * }}}
    *
    * @param cols
-   *   list of columns to apply the value replacement
+   *   list of columns to apply the value replacement. If `col` is "*",
+   *   replacement is applied on all string, numeric or boolean columns.
    * @param replacement
-   *   value replacement map, as explained above
+   *   value replacement map. Key and value of `replacement` map must
+   *   have the same type, and can only be doubles, strings or booleans.
+   *   The map value can have nulls.
    *
    * @since 1.3.1
    */
   def replace[T](cols: Seq[String], replacement: Map[T, T]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.replace(cols, replacement))
+    unpackWithAnalysis(_.replace(cols, replacement))
 
 }

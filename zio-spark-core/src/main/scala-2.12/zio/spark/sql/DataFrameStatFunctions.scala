@@ -16,25 +16,42 @@ import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
 
 final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: UnderlyingDataFrameStatFunctions) { self =>
 
-  /** Applies an action to the underlying DataFrameStatFunctions. */
-  def get[U](f: UnderlyingDataFrameStatFunctions => U): U = f(underlyingDataFrameStatFunctions)
+  /** Unpack the underlying DataFrameStatFunctions into a DataFrame. */
+  def unpack(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): DataFrame =
+    Dataset(f(underlyingDataFrameStatFunctions))
 
-  /** Wraps a function into a TryAnalysis. */
-  def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] = TryAnalysis(get(f))
+  /**
+   * Unpack the underlying DataFrameStatFunctions into a DataFrame, it
+   * is used for transformations that can fail due to an
+   * AnalysisException.
+   */
+  def unpackWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+    TryAnalysis(unpack(f))
 
   /**
    * Applies a transformation to the underlying DataFrameStatFunctions.
    */
-  def transformation(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): DataFrame =
-    Dataset(f(underlyingDataFrameStatFunctions))
+  def transformation(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
+    DataFrameStatFunctions(f(underlyingDataFrameStatFunctions))
 
   /**
    * Applies a transformation to the underlying DataFrameStatFunctions,
    * it is used for transformations that can fail due to an
    * AnalysisException.
    */
-  def transformationWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
-    TryAnalysis(transformation(f))
+  def transformationWithAnalysis(
+      f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrameStatFunctions
+  ): TryAnalysis[DataFrameStatFunctions] = TryAnalysis(transformation(f))
+
+  /** Applies an action to the underlying DataFrameStatFunctions. */
+  def get[U](f: UnderlyingDataFrameStatFunctions => U): U = f(underlyingDataFrameStatFunctions)
+
+  /**
+   * Applies an action to the underlying DataFrameStatFunctions, it is
+   * used for transformations that can fail due to an AnalysisException.
+   */
+  def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] =
+    TryAnalysis(f(underlyingDataFrameStatFunctions))
 
   // Handmade functions specific to zio-spark
 
@@ -275,13 +292,13 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    *
    * @since 1.4.0
    */
-  def crosstab(col1: String, col2: String): TryAnalysis[DataFrame] = transformationWithAnalysis(_.crosstab(col1, col2))
+  def crosstab(col1: String, col2: String): TryAnalysis[DataFrame] = unpackWithAnalysis(_.crosstab(col1, col2))
 
   /**
    * Finding frequent items for columns, possibly with false positives.
    * Using the frequent element count algorithm described in <a
-   * href="http://dx.doi.org/10.1145/762471.762473">here</a>, proposed
-   * by Karp, Schenker, and Papadimitriou.
+   * href="https://doi.org/10.1145/762471.762473">here</a>, proposed by
+   * Karp, Schenker, and Papadimitriou.
    *
    * This function is meant for exploratory data analysis, as we make no
    * guarantee about the backward compatibility of the schema of the
@@ -322,14 +339,13 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * @since 1.4.0
    */
   def freqItems(cols: Seq[String], support: Double): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.freqItems(cols, support))
+    unpackWithAnalysis(_.freqItems(cols, support))
 
   /**
    * Finding frequent items for columns, possibly with false positives.
    * Using the frequent element count algorithm described in <a
-   * href="http://dx.doi.org/10.1145/762471.762473">here</a>, proposed
-   * by Karp, Schenker, and Papadimitriou. Uses a `default` support of
-   * 1%.
+   * href="https://doi.org/10.1145/762471.762473">here</a>, proposed by
+   * Karp, Schenker, and Papadimitriou. Uses a `default` support of 1%.
    *
    * This function is meant for exploratory data analysis, as we make no
    * guarantee about the backward compatibility of the schema of the
@@ -343,7 +359,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    *
    * @since 1.4.0
    */
-  def freqItems(cols: Seq[String]): TryAnalysis[DataFrame] = transformationWithAnalysis(_.freqItems(cols))
+  def freqItems(cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.freqItems(cols))
 
   /**
    * Returns a stratified sample without replacement based on the
@@ -377,6 +393,43 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * @since 1.5.0
    */
   def sampleBy[T](col: String, fractions: Map[T, Double], seed: Long): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.sampleBy(col, fractions, seed))
+    unpackWithAnalysis(_.sampleBy(col, fractions, seed))
+
+  /**
+   * Returns a stratified sample without replacement based on the
+   * fraction given on each stratum.
+   * @param col
+   *   column that defines strata
+   * @param fractions
+   *   sampling fraction for each stratum. If a stratum is not
+   *   specified, we treat its fraction as zero.
+   * @param seed
+   *   random seed
+   * @tparam T
+   *   stratum type
+   * @return
+   *   a new `DataFrame` that represents the stratified sample
+   *
+   * The stratified sample can be performed over multiple columns:
+   * {{{
+   *     import org.apache.spark.sql.Row
+   *     import org.apache.spark.sql.functions.struct
+   *
+   *     val df = spark.createDataFrame(Seq(("Bob", 17), ("Alice", 10), ("Nico", 8), ("Bob", 17),
+   *       ("Alice", 10))).toDF("name", "age")
+   *     val fractions = Map(Row("Alice", 10) -> 0.3, Row("Nico", 8) -> 1.0)
+   *     df.stat.sampleBy(struct($"name", $"age"), fractions, 36L).show()
+   *     +-----+---+
+   *     | name|age|
+   *     +-----+---+
+   *     | Nico|  8|
+   *     |Alice| 10|
+   *     +-----+---+
+   * }}}
+   *
+   * @since 3.0.0
+   */
+  def sampleBy[T](col: Column, fractions: Map[T, Double], seed: Long): TryAnalysis[DataFrame] =
+    unpackWithAnalysis(_.sampleBy(col, fractions, seed))
 
 }

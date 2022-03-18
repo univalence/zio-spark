@@ -1,3 +1,5 @@
+package example
+
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql._
@@ -22,7 +24,7 @@ object SparkCodeMigration extends ZIOAppDefault {
       _     <- Console.printLine(s"Pi is roughly ${4.0 * count / NUM_SAMPLES}")
     } yield ()
 
-  private val session = SparkSession.builder.master(localAllNodes).appName("zio-spark").getOrCreateLayer
+  private val session = SparkSession.builder.master(localAllNodes).appName("app").getOrCreateLayer
 
   override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
 }

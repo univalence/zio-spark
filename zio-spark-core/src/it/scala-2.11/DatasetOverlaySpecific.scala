@@ -8,6 +8,13 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
   import self._
 
   // template:on
+  /**
+   * Computes specified statistics for numeric and string columns.
+   *
+   * See [[UnderlyingDataset.summary]] for more information.
+   */
+  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
+    self.summary(statistics.map(_.toString): _*)
 
   /**
    * Prints the plans (logical and physical) to the console for
@@ -21,8 +28,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
     for {
-      ss   <- ZIO.service[SparkSession]
-      rows <- ss.sessionState.map(_.executePlan(explain).executedPlan.executeCollect())
+      rows <- SparkSession.attempt(_.sessionState.executePlan(explain).executedPlan.executeCollect())
       _    <- ZIO.foreach(rows)(r => Console.printLine(r.getString(0)))
     } yield ()
   }
@@ -42,6 +48,5 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @since 1.6.0
    */
   def printSchema: RIO[Console, Unit] = Console.printLine(schema.treeString)
-
   // template:off
 }

@@ -1,8 +1,7 @@
-import sbt.librarymanagement.Configuration
-
 // Common configuration
 inThisBuild(
   List(
+    version ~= addVersionPadding,
     organization  := "io.univalence",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
     licenses      := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
@@ -93,14 +92,11 @@ lazy val libVersion =
     val zioPrelude = "1.0.0-RC10"
   }
 
-lazy val scala =
-  new {
-    val v211 = "2.11.12"
-    val v212 = "2.12.15"
-    val v213 = "2.13.8"
-  }
+lazy val scala211 = "2.11.12"
+lazy val scala212 = "2.12.15"
+lazy val scala213 = "2.13.8"
 
-lazy val supportedScalaVersions = List(scala.v211, scala.v212, scala.v213)
+lazy val supportedScalaVersions = List(scala211, scala212, scala213)
 
 lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
 
@@ -110,7 +106,7 @@ lazy val core =
     .settings(
       name               := "zio-spark",
       crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala.v213,
+      scalaVersion       := scala213,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= generateLibraryDependencies(scalaMajorVersion.value),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
@@ -119,24 +115,40 @@ lazy val core =
     )
     .enablePlugins(ZioSparkCodegenPlugin)
 
+val exampleNames =
+  Seq(
+    "simple-app",
+    "spark-code-migration",
+    "using-older-spark-version",
+    "word-count"
+  )
+
+def example(project: Project): Project =
+  project
+    .dependsOn(core)
+    // run is forcing the exit of sbt. It could be useful to set fork to true
+    /* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the
+     * project root (./) */
+    /* which lead to errors, eg. Path does not exist:
+     * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
+    .settings(fork := false)
+
+lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
+lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
+lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
+lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
+
 lazy val examples =
   (project in file("examples"))
-    .settings(
-      scalaVersion      := scala.v213,
-      publish / skip    := true,
-      scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
-      libraryDependencies ++= generateSparkLibraryDependencies(scalaMajorVersion.value, conf = Compile),
-      scalacOptions ~= fatalWarningsAsProperties
-    )
-    .dependsOn(core)
+    .aggregate(exampleSimpleApp, exampleSparkCodeMigration, exampleUsingOlderSparkVersion, exampleWordCount)
 
 /** Generates required libraries for spark. */
-def generateSparkLibraryDependencies(scalaMinor: Long, conf: Configuration = Provided): Seq[ModuleID] = {
+def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)
 
   Seq(
-    "org.apache.spark" %% "spark-core" % sparkVersion % conf,
-    "org.apache.spark" %% "spark-sql"  % sparkVersion % conf
+    "org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources (),
+    "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()
   )
 }
 
@@ -159,8 +171,8 @@ def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
  */
 def sparkScalaVersionMapping(scalaMinor: Long): String =
   scalaMinor match {
-    case 11 => "2.1.3"
-    case 12 => "2.4.8"
+    case 11 => "2.4.8"
+    case 12 => "3.2.1"
     case 13 => "3.2.1"
     case _  => throw new Exception("It should be unreachable.")
   }
@@ -173,3 +185,26 @@ def sparkScalaVersionMapping(scalaMinor: Long): String =
 def fatalWarningsAsProperties(options: Seq[String]): Seq[String] =
   if (sys.props.getOrElse("fatal-warnings", "false") == "true") options
   else options.filterNot(Set("-Xfatal-warnings"))
+
+/**
+ * Add padding to change: 0.1.0+48-bfcea99ap20220317-1157-SNAPSHOT into
+ * 0.1.0+0048-bfcea99ap20220317-1157-SNAPSHOT. It helps to retrieve the
+ * latest snapshots from
+ * https://oss.sonatype.org/#nexus-search;gav~io.univalence~zio-spark_2.13~~~~kw,versionexpand.
+ */
+def addVersionPadding(baseVersion: String): String = {
+  import scala.util.matching.Regex
+
+  val paddingSize    = 5
+  val counter: Regex = "\\+([0-9]+)-".r
+
+  val counterWithPadding: String =
+    counter.findFirstMatchIn(baseVersion) match {
+      case Some(regex) =>
+        val count = regex.group(1)
+        "0" * (paddingSize - count.length) + count
+      case None => throw new RuntimeException("This should never happen")
+    }
+
+  counter.replaceFirstIn(baseVersion, s"+$counterWithPadding-")
+}

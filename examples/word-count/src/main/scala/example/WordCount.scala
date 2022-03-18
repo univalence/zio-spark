@@ -1,3 +1,5 @@
+package example
+
 import zio._
 import zio.spark.parameter._
 import zio.spark.rdd._
@@ -12,7 +14,10 @@ object WordCount extends ZIOAppDefault {
 
   def transform(inputDs: Dataset[String]): RDD[(String, Int)] =
     inputDs
-      .flatMap(line => line.trim.replaceAll(" +", " ").split(" "))
+      .flatMap(line => line.trim.split(" "))
+      .flatMap(word => word.split('.'))
+      .map(_.replaceAll("[^a-zA-Z]", ""))
+      .filter(_.length > 1)
       .map(word => (word, 1))
       .rdd
       .reduceByKey(_ + _)
@@ -30,7 +35,7 @@ object WordCount extends ZIOAppDefault {
         }
     } yield ()
 
-  private val session = SparkSession.builder.master(localAllNodes).appName("zio-spark").getOrCreateLayer
+  private val session = SparkSession.builder.master(localAllNodes).appName("app").getOrCreateLayer
 
   override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
 }

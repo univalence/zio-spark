@@ -18,7 +18,7 @@ import org.apache.spark.sql.{
   Sniffer,
   TypedColumn
 }
-import org.apache.spark.sql.execution.command.ExplainCommand
+import org.apache.spark.sql.execution.ExplainMode
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
@@ -44,10 +44,10 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying Dataset. */
-  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(get(f))
+  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlyingDataset))
 
   /**
-   * Applies a transformation to the underlying dataset, it is used for
+   * Applies a transformation to the underlying Dataset, it is used for
    * transformations that can fail due to an AnalysisException.
    */
   def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
@@ -56,35 +56,44 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   /** Applies an action to the underlying Dataset. */
   def get[U](f: UnderlyingDataset[T] => U): U = f(underlyingDataset)
 
-  /** Wraps a function into a TryAnalysis. */
-  def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(get(f))
+  /**
+   * Applies an action to the underlying Dataset, it is used for
+   * transformations that can fail due to an AnalysisException.
+   */
+  def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(f(underlyingDataset))
 
   // Handmade functions specific to zio-spark
 
   /**
-   * Prints the plans (logical and physical) to the console for
-   * debugging purposes.
+   * Prints the plans (logical and physical) with a format specified by
+   * a given explain mode.
    *
+   * @param mode
+   *   specifies the expected output format of plans. <ul> <li>`simple`
+   *   Print only a physical plan.</li> <li>`extended`: Print both
+   *   logical and physical plans.</li> <li>`codegen`: Print a physical
+   *   plan and generated codes if they are available.</li> <li>`cost`:
+   *   Print a logical plan and statistics if they are available.</li>
+   *   <li>`formatted`: Split explain output into two sections: a
+   *   physical plan outline and node details.</li> </ul>
    * @group basic
-   * @since 1.6.0
+   * @since 3.0.0
    */
-  def explain(extended: Boolean): RIO[SparkSession with Console, Unit] = {
-    val queryExecution = underlyingDataset.queryExecution
-    val explain        = ExplainCommand(queryExecution.logical, extended = extended)
-
-    for {
-      rows <- SparkSession.attempt(_.sessionState.executePlan(explain).executedPlan.executeCollect())
-      _    <- ZIO.foreach(rows)(r => Console.printLine(r.getString(0)))
-    } yield ()
-  }
+  def explain(mode: String): RIO[SparkSession with Console, Unit] = explain(ExplainMode.fromString(mode))
 
   /**
-   * Prints the physical plan to the console for debugging purposes.
+   * Prints the plans (logical and physical) with a format specified by
+   * a given explain mode.
    *
    * @group basic
-   * @since 1.6.0
+   * @since 3.0.0
    */
-  def explain: RIO[SparkSession with Console, Unit] = explain(extended = false)
+  def explain(mode: ExplainMode): RIO[SparkSession with Console, Unit] =
+    for {
+      ss   <- ZIO.service[SparkSession]
+      plan <- ss.withActive(underlyingDataset.queryExecution.explainString(mode))
+      _    <- Console.printLine(plan)
+    } yield ()
 
   /** Alias for [[headOption]]. */
   def firstOption: Task[Option[T]] = headOption
@@ -105,13 +114,29 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   /** Takes the first element of a dataset or None. */
   def headOption: Task[Option[T]] = head(1).map(_.headOption)
 
+  // template:on
+  /** Alias for [[tail]]. */
+  def last: Task[T] = tail
+
+  /** Alias for [[tailOption]]. */
+  def lastOption: Task[Option[T]] = tailOption
+
   /**
    * Prints the schema to the console in a nice tree format.
    *
    * @group basic
    * @since 1.6.0
    */
-  def printSchema: RIO[Console, Unit] = Console.printLine(schema.treeString)
+  def printSchema: RIO[Console, Unit] = printSchema(Int.MaxValue)
+
+  /**
+   * Prints the schema up to the given level to the console in a nice
+   * tree format.
+   *
+   * @group basic
+   * @since 3.0.0
+   */
+  def printSchema(level: Int): RIO[Console, Unit] = Console.printLine(schema.treeString(level))
 
   /**
    * Transform the dataset into a [[RDD]].
@@ -154,14 +179,26 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     Console.printLine(stringifiedDf)
   }
 
-  // template:on
   /**
    * Computes specified statistics for numeric and string columns.
    *
-   * See [[UnderlyingDataset.summary]] for more information.
+   * See [[org.apache.spark.sql.Dataset.summary]] for more information.
    */
   def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
     self.summary(statistics.map(_.toString): _*)
+
+  /**
+   * Takes the last element of a dataset or throws an exception.
+   *
+   * See [[Dataset.tail]] for more information.
+   */
+  def tail: Task[T] = self.tail(1).map(_.head)
+
+  /** Takes the last element of a dataset or None. */
+  def tailOption: Task[Option[T]] = self.tail(1).map(_.headOption)
+
+  /** Alias for [[tail]]. */
+  def takeRight(n: Int): Task[Seq[T]] = self.tail(n)
 
   /**
    * Chains custom transformations.
@@ -270,6 +307,13 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * this Dataset. It is an error to add a column that refers to some
    * other Dataset.
    *
+   * @note
+   *   this method introduces a projection internally. Therefore,
+   *   calling it multiple times, for instance, via loops in order to
+   *   add multiple columns can generate big plans which can cause
+   *   performance issues and even `StackOverflowException`. To avoid
+   *   this, use `select` with the multiple columns at once.
+   *
    * @group untypedrel
    * @since 2.0.0
    */
@@ -350,15 +394,26 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def isEmpty: Task[Boolean] = action(_.isEmpty)
 
   /**
-   * :: Experimental :: (Scala-specific) Reduces the elements of this
-   * Dataset using the specified binary function. The given `func` must
-   * be commutative and associative or the result may be
-   * non-deterministic.
+   * (Scala-specific) Reduces the elements of this Dataset using the
+   * specified binary function. The given `func` must be commutative and
+   * associative or the result may be non-deterministic.
    *
    * @group action
    * @since 1.6.0
    */
   def reduce(func: (T, T) => T): Task[T] = action(_.reduce(func))
+
+  /**
+   * Returns the last `n` rows in the Dataset.
+   *
+   * Running tail requires moving data into the application's driver
+   * process, and doing so with a very large `n` can crash the driver
+   * process with OutOfMemoryError.
+   *
+   * @group action
+   * @since 3.0.0
+   */
+  def tail(n: Int): Task[Seq[T]] = action(_.tail(n).toSeq)
 
   /**
    * Returns the first `n` rows in the Dataset.
@@ -696,6 +751,11 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * Returns a new Dataset that contains only the unique rows from this
    * Dataset. This is an alias for `dropDuplicates`.
    *
+   * Note that for a streaming [[Dataset]], this method returns distinct
+   * rows only once regardless of the output mode, which the behavior
+   * may not be same with `DISTINCT` in SQL against streaming
+   * [[Dataset]].
+   *
    * @note
    *   Equality checking is performed directly on the encoded
    *   representation of the data and thus is not affected by a custom
@@ -802,9 +862,9 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *   case class Book(title: String, words: String)
    *   val ds: Dataset[Book]
    *
-   *   val allWords = ds.select('title, explode(split('words, " ")).as("word"))
+   *   val allWords = ds.select($"title", explode(split($"words", " ")).as("word"))
    *
-   *   val bookCountPerWord = allWords.groupBy("word").agg(countDistinct("title"))
+   *   val bookCountPerWord = allWords.groupBy("word").agg(count_distinct("title"))
    * }}}
    *
    * Using `flatMap()` this can similarly be exploded as:
@@ -821,8 +881,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     transformation(_.explode(input: _*)(f))
 
   /**
-   * :: Experimental :: (Scala-specific) Returns a new Dataset that only
-   * contains elements where `func` returns `true`.
+   * (Scala-specific) Returns a new Dataset that only contains elements
+   * where `func` returns `true`.
    *
    * @group typedrel
    * @since 1.6.0
@@ -830,9 +890,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def filter(func: T => Boolean): Dataset[T] = transformation(_.filter(func))
 
   /**
-   * :: Experimental :: (Scala-specific) Returns a new Dataset by first
-   * applying a function to all elements of this Dataset, and then
-   * flattening the results.
+   * (Scala-specific) Returns a new Dataset by first applying a function
+   * to all elements of this Dataset, and then flattening the results.
    *
    * @group typedrel
    * @since 1.6.0
@@ -907,8 +966,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def limit(n: Int): Dataset[T] = transformation(_.limit(n))
 
   /**
-   * :: Experimental :: (Scala-specific) Returns a new Dataset that
-   * contains the result of applying `func` to each element.
+   * (Scala-specific) Returns a new Dataset that contains the result of
+   * applying `func` to each element.
    *
    * @group typedrel
    * @since 1.6.0
@@ -916,8 +975,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def map[U: Encoder](func: T => U): Dataset[U] = transformation(_.map(func))
 
   /**
-   * :: Experimental :: (Scala-specific) Returns a new Dataset that
-   * contains the result of applying `func` to each partition.
+   * (Scala-specific) Returns a new Dataset that contains the result of
+   * applying `func` to each partition.
    *
    * @group typedrel
    * @since 1.6.0
@@ -1007,8 +1066,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     transformation(_.sample(withReplacement, fraction))
 
   /**
-   * :: Experimental :: Returns a new Dataset by computing the given
-   * [[Column]] expression for each element.
+   * Returns a new Dataset by computing the given [[Column]] expression
+   * for each element.
    *
    * {{{
    *   val ds = Seq(1, 2, 3).toDS()
@@ -1021,8 +1080,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def select[U1](c1: TypedColumn[T, U1]): Dataset[U1] = transformation(_.select(c1))
 
   /**
-   * :: Experimental :: Returns a new Dataset by computing the given
-   * [[Column]] expressions for each element.
+   * Returns a new Dataset by computing the given [[Column]] expressions
+   * for each element.
    *
    * @group typedrel
    * @since 1.6.0
@@ -1031,8 +1090,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     transformation(_.select(c1, c2))
 
   /**
-   * :: Experimental :: Returns a new Dataset by computing the given
-   * [[Column]] expressions for each element.
+   * Returns a new Dataset by computing the given [[Column]] expressions
+   * for each element.
    *
    * @group typedrel
    * @since 1.6.0
@@ -1044,8 +1103,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   ): Dataset[(U1, U2, U3)] = transformation(_.select(c1, c2, c3))
 
   /**
-   * :: Experimental :: Returns a new Dataset by computing the given
-   * [[Column]] expressions for each element.
+   * Returns a new Dataset by computing the given [[Column]] expressions
+   * for each element.
    *
    * @group typedrel
    * @since 1.6.0
@@ -1058,8 +1117,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   ): Dataset[(U1, U2, U3, U4)] = transformation(_.select(c1, c2, c3, c4))
 
   /**
-   * :: Experimental :: Returns a new Dataset by computing the given
-   * [[Column]] expressions for each element.
+   * Returns a new Dataset by computing the given [[Column]] expressions
+   * for each element.
    *
    * @group typedrel
    * @since 1.6.0
@@ -1074,15 +1133,10 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   /**
    * Computes specified statistics for numeric and string columns.
-   * Available statistics are:
-   *
-   *   - count
-   *   - mean
-   *   - stddev
-   *   - min
-   *   - max
-   *   - arbitrary approximate percentiles specified as a percentage
-   *     (eg, 75%)
+   * Available statistics are: <ul> <li>count</li> <li>mean</li>
+   * <li>stddev</li> <li>min</li> <li>max</li> <li>arbitrary approximate
+   * percentiles specified as a percentage (e.g. 75%)</li>
+   * <li>count_distinct</li> <li>approx_count_distinct</li> </ul>
    *
    * If no statistics are given, this function computes count, mean,
    * stddev, min, approximate quartiles (percentiles at 25%, 50%, and
@@ -1124,6 +1178,20 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * {{{
    *   ds.select("age", "height").summary().show()
+   * }}}
+   *
+   * Specify statistics to output custom summaries:
+   *
+   * {{{
+   *   ds.summary("count", "count_distinct").show()
+   * }}}
+   *
+   * The distinct count isn't included by default.
+   *
+   * You can also run approximate distinct counts which are faster:
+   *
+   * {{{
+   *   ds.summary("count", "approx_count_distinct").show()
    * }}}
    *
    * See also [[describe]] for basic statistics.
@@ -1193,7 +1261,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
-   * another Dataset.
+   * another Dataset. This is an alias for `union`.
    *
    * This is equivalent to `UNION ALL` in SQL. To do a SQL-style set
    * union (that does deduplication of elements), use this function
@@ -1205,7 +1273,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 2.0.0
    */
-  @deprecated("use union()", "2.0.0")
   def unionAll(other: Dataset[T]): Dataset[T] = transformation(_.unionAll(other))
 
   /**
@@ -1253,21 +1320,18 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * tracks a point in time before which we assume no more late data is
    * going to arrive.
    *
-   * Spark will use this watermark for several purposes:
-   *   - To know when a given time window aggregation can be finalized
-   *     and thus can be emitted when using output modes that do not
-   *     allow updates.
-   *   - To minimize the amount of state that we need to keep for
-   *     on-going aggregations, `mapGroupsWithState` and
-   *     `dropDuplicates` operators.
-   *
-   * The current watermark is computed by looking at the
-   * `MAX(eventTime)` seen across all of the partitions in the query
-   * minus a user specified `delayThreshold`. Due to the cost of
-   * coordinating this value across partitions, the actual watermark
-   * used is only guaranteed to be at least `delayThreshold` behind the
-   * actual event time. In some cases we may still process records that
-   * arrive more than `delayThreshold` late.
+   * Spark will use this watermark for several purposes: <ul> <li>To
+   * know when a given time window aggregation can be finalized and thus
+   * can be emitted when using output modes that do not allow
+   * updates.</li> <li>To minimize the amount of state that we need to
+   * keep for on-going aggregations, `mapGroupsWithState` and
+   * `dropDuplicates` operators.</li> </ul> The current watermark is
+   * computed by looking at the `MAX(eventTime)` seen across all of the
+   * partitions in the query minus a user specified `delayThreshold`.
+   * Due to the cost of coordinating this value across partitions, the
+   * actual watermark used is only guaranteed to be at least
+   * `delayThreshold` behind the actual event time. In some cases we may
+   * still process records that arrive more than `delayThreshold` late.
    *
    * @param eventTime
    *   the name of the column that contains the event time of the row.
@@ -1280,6 +1344,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group streaming
    * @since 2.1.0
    */
+  // We only accept an existing column name, not a derived column here as a watermark that is
+  // defined on a derived column cannot referenced elsewhere in the plan.
   def withWatermark(eventTime: String, delayThreshold: String): Dataset[T] =
     transformation(_.withWatermark(eventTime, delayThreshold))
 
@@ -1326,16 +1392,15 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def agg(expr: Column, exprs: Column*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.agg(expr, exprs: _*))
 
   /**
-   * :: Experimental :: Returns a new Dataset where each record has been
-   * mapped on to the specified type. The method used to map columns
-   * depend on the type of `U`:
-   *   - When `U` is a class, fields for the class will be mapped to
-   *     columns of the same name (case sensitivity is determined by
-   *     `spark.sql.caseSensitive`).
-   *   - When `U` is a tuple, the columns will be mapped by ordinal
-   *     (i.e. the first column will be assigned to `_1`).
-   *   - When `U` is a primitive type (i.e. String, Int, etc), then the
-   *     first column of the `DataFrame` will be used.
+   * Returns a new Dataset where each record has been mapped on to the
+   * specified type. The method used to map columns depend on the type
+   * of `U`: <ul> <li>When `U` is a class, fields for the class will be
+   * mapped to columns of the same name (case sensitivity is determined
+   * by `spark.sql.caseSensitive`).</li> <li>When `U` is a tuple, the
+   * columns will be mapped by ordinal (i.e. the first column will be
+   * assigned to `_1`).</li> <li>When `U` is a primitive type (i.e.
+   * String, Int, etc), then the first column of the `DataFrame` will be
+   * used.</li> </ul>
    *
    * If the schema of the Dataset does not match the desired `U` type,
    * you can use `select` along with `alias` or `as` to rearrange or
@@ -1430,7 +1495,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * columns either using `functions.explode()`:
    *
    * {{{
-   *   ds.select(explode(split('words, " ")).as("word"))
+   *   ds.select(explode(split($"words", " ")).as("word"))
    * }}}
    *
    * or `flatMap()`:
@@ -1547,8 +1612,10 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *   sides.
    * @param joinType
    *   Type of join to perform. Default `inner`. Must be one of:
-   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
-   *   `left_outer`, `right`, `right_outer`, `left_semi`, `left_anti`.
+   *   `inner`, `cross`, `outer`, `full`, `fullouter`, `full_outer`,
+   *   `left`, `leftouter`, `left_outer`, `right`, `rightouter`,
+   *   `right_outer`, `semi`, `leftsemi`, `left_semi`, `anti`,
+   *   `leftanti`, left_anti`.
    *
    * @note
    *   If you perform a self-join using this function without aliasing
@@ -1598,8 +1665,10 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *   Join expression.
    * @param joinType
    *   Type of join to perform. Default `inner`. Must be one of:
-   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
-   *   `left_outer`, `right`, `right_outer`, `left_semi`, `left_anti`.
+   *   `inner`, `cross`, `outer`, `full`, `fullouter`, `full_outer`,
+   *   `left`, `leftouter`, `left_outer`, `right`, `rightouter`,
+   *   `right_outer`, `semi`, `leftsemi`, `left_semi`, `anti`,
+   *   `leftanti`, left_anti`.
    *
    * @group untypedrel
    * @since 2.0.0
@@ -1608,8 +1677,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     transformationWithAnalysis(_.join(right, joinExprs, joinType))
 
   /**
-   * :: Experimental :: Joins this Dataset returning a `Tuple2` for each
-   * pair where `condition` evaluates to true.
+   * Joins this Dataset returning a `Tuple2` for each pair where
+   * `condition` evaluates to true.
    *
    * This is similar to the relation `join` function with one important
    * difference in the result schema. Since `joinWith` preserves objects
@@ -1626,8 +1695,9 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *   Join expression.
    * @param joinType
    *   Type of join to perform. Default `inner`. Must be one of:
-   *   `inner`, `cross`, `outer`, `full`, `full_outer`, `left`,
-   *   `left_outer`, `right`, `right_outer`.
+   *   `inner`, `cross`, `outer`, `full`, `fullouter`,`full_outer`,
+   *   `left`, `leftouter`, `left_outer`, `right`, `rightouter`,
+   *   `right_outer`.
    *
    * @group typedrel
    * @since 1.6.0
@@ -1636,9 +1706,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     transformationWithAnalysis(_.joinWith(other, condition, joinType))
 
   /**
-   * :: Experimental :: Using inner equi-join to join this Dataset
-   * returning a `Tuple2` for each pair where `condition` evaluates to
-   * true.
+   * Using inner equi-join to join this Dataset returning a `Tuple2` for
+   * each pair where `condition` evaluates to true.
    *
    * @param other
    *   Right side of the join.
@@ -1650,6 +1719,58 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    */
   def joinWith[U](other: Dataset[U], condition: Column): TryAnalysis[Dataset[(T, U)]] =
     transformationWithAnalysis(_.joinWith(other, condition))
+
+  /**
+   * Define (named) metrics to observe on the Dataset. This method
+   * returns an 'observed' Dataset that returns the same result as the
+   * input, with the following guarantees: <ul> <li>It will compute the
+   * defined aggregates (metrics) on all the data that is flowing
+   * through the Dataset at that point.</li> <li>It will report the
+   * value of the defined aggregate columns as soon as we reach a
+   * completion point. A completion point is either the end of a query
+   * (batch mode) or the end of a streaming epoch. The value of the
+   * aggregates only reflects the data processed since the previous
+   * completion point.</li> </ul> Please note that continuous execution
+   * is currently not supported.
+   *
+   * The metrics columns must either contain a literal (e.g. lit(42)),
+   * or should contain one or more aggregate functions (e.g. sum(a) or
+   * sum(a + b) + avg(c) - lit(1)). Expressions that contain references
+   * to the input Dataset's columns must always be wrapped in an
+   * aggregate function.
+   *
+   * A user can observe these metrics by either adding
+   * [[org.apache.spark.sql.streaming.StreamingQueryListener]] or a
+   * [[org.apache.spark.sql.util.QueryExecutionListener]] to the spark
+   * session.
+   *
+   * {{{
+   *   // Monitor the metrics using a listener.
+   *   spark.streams.addListener(new StreamingQueryListener() {
+   *     override def onQueryProgress(event: QueryProgressEvent): Unit = {
+   *       event.progress.observedMetrics.asScala.get("my_event").foreach { row =>
+   *         // Trigger if the number of errors exceeds 5 percent
+   *         val num_rows = row.getAs[Long]("rc")
+   *         val num_error_rows = row.getAs[Long]("erc")
+   *         val ratio = num_error_rows.toDouble / num_rows
+   *         if (ratio > 0.05) {
+   *           // Trigger alert
+   *         }
+   *       }
+   *     }
+   *     def onQueryStarted(event: QueryStartedEvent): Unit = {}
+   *     def onQueryTerminated(event: QueryTerminatedEvent): Unit = {}
+   *   })
+   *   // Observe row count (rc) and error row count (erc) in the streaming Dataset
+   *   val observed_ds = ds.observe("my_event", count(lit(1)).as("rc"), count($"error").as("erc"))
+   *   observed_ds.writeStream.format("...").start()
+   * }}}
+   *
+   * @group typedrel
+   * @since 3.0.0
+   */
+  def observe(name: String, expr: Column, exprs: Column*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.observe(name, expr, exprs: _*))
 
   /**
    * Returns a new Dataset sorted by the given expressions. This is an
@@ -1706,6 +1827,12 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * assumed. Note, the rows are not sorted in each partition of the
    * resulting Dataset.
    *
+   * Note that due to performance reasons this method uses sampling to
+   * estimate the ranges. Hence, the output may not be consistent, since
+   * sampling can return different values. The sample size can be
+   * controlled by the config
+   * `spark.sql.execution.rangeExchange.sampleSizePerPartition`.
+   *
    * @group typedrel
    * @since 2.3.0
    */
@@ -1721,6 +1848,12 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * explicit sort order is specified, "ascending nulls first" is
    * assumed. Note, the rows are not sorted in each partition of the
    * resulting Dataset.
+   *
+   * Note that due to performance reasons this method uses sampling to
+   * estimate the ranges. Hence, the output may not be consistent, since
+   * sampling can return different values. The sample size can be
+   * controlled by the config
+   * `spark.sql.execution.rangeExchange.sampleSizePerPartition`.
    *
    * @group typedrel
    * @since 2.3.0
@@ -1838,6 +1971,55 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def toDF(colNames: String*): TryAnalysis[DataFrame] = transformationWithAnalysis(_.toDF(colNames: _*))
 
   /**
+   * Returns a new Dataset containing union of rows in this Dataset and
+   * another Dataset.
+   *
+   * The difference between this function and [[union]] is that this
+   * function resolves columns by name (not by position).
+   *
+   * When the parameter `allowMissingColumns` is `true`, the set of
+   * column names in this and other `Dataset` can differ; missing
+   * columns will be filled with null. Further, the missing columns of
+   * this `Dataset` will be added at the end in the schema of the union
+   * result:
+   *
+   * {{{
+   *   val df1 = Seq((1, 2, 3)).toDF("col0", "col1", "col2")
+   *   val df2 = Seq((4, 5, 6)).toDF("col1", "col0", "col3")
+   *   df1.unionByName(df2, true).show
+   *
+   *   // output: "col3" is missing at left df1 and added at the end of schema.
+   *   // +----+----+----+----+
+   *   // |col0|col1|col2|col3|
+   *   // +----+----+----+----+
+   *   // |   1|   2|   3|null|
+   *   // |   5|   4|null|   6|
+   *   // +----+----+----+----+
+   *
+   *   df2.unionByName(df1, true).show
+   *
+   *   // output: "col2" is missing at left df2 and added at the end of schema.
+   *   // +----+----+----+----+
+   *   // |col1|col0|col3|col2|
+   *   // +----+----+----+----+
+   *   // |   4|   5|   6|null|
+   *   // |   2|   1|null|   3|
+   *   // +----+----+----+----+
+   * }}}
+   *
+   * Note that `allowMissingColumns` supports nested column in struct
+   * types. Missing nested columns of struct columns with the same name
+   * will also be filled with null values and added to the end of
+   * struct. This currently does not support nested columns in array and
+   * map types.
+   *
+   * @group typedrel
+   * @since 3.1.0
+   */
+  def unionByName(other: Dataset[T], allowMissingColumns: Boolean): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.unionByName(other, allowMissingColumns))
+
+  /**
    * Filters rows using the given condition. This is an alias for
    * `filter`.
    * {{{
@@ -1870,6 +2052,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // [[org.apache.spark.sql.Dataset.groupByKey]]
   // [[org.apache.spark.sql.Dataset.rollup]]
   // [[org.apache.spark.sql.Dataset.writeStream]]
+  // [[org.apache.spark.sql.Dataset.writeTo]]
 
   // ===============
 
