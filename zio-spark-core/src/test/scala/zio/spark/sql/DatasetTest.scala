@@ -4,6 +4,7 @@ import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.storage.StorageLevel
 
 import zio.{Task, ZIO}
+import zio.spark.SparkSessionRunner.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
@@ -16,7 +17,7 @@ object DatasetTest {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
 
-  def datasetActionsSpec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] =
+  def datasetActionsSpec: SparkTestSpec =
     suite("Dataset Actions")(
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
@@ -117,7 +118,7 @@ object DatasetTest {
   )(transform: DataFrame => DataFrame, expectedCount: Long): ZSpec[SparkSession, Throwable] =
     test(name)(Pipeline.build(read)(transform)(_.count).check(x => assertTrue(x == expectedCount)))
 
-  def errorSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def errorSpec: SparkTestSpec =
     suite("Dataset error handling")(
       test("Dataset still can dies with AnalysisException using 'throwAnalysisException' implicit") {
 
@@ -145,7 +146,7 @@ object DatasetTest {
       }
     )
 
-  def datasetTransformationsSpec: Spec[Annotations with SparkSession, TestFailure[Any], TestSuccess] =
+  def datasetTransformationsSpec: SparkTestSpec =
     suite("Dataset Transformations")(
       test("Dataset should implement limit correctly") {
         val process: DataFrame => DataFrame = _.limit(2)
@@ -304,7 +305,7 @@ object DatasetTest {
       }
     )
 
-  def persistencySpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def persistencySpec: SparkTestSpec =
     suite("Persistency Tests")(
       test("By default a dataset has no persistency") {
         for {
@@ -344,7 +345,7 @@ object DatasetTest {
       // we can not run those test in parallel.
     ) @@ sequential
 
-  def fromSparkSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def fromSparkSpec: SparkTestSpec =
     suite("fromSpark")(
       test("Zio-spark can wrap spark code") {
         val job: Spark[Long] =

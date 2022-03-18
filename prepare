@@ -9,3 +9,4 @@ sbt scalafmtSbt
 cd ..
 sbt prepare
 sbt scalafmtSbt
+sbt ++compile

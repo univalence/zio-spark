@@ -1,22 +1,30 @@
 package zio.spark.internal.codegen
 
-import zio.spark.internal.codegen.GenerationPlan.PlanType
+import zio.spark.internal.codegen.GenerationPlan.*
 import zio.spark.internal.codegen.structure.Method
 
-sealed trait MethodType
+sealed trait MethodType {
+  def withAnalysis: MethodType =
+    this match {
+      case MethodType.Transformation => MethodType.TransformationWithAnalysis
+      case MethodType.Get            => MethodType.GetWithAnalysis
+      case MethodType.Unpack         => MethodType.UnpackWithAnalysis
+      case m                         => m
+    }
+}
 
 object MethodType {
-  case object Ignored                    extends MethodType
-  case object Transformation             extends MethodType
-  case object TransformationWithAnalysis extends MethodType
-  case object GetWithAnalysis            extends MethodType
-  case object Get                        extends MethodType
-  case object Unpack                     extends MethodType
-  case object UnpackWithAnalysis         extends MethodType
-  case object DriverAction               extends MethodType
-  case object DistributedComputation     extends MethodType
-  case object TODO                       extends MethodType
-  case object ToImplement                extends MethodType
+  case object Ignored                    extends MethodType // Methods will not be available in zio-spark
+  case object ToHandle                   extends MethodType // Methods are not handler by zio-spark for now
+  case object ToImplement                extends MethodType // Methods need to be implemented manually in "it"
+  case object Transformation             extends MethodType // T => T
+  case object TransformationWithAnalysis extends MethodType // T => TryAnalysis[T]
+  case object Get                        extends MethodType // T => U
+  case object GetWithAnalysis            extends MethodType // T => TryAnalysis[U]
+  case object Unpack                     extends MethodType // T => DataFrame
+  case object UnpackWithAnalysis         extends MethodType // T => TryAnalysis[DataFrame]
+  case object DriverAction               extends MethodType // T => Task[U]
+  case object DistributedComputation     extends MethodType // T => Task[U]
 
   def methodTypeOrdering(methodType: MethodType): Int =
     methodType match {
@@ -28,15 +36,26 @@ object MethodType {
       case MethodType.TransformationWithAnalysis => 5
       case MethodType.Unpack                     => 6
       case MethodType.UnpackWithAnalysis         => 7
-      case MethodType.TODO                       => 8
+      case MethodType.ToHandle                   => 8
       case MethodType.ToImplement                => 9
       case MethodType.Ignored                    => 10
     }
 
   implicit val orderingMethodType: Ordering[MethodType] = Ordering.by(methodTypeOrdering)
 
-  def getMethodType(method: Method, planType: PlanType): MethodType = {
-    val cacheElements =
+  def returnDataset(returnType: String): Boolean = returnType == "DataFrame" || returnType.startsWith("Dataset")
+
+  def isTransformation(planType: PlanType, returnType: String): Boolean =
+    planType match {
+      case _ if returnType == "this.type"  => true
+      case DatasetPlan                     => returnDataset(returnType)
+      case RDDPlan                         => returnType.startsWith("RDD[")
+      case plan if plan.name == returnType => true
+      case _                               => false
+    }
+
+  def isDriverAction(method: Method): Boolean = {
+    val driverActions =
       Set(
         "getStorageLevel",
         "storageLevel",
@@ -53,11 +72,7 @@ object MethodType {
         "createTempView",
         "createOrReplaceTempView",
         "createGlobalTempView",
-        "createOrReplaceGlobalTempView"
-      )
-
-    val getters =
-      Set(
+        "createOrReplaceGlobalTempView",
         "barrier",
         "name",
         "dtypes",
@@ -66,12 +81,13 @@ object MethodType {
         "inputFiles"
       )
 
-    val partitionOps = Set("getNumPartitions", "partitions", "preferredLocations", "partitioner", "id", "countApproxDistinct")
+    driverActions(method.name)
+  }
 
-    val pureInfo = Set("schema", "columns", "toDebugString", "na", "stat")
-
-    val action =
+  def isDistributedComputation(method: Method): Boolean = {
+    val distributedComputations =
       Set(
+        "countApproxDistinct",
         "isEmpty",
         "min",
         "max",
@@ -86,31 +102,21 @@ object MethodType {
         "collect",
         "tail",
         "head",
-        "collect"
+        "collect",
+        "iterator"
       )
 
-    val methodsToImplement =
-      Set(
-        "explain",     // It should be implemented using Console layer
-        "show",        // It should be implemented using Console layer
-        "printSchema", // It should be implemented using Console layer
-        "transform",   // Too specific for codegen
-        "write",       // TODO: DataFrameWriter should be added to zio-spark
-        "groupBy"      // TODO: RelationalGroupedDataset should be added to zio-spark
-      )
+    method.name match {
+      case name if distributedComputations(name) => true
+      case name if name.startsWith("take")       => true
+      case name if name.startsWith("foreach")    => true
+      case name if name.startsWith("count")      => true
+      case name if name.startsWith("saveAs")     => true
+      case _                                     => false
+    }
+  }
 
-    val methodsTodo =
-      Set(
-        "context",      // TODO: SparkContext should be wrapped
-        "sparkContext", // TODO: SparkContext should be wrapped
-        "randomSplit",  // It should be implemented using Random layer
-        "rollup",       // TODO: RelationalGroupedDataset should be added to zio-spark
-        "cube",         // TODO: RelationalGroupedDataset should be added to zio-spark
-        "groupByKey",   // TODO: KeyValueGroupedDataset should be added to zio-spark
-        "writeTo",      // TODO: DataFrameWriterV2 should be added to zio-spark
-        "writeStream"   // TODO: DataStreamWriter should be added to zio-spark
-      )
-
+  def isIgnoredMethod(method: Method): Boolean = {
     val methodsToIgnore =
       Set(
         "takeAsList",        // Java specific implementation
@@ -121,47 +127,109 @@ object MethodType {
         "toString"           // TODO: explain why
       )
 
+    method.name match {
+      case _ if method.fullName.startsWith("java.lang.Object")                       => true
+      case _ if method.fullName.startsWith("scala.Any")                              => true
+      case _ if method.isSetter                                                      => true
+      case name if name == "groupBy" && method.fullName.contains("RDD")              => true
+      case name if methodsToIgnore(name)                                             => true
+      case name if name.contains("$")                                                => true
+      case _ if method.anyParameters.map(_.signature).exists(_.contains("Function")) => true
+      case _                                                                         => false
+    }
+  }
+
+  val methodsToImplement =
+    Set(
+      "explain",     // It should be implemented using Console layer
+      "show",        // It should be implemented using Console layer
+      "printSchema", // It should be implemented using Console layer
+      "transform",   // Too specific for codegen
+      "write",       // TODO: DataFrameWriter should be added to zio-spark
+      "groupBy"      // TODO: RelationalGroupedDataset should be added to zio-spark
+    )
+
+  val methodsToHandle =
+    Set(
+      "context",      // TODO: SparkContext should be wrapped
+      "sparkContext", // TODO: SparkContext should be wrapped
+      "randomSplit",  // It should be implemented using Random layer
+      "rollup",       // TODO: RelationalGroupedDataset should be added to zio-spark
+      "cube",         // TODO: RelationalGroupedDataset should be added to zio-spark
+      "groupByKey",   // TODO: KeyValueGroupedDataset should be added to zio-spark
+      "writeTo",      // TODO: DataFrameWriterV2 should be added to zio-spark
+      "writeStream"   // TODO: DataStreamWriter should be added to zio-spark
+    )
+
+  val methodsGet =
+    Set(
+      "apply",
+      "col",
+      "colRegex",
+      "getNumPartitions",
+      "partitions",
+      "preferredLocations",
+      "partitioner",
+      "id",
+      "schema",
+      "columns",
+      "toDebugString",
+      "na",
+      "stat",
+      "bloomFilter",
+      "corr",
+      "countMinSketch",
+      "cov"
+    )
+
+  /**
+   * Use a best effort first attempt to guess the method type of a
+   * method according to its plan type. Because there is some edge
+   * cases, we have to specify the type later on.
+   */
+  def getBaseMethodType(method: Method, planType: PlanType): MethodType = {
+    val isATransformation = isTransformation(planType, method.returnType)
+
+    method match {
+      case m if isIgnoredMethod(m)          => Ignored
+      case m if methodsToImplement(m.name)  => ToImplement
+      case m if methodsToHandle(m.name)     => ToHandle
+      case m if isDriverAction(m)           => DriverAction
+      case _ if isATransformation           => Transformation
+      case m if methodsGet(m.name)          => Get
+      case m if isDistributedComputation(m) => DistributedComputation
+      case m if returnDataset(m.returnType) => Unpack
+      case _                                => ToHandle
+    }
+  }
+
+  /**
+   * Check if one element of ''elements'' is contains inside
+   * ''candidates''.
+   */
+  def oneOfContains(elements: Seq[String], candidates: Set[String]): Boolean =
+    elements.exists(element => candidates.exists(candidate => element.contains(candidate)))
+
+  /** Get the method type of a given method and its plan type. */
+  def getMethodType(method: Method, planType: PlanType): MethodType = {
+    val baseMethodType = getBaseMethodType(method, planType)
+
+    val datasetWithAnalysis        = Set("apply", "col", "colRegex", "withColumn")
+    val dataframeStatWithAnalysis  = Set("bloomFilter", "corr", "countMinSketch", "cov")
     val parameterProvokingAnalysis = Set("expr", "condition", "col", "valueMap")
 
-    def oneOfContains(elements: Seq[String], candidates: Set[String]): Boolean =
-      elements.exists(element => candidates.exists(candidate => element.contains(candidate)))
-
-    val returnDataset        = method.returnType.startsWith("Dataset") || method.returnType == "DataFrame"
     val shouldUseTryAnalysis = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
 
-    method.name match {
-      case _ if method.fullName.startsWith("java.lang.Object")                                     => Ignored
-      case _ if method.fullName.startsWith("scala.Any")                                            => Ignored
-      case _ if method.isSetter                                                                    => Ignored
-      case name if name == "groupBy" && method.fullName.contains("RDD")                            => Ignored
-      case name if methodsToIgnore(name)                                                           => Ignored
-      case name if name.contains("$")                                                              => Ignored
-      case _ if method.calls.flatMap(_.parameters.map(_.signature)).exists(_.contains("Function")) => Ignored
-      case name if methodsToImplement(name)                                                        => ToImplement
-      case name if methodsTodo(name)                                                               => TODO
-      case "drop" if planType.name == "Dataset"                                                    => Transformation
-      case "count" if planType.name == "RelationalGroupedDataset"                                  => Unpack
-      case "as" if planType.name == "RelationalGroupedDataset"                                     => GetWithAnalysis
-      case "apply" | "col" | "colRegex" | "withColumn" if method.fullName.contains("Dataset")      => GetWithAnalysis
-      case "bloomFilter" | "corr" | "countMinSketch" | "cov" if planType.name == "DataFrameStatFunctions" =>
-        GetWithAnalysis
-      case _ if shouldUseTryAnalysis && returnDataset && planType.name != "Dataset" => UnpackWithAnalysis
-      case _ if shouldUseTryAnalysis                                                => TransformationWithAnalysis
-      case name if method.anyParameters.isEmpty && name == "as"                     => TransformationWithAnalysis
-      case name if action(name)                                                     => DistributedComputation
-      case name if name.startsWith("take")                                          => DistributedComputation
-      case name if name.startsWith("foreach")                                       => DistributedComputation
-      case name if name.startsWith("count")                                         => DistributedComputation
-      case name if name.startsWith("saveAs")                                        => DistributedComputation
-      case "iterator"                                                               => DistributedComputation
-      case name if cacheElements(name)                                              => DriverAction
-      case name if getters(name)                                                    => DriverAction
-      case name if pureInfo(name)                                                   => Get
-      case name if partitionOps(name)                                               => Get
-      case _ if method.returnType.startsWith("RDD")                                 => Transformation
-      case _ if method.returnType.contains("this.type")                             => Transformation
-      case _ if returnDataset && planType.name != "Dataset"                         => Unpack
-      case _ if returnDataset                                                       => Transformation
+    planType match {
+      case RelationalGroupedDatasetPlan if method.name == "as"                  => GetWithAnalysis
+      case RelationalGroupedDatasetPlan if method.name == "count"               => Unpack
+      case RelationalGroupedDatasetPlan if Set("min", "max")(method.name)       => UnpackWithAnalysis
+      case DatasetPlan if method.name == "drop"                                 => baseMethodType
+      case DatasetPlan if datasetWithAnalysis(method.name)                      => baseMethodType.withAnalysis
+      case DataFrameStatFunctionsPlan if dataframeStatWithAnalysis(method.name) => baseMethodType.withAnalysis
+      case _ if shouldUseTryAnalysis                                            => baseMethodType.withAnalysis
+      case _ if method.anyParameters.isEmpty && method.name == "as"             => baseMethodType.withAnalysis
+      case _                                                                    => baseMethodType
     }
   }
 }

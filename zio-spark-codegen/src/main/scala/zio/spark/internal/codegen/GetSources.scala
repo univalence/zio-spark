@@ -1,6 +1,6 @@
 package zio.spark.internal.codegen
 
-import sbt.internal.util.Attributed
+import sbt.Keys.Classpath
 
 import zio.{Task, UIO, ZManaged}
 
@@ -9,10 +9,15 @@ import scala.util.matching.Regex
 
 import java.io.File
 import java.util.jar.JarFile
-object GetSources {
 
+object GetSources {
   val RootSparkPattern: Regex = "($(.*)/org/apache/spark)".r
 
+  /**
+   * Find the source jar file from the actual classpath.
+   *
+   * We need, in SBT, to download spark with sources.
+   */
   def findSourceJar(module: String, classpath: Classpath): zio.Task[JarFile] =
     Task {
 
@@ -28,9 +33,14 @@ object GetSources {
       new JarFile(new File(path))
     }.tap(jar => UIO(println(s"found $module in ${jar.getName}")))
 
+  /** Color a text to red in the terminal. */
   def red(text: String): String = "\u001B[31m" + text + "\u001B[0m"
 
-  def getSource(module: String, file: String)(classpath: sbt.Def.Classpath): zio.Task[meta.Source] =
+  /**
+   * Read the source of particular file of a particular spark module
+   * from sources and load the code in ScalaMeta.
+   */
+  def getSource(module: String, file: String)(classpath: Classpath): zio.Task[meta.Source] =
     Task {
       import java.io.InputStream
       import java.util.zip.ZipEntry
@@ -50,6 +60,4 @@ object GetSources {
     }.flatten.onError { _ =>
       zio.UIO(println(s"[${red("error")}] can't find $file in $module from $classpath"))
     }
-
-  type Classpath = Seq[Attributed[File]]
 }

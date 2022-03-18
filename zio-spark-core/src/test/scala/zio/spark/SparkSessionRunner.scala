@@ -27,6 +27,9 @@ object SparkSessionRunner extends DefaultRunnableSpec {
       .toLayer
       .orDie
 
+  type SparkTestEnvironment = TestEnvironment with SparkSession
+  type SparkTestSpec        = Spec[SparkTestEnvironment, TestFailure[Any], TestSuccess]
+
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {
     val specs =
       Seq(
