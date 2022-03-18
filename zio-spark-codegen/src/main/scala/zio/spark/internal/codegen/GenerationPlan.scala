@@ -250,6 +250,7 @@ object GenerationPlan {
         case _ => ""
       }
 
+    /** Generates the Zio-Spark source code. */
     final def sourceCode(body: String, overlay: String, scalaBinaryVersion: ScalaBinaryVersion): String =
       s"""/**
          | * /!\\ Warning /!\\

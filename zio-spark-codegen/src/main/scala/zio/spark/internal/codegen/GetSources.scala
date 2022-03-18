@@ -11,9 +11,13 @@ import java.io.File
 import java.util.jar.JarFile
 
 object GetSources {
-
   val RootSparkPattern: Regex = "($(.*)/org/apache/spark)".r
 
+  /**
+   * Find the source jar file from the actual classpath.
+   *
+   * We need, in SBT, to download spark with sources.
+   */
   def findSourceJar(module: String, classpath: Classpath): zio.Task[JarFile] =
     Task {
 
@@ -29,8 +33,13 @@ object GetSources {
       new JarFile(new File(path))
     }.tap(jar => UIO(println(s"found $module in ${jar.getName}")))
 
+  /** Color a text to red in the terminal. */
   def red(text: String): String = "\u001B[31m" + text + "\u001B[0m"
 
+  /**
+   * Read the source of particular file of a particular spark module
+   * from sources and load the code in ScalaMeta.
+   */
   def getSource(module: String, file: String)(classpath: Classpath): zio.Task[meta.Source] =
     Task {
       import java.io.InputStream

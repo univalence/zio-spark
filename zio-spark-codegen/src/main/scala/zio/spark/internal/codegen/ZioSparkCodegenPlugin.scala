@@ -149,6 +149,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
           IO.write(file, formattedCode)
         }
+
         checkAllMethodsAreImplemented(generationPlans)
         generatedFiles
       }.taskValue

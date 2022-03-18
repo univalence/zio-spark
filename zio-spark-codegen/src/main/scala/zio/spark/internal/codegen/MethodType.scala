@@ -182,6 +182,11 @@ object MethodType {
       "cov"
     )
 
+  /**
+   * Use a best effort first attempt to guess the method type of a
+   * method according to its plan type. Because there is some edge
+   * cases, we have to specify the type later on.
+   */
   def getBaseMethodType(method: Method, planType: PlanType): MethodType = {
     val isATransformation = isTransformation(planType, method.returnType)
 
@@ -198,9 +203,14 @@ object MethodType {
     }
   }
 
+  /**
+   * Check if one element of ''elements'' is contains inside
+   * ''candidates''.
+   */
   def oneOfContains(elements: Seq[String], candidates: Set[String]): Boolean =
     elements.exists(element => candidates.exists(candidate => element.contains(candidate)))
 
+  /** Get the method type of a given method and its plan type. */
   def getMethodType(method: Method, planType: PlanType): MethodType = {
     val baseMethodType = getBaseMethodType(method, planType)
 
