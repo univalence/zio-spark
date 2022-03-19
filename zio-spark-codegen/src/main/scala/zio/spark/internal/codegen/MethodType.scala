@@ -43,20 +43,20 @@ object MethodType {
 
   implicit val orderingMethodType: Ordering[MethodType] = Ordering.by(methodTypeOrdering)
 
-  def returnDataset(returnType: String): Boolean = returnType == "DataFrame" || returnType.startsWith("Dataset")
+  def returnDataset(returnType: String): Boolean = returnType.matches("DataFrame|Dataset.*")
 
   def isTransformation(planType: PlanType, returnType: String): Boolean =
     planType match {
       case _ if returnType == "this.type"  => true
       case DatasetPlan                     => returnDataset(returnType)
-      case RDDPlan                         => returnType.startsWith("RDD[")
+      case RDDPlan                         => returnType.matches("RDD\\[.*\\]")
       case plan if plan.name == returnType => true
       case _                               => false
     }
 
   def isDriverAction(method: Method): Boolean = {
     val driverActions =
-      Set(
+      Vector(
         "getStorageLevel",
         "storageLevel",
         "cache",
@@ -81,12 +81,12 @@ object MethodType {
         "inputFiles"
       )
 
-    driverActions(method.name)
+    driverActions.exists(method.name.matches)
   }
 
   def isDistributedComputation(method: Method): Boolean = {
-    val distributedComputations =
-      Set(
+    val distributedComputations: Vector[String] =
+      Vector(
         "countApproxDistinct",
         "isEmpty",
         "min",
@@ -103,10 +103,14 @@ object MethodType {
         "tail",
         "head",
         "collect",
-        "iterator"
+        "iterator",
+        "take.*",
+        "foreach.*",
+        "count.*",
+        "saveAs.*"
       )
 
-    distributedComputations(method.name) || Array("take", "foreach", "count", "saveAs").exists(method.name.startsWith)
+    distributedComputations.exists(method.name.matches)
   }
 
   def isIgnoredMethod(method: Method): Boolean = {
@@ -117,7 +121,7 @@ object MethodType {
         "javaRDD",           // Java specific implementation
         "randomSplitAsList", // Java specific implementation
         "collectAsList",     // Java specific implementation
-        "toString"           // TODO: explain why
+        "toString"           // Wrapper are using case classes.toString is already implemented using underlying.toString.
       )
 
     method.name match {
@@ -196,33 +200,38 @@ object MethodType {
     }
   }
 
-  /**
-   * Check if one element of ''elements'' is contains inside
-   * ''candidates''.
-   */
-  def oneOfContains(elements: Seq[String], candidates: Set[String]): Boolean =
-    elements.exists(element => candidates.exists(candidate => element.contains(candidate)))
-
   /** Get the method type of a given method and its plan type. */
   def getMethodType(method: Method, planType: PlanType): MethodType = {
     val baseMethodType = getBaseMethodType(method, planType)
 
-    val datasetWithAnalysis        = Set("apply", "col", "colRegex", "withColumn")
-    val dataframeStatWithAnalysis  = Set("bloomFilter", "corr", "countMinSketch", "cov")
-    val parameterProvokingAnalysis = Set("expr", "condition", "col", "valueMap")
+    val datasetWithAnalysis       = Set("apply", "col", "colRegex", "withColumn")
+    val dataframeStatWithAnalysis = Set("bloomFilter", "corr", "countMinSketch", "cov")
+    val parameterProvokingAnalysis =
+      Vector(
+        "exprs?",
+        "condition",
+        "cols?",
+        "col\\d",
+        "valueMap",
+        "(agg|partition|condition|sort|join)Exprs?",
+        "colNames?",
+        "(input|output|using|pivot)Columns?",
+        "sortCols?",
+        "allowMissingColumns" // for unionByName
+      )
 
-    val shouldUseTryAnalysis = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
+    val shouldUseTryAnalysis = method.anyParameters.exists(p => parameterProvokingAnalysis.exists(p.name.matches))
 
-    planType match {
-      case RelationalGroupedDatasetPlan if method.name == "as"                  => GetWithAnalysis
-      case RelationalGroupedDatasetPlan if method.name == "count"               => Unpack
-      case RelationalGroupedDatasetPlan if Set("min", "max")(method.name)       => UnpackWithAnalysis
-      case DatasetPlan if method.name == "drop"                                 => baseMethodType
-      case DatasetPlan if datasetWithAnalysis(method.name)                      => baseMethodType.withAnalysis
-      case DataFrameStatFunctionsPlan if dataframeStatWithAnalysis(method.name) => baseMethodType.withAnalysis
-      case _ if shouldUseTryAnalysis                                            => baseMethodType.withAnalysis
-      case _ if method.anyParameters.isEmpty && method.name == "as"             => baseMethodType.withAnalysis
-      case _                                                                    => baseMethodType
+    (planType, method.name) match {
+      case (RelationalGroupedDatasetPlan, "as")                                  => GetWithAnalysis
+      case (RelationalGroupedDatasetPlan, "count")                               => Unpack
+      case (RelationalGroupedDatasetPlan, "min" | "max")                         => UnpackWithAnalysis
+      case (DatasetPlan, "drop")                                                 => baseMethodType
+      case (DatasetPlan, name) if datasetWithAnalysis(name)                      => baseMethodType.withAnalysis
+      case (DataFrameStatFunctionsPlan, name) if dataframeStatWithAnalysis(name) => baseMethodType.withAnalysis
+      case _ if shouldUseTryAnalysis                                             => baseMethodType.withAnalysis
+      case (_, "as") if method.anyParameters.isEmpty                             => baseMethodType.withAnalysis
+      case _                                                                     => baseMethodType
     }
   }
 }

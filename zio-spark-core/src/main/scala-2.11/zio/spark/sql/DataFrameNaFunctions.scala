@@ -85,28 +85,6 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    */
   def fill(value: Boolean): DataFrame = unpack(_.fill(value))
 
-  /**
-   * Returns a new `DataFrame` that replaces null values.
-   *
-   * The key of the map is the column name, and the value of the map is
-   * the replacement value. The value must be of the following type:
-   * `Int`, `Long`, `Float`, `Double`, `String`, `Boolean`. Replacement
-   * values are cast to the column data type.
-   *
-   * For example, the following replaces null values in column "A" with
-   * string "unknown", and null values in column "B" with numeric value
-   * 1.0.
-   * {{{
-   *   df.na.fill(Map(
-   *     "A" -> "unknown",
-   *     "B" -> 1.0
-   *   ))
-   * }}}
-   *
-   * @since 1.3.1
-   */
-  def fill(valueMap: Map[String, Any]): DataFrame = unpack(_.fill(valueMap))
-
   // ===============
 
   /**
@@ -172,6 +150,28 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * @since 2.3.0
    */
   def fill(value: Boolean, cols: Seq[String]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.fill(value, cols))
+
+  /**
+   * Returns a new `DataFrame` that replaces null values.
+   *
+   * The key of the map is the column name, and the value of the map is
+   * the replacement value. The value must be of the following type:
+   * `Int`, `Long`, `Float`, `Double`, `String`, `Boolean`. Replacement
+   * values are cast to the column data type.
+   *
+   * For example, the following replaces null values in column "A" with
+   * string "unknown", and null values in column "B" with numeric value
+   * 1.0.
+   * {{{
+   *   df.na.fill(Map(
+   *     "A" -> "unknown",
+   *     "B" -> 1.0
+   *   ))
+   * }}}
+   *
+   * @since 1.3.1
+   */
+  def fill(valueMap: Map[String, Any]): TryAnalysis[DataFrame] = unpackWithAnalysis(_.fill(valueMap))
 
   /**
    * Replaces values matching keys in `replacement` map.
