@@ -1,7 +1,8 @@
 package zio.spark.internal.codegen
 
 import zio.spark.internal.codegen.GenerationPlan.*
-import zio.spark.internal.codegen.structure.Method
+import zio.spark.internal.codegen.MethodType.In
+import zio.spark.internal.codegen.structure.{Method, Parameter}
 
 sealed trait MethodType {
   def withAnalysis: MethodType =
@@ -14,17 +15,27 @@ sealed trait MethodType {
 }
 
 object MethodType {
-  case object Ignored                    extends MethodType // Methods will not be available in zio-spark
-  case object ToHandle                   extends MethodType // Methods are not handler by zio-spark for now
-  case object ToImplement                extends MethodType // Methods need to be implemented manually in "it"
-  case object Transformation             extends MethodType // T => T
+  case object Ignored extends MethodType // Methods will not be available in zio-spark
+
+  case object ToHandle extends MethodType // Methods are not handler by zio-spark for now
+
+  case object ToImplement extends MethodType // Methods need to be implemented manually in "it"
+
+  case object Transformation extends MethodType // T => T
+
   case object TransformationWithAnalysis extends MethodType // T => TryAnalysis[T]
-  case object Get                        extends MethodType // T => U
-  case object GetWithAnalysis            extends MethodType // T => TryAnalysis[U]
-  case object Unpack                     extends MethodType // T => DataFrame
-  case object UnpackWithAnalysis         extends MethodType // T => TryAnalysis[DataFrame]
-  case object DriverAction               extends MethodType // T => Task[U]
-  case object DistributedComputation     extends MethodType // T => Task[U]
+
+  case object Get extends MethodType // T => U
+
+  case object GetWithAnalysis extends MethodType // T => TryAnalysis[U]
+
+  case object Unpack extends MethodType // T => DataFrame
+
+  case object UnpackWithAnalysis extends MethodType // T => TryAnalysis[DataFrame]
+
+  case object DriverAction extends MethodType // T => Task[U]
+
+  case object DistributedComputation extends MethodType // T => Task[U]
 
   def methodTypeOrdering(methodType: MethodType): Int =
     methodType match {
@@ -84,38 +95,49 @@ object MethodType {
     driverActions.exists(method.name.matches)
   }
 
-  def isDistributedComputation(method: Method): Boolean = {
-    val distributedComputations: Vector[String] =
-      Vector(
-        "countApproxDistinct",
-        "isEmpty",
-        "min",
-        "max",
-        "top",
-        "first",
-        "treeAggregate",
-        "aggregate",
-        "fold",
-        "toLocalIterator",
-        "treeReduce",
-        "reduce",
-        "collect",
-        "tail",
-        "head",
-        "collect",
-        "iterator",
-        "take.*",
-        "foreach.*",
-        "count.*",
-        "saveAs.*"
-      )
+  val isDistributedComputation: CaseCheck[Method, String] =
+    RegExps(
+      "countApproxDistinct",
+      "isEmpty",
+      "min",
+      "max",
+      "top",
+      "first",
+      "treeAggregate",
+      "aggregate",
+      "fold",
+      "toLocalIterator",
+      "treeReduce",
+      "reduce",
+      "collect",
+      "tail",
+      "head",
+      "collect",
+      "iterator",
+      "take.*",
+      "foreach.*",
+      "count.*",
+      "saveAs.*"
+    ).comap(_.name)
 
-    distributedComputations.exists(method.name.matches)
+  trait CaseCheck[-T, +U] {
+    def unapply(t: T): Option[U]
+
+    final def comap[S](f: S => T): CaseCheck[S, U] = x => unapply(f(x))
+    final def check(t: T): Boolean                 = unapply(t).isDefined
+  }
+
+  object In {
+    def apply[T](t: T*): CaseCheck[T, T] = x => Option(x).filter(t.contains)
+  }
+
+  object RegExps {
+    def apply(regexp: String*): CaseCheck[String, String] = x => Option(x).filter(_ => regexp.exists(x.matches))
   }
 
   def isIgnoredMethod(method: Method): Boolean = {
     val methodsToIgnore =
-      Set(
+      In(
         "takeAsList",        // Java specific implementation
         "toJavaRDD",         // Java specific implementation
         "javaRDD",           // Java specific implementation
@@ -128,8 +150,8 @@ object MethodType {
       case _ if method.fullName.startsWith("java.lang.Object")                       => true
       case _ if method.fullName.startsWith("scala.Any")                              => true
       case _ if method.isSetter                                                      => true
-      case name if name == "groupBy" && method.fullName.contains("RDD")              => true
-      case name if methodsToIgnore(name)                                             => true
+      case "groupBy" if method.fullName.contains("RDD")                              => true
+      case methodsToIgnore(_)                                                        => true
       case name if name.contains("$")                                                => true
       case _ if method.anyParameters.map(_.signature).exists(_.contains("Function")) => true
       case _                                                                         => false
@@ -194,7 +216,7 @@ object MethodType {
       case m if isDriverAction(m)           => DriverAction
       case _ if isATransformation           => Transformation
       case m if methodsGet(m.name)          => Get
-      case m if isDistributedComputation(m) => DistributedComputation
+      case isDistributedComputation(_)      => DistributedComputation
       case m if returnDataset(m.returnType) => Unpack
       case _                                => ToHandle
     }
@@ -204,10 +226,8 @@ object MethodType {
   def getMethodType(method: Method, planType: PlanType): MethodType = {
     val baseMethodType = getBaseMethodType(method, planType)
 
-    val datasetWithAnalysis       = Set("apply", "col", "colRegex", "withColumn")
-    val dataframeStatWithAnalysis = Set("bloomFilter", "corr", "countMinSketch", "cov")
-    val parameterProvokingAnalysis =
-      Vector(
+    val parameterProvokingAnalysis: CaseCheck[Parameter, String] =
+      RegExps(
         "exprs?",
         "condition",
         "cols?",
@@ -218,20 +238,20 @@ object MethodType {
         "(input|output|using|pivot)Columns?",
         "sortCols?",
         "allowMissingColumns" // for unionByName
-      )
+      ).comap[Parameter](_.name)
 
-    val shouldUseTryAnalysis = method.anyParameters.exists(p => parameterProvokingAnalysis.exists(p.name.matches))
+    val shouldUseTryAnalysis = method.anyParameters.exists(parameterProvokingAnalysis.check)
 
     (planType, method.name) match {
-      case (RelationalGroupedDatasetPlan, "as")                                  => GetWithAnalysis
-      case (RelationalGroupedDatasetPlan, "count")                               => Unpack
-      case (RelationalGroupedDatasetPlan, "min" | "max")                         => UnpackWithAnalysis
-      case (DatasetPlan, "drop")                                                 => baseMethodType
-      case (DatasetPlan, name) if datasetWithAnalysis(name)                      => baseMethodType.withAnalysis
-      case (DataFrameStatFunctionsPlan, name) if dataframeStatWithAnalysis(name) => baseMethodType.withAnalysis
-      case _ if shouldUseTryAnalysis                                             => baseMethodType.withAnalysis
-      case (_, "as") if method.anyParameters.isEmpty                             => baseMethodType.withAnalysis
-      case _                                                                     => baseMethodType
+      case (RelationalGroupedDatasetPlan, "as")                                            => GetWithAnalysis
+      case (RelationalGroupedDatasetPlan, "count")                                         => Unpack
+      case (RelationalGroupedDatasetPlan, "min" | "max")                                   => UnpackWithAnalysis
+      case (DatasetPlan, "drop")                                                           => baseMethodType
+      case (DatasetPlan, "apply" | "col" | "colRegex" | "withColumn")                      => baseMethodType.withAnalysis
+      case (DataFrameStatFunctionsPlan, "bloomFilter" | "corr" | "countMinSketch" | "cov") => baseMethodType.withAnalysis
+      case _ if shouldUseTryAnalysis                                                       => baseMethodType.withAnalysis
+      case (_, "as") if method.anyParameters.isEmpty                                       => baseMethodType.withAnalysis
+      case _                                                                               => baseMethodType
     }
   }
 }
