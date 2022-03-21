@@ -215,6 +215,7 @@ object MethodType {
 
     planType match {
       case RelationalGroupedDatasetPlan if method.name == "as"                  => GetWithAnalysis
+      case KeyValueGroupedDatasetPlan if method.name == "count"                 => Unpack
       case RelationalGroupedDatasetPlan if method.name == "count"               => Unpack
       case RelationalGroupedDatasetPlan if Set("min", "max")(method.name)       => UnpackWithAnalysis
       case DatasetPlan if method.name == "drop"                                 => baseMethodType

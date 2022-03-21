@@ -44,13 +44,14 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def action[U](f: UnderlyingDataset[T] => U): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying Dataset. */
-  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlyingDataset))
+  def transformation[TNew](f: UnderlyingDataset[T] => UnderlyingDataset[TNew]): Dataset[TNew] =
+    Dataset(f(underlyingDataset))
 
   /**
    * Applies a transformation to the underlying Dataset, it is used for
    * transformations that can fail due to an AnalysisException.
    */
-  def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
+  def transformationWithAnalysis[TNew](f: UnderlyingDataset[T] => UnderlyingDataset[TNew]): TryAnalysis[Dataset[TNew]] =
     TryAnalysis(transformation(f))
 
   /** Applies an action to the underlying Dataset. */

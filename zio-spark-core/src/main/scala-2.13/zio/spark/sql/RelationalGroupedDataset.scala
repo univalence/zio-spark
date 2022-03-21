@@ -9,7 +9,7 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{
   Column,
-  DataFrame => UnderlyingDataFrame,
+  Dataset => UnderlyingDataset,
   Encoder,
   KeyValueGroupedDataset,
   RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
@@ -21,7 +21,7 @@ final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: Un
   /**
    * Unpack the underlying RelationalGroupedDataset into a DataFrame.
    */
-  def unpack(f: UnderlyingRelationalGroupedDataset => UnderlyingDataFrame): DataFrame =
+  def unpack[U](f: UnderlyingRelationalGroupedDataset => UnderlyingDataset[U]): Dataset[U] =
     Dataset(f(underlyingRelationalGroupedDataset))
 
   /**
@@ -29,7 +29,7 @@ final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: Un
    * is used for transformations that can fail due to an
    * AnalysisException.
    */
-  def unpackWithAnalysis(f: UnderlyingRelationalGroupedDataset => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+  def unpackWithAnalysis[U](f: UnderlyingRelationalGroupedDataset => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(unpack(f))
 
   /**

@@ -7,19 +7,19 @@
 
 package zio.spark.sql
 
-import org.apache.spark.sql.{DataFrame => UnderlyingDataFrame, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions}
+import org.apache.spark.sql.{DataFrameNaFunctions => UnderlyingDataFrameNaFunctions, Dataset => UnderlyingDataset}
 
 final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: UnderlyingDataFrameNaFunctions) { self =>
 
   /** Unpack the underlying DataFrameNaFunctions into a DataFrame. */
-  def unpack(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): DataFrame =
+  def unpack[U](f: UnderlyingDataFrameNaFunctions => UnderlyingDataset[U]): Dataset[U] =
     Dataset(f(underlyingDataFrameNaFunctions))
 
   /**
    * Unpack the underlying DataFrameNaFunctions into a DataFrame, it is
    * used for transformations that can fail due to an AnalysisException.
    */
-  def unpackWithAnalysis(f: UnderlyingDataFrameNaFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+  def unpackWithAnalysis[U](f: UnderlyingDataFrameNaFunctions => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(unpack(f))
 
   // Handmade functions specific to zio-spark

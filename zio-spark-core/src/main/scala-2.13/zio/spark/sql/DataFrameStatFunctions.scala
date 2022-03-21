@@ -9,15 +9,15 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{
   Column,
-  DataFrame => UnderlyingDataFrame,
-  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions
+  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
+  Dataset => UnderlyingDataset
 }
 import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
 
 final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: UnderlyingDataFrameStatFunctions) { self =>
 
   /** Unpack the underlying DataFrameStatFunctions into a DataFrame. */
-  def unpack(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): DataFrame =
+  def unpack[U](f: UnderlyingDataFrameStatFunctions => UnderlyingDataset[U]): Dataset[U] =
     Dataset(f(underlyingDataFrameStatFunctions))
 
   /**
@@ -25,7 +25,7 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * is used for transformations that can fail due to an
    * AnalysisException.
    */
-  def unpackWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+  def unpackWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(unpack(f))
 
   /**
