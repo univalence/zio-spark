@@ -70,7 +70,7 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking: UIO[Dataset[T]] = UIO(transformation(_.unpersist(blocking = true)))
+  def unpersistBlocking: UIO[Dataset[T]] = UIO.succeed(transformation(_.unpersist(blocking = true)))
 
   /** Alias for [[headOption]]. */
   def firstOption: Task[Option[T]] = headOption

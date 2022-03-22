@@ -35,7 +35,7 @@ object WordCount extends ZIOAppDefault {
         }
     } yield ()
 
-  private val session = SparkSession.builder.master(localAllNodes).appName("app").getOrCreateLayer
+  private val session = SparkSession.builder.master(localAllNodes).appName("app").asLayer
 
   override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
 }

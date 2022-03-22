@@ -46,7 +46,21 @@ object SparkSession extends Accessible[SparkSession] {
      * Transforms the creation of the SparkSession into a managed layer
      * that will open and close the SparkSession when the job is done.
      */
-    def getOrCreateLayer: ZLayer[Any, Throwable, SparkSession] = ZLayer.fromAcquireRelease(getOrCreate)(_.close.orDie)
+    def asLayer: ZLayer[Any, Throwable, SparkSession] = ZLayer.scoped(acquireRelease)
+
+    private def construct: UnderlyingSparkSession.Builder =
+      extraConfigs.foldLeft(builder) { case (oldBuilder, (configKey, configValue)) =>
+        oldBuilder.config(configKey, configValue)
+      }
+
+    /**
+     * Unsafely get or create a SparkSession without ensuring that the
+     * session will be closed.
+     *
+     * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
+     * information.
+     */
+    def getOrCreate: Task[SparkSession] = Task.attempt(SparkSession(self.construct.getOrCreate()))
 
     /**
      * Tries to create a spark session.
@@ -54,14 +68,8 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def getOrCreate: Task[SparkSession] = {
-      val builderConfigured =
-        extraConfigs.foldLeft(builder) { case (oldBuilder, (configKey, configValue)) =>
-          oldBuilder.config(configKey, configValue)
-        }
-
-      Task.attemptBlocking(SparkSession(builderConfigured.getOrCreate()))
-    }
+    def acquireRelease: ZIO[Scope, Throwable, SparkSession] =
+      ZIO.acquireRelease(getOrCreate)(ss => Task.attempt(ss.close).orDie)
 
     /** Adds multiple configurations to the Builder. */
     def configs(configs: Map[String, String]): Builder = copy(builder, extraConfigs ++ configs)
