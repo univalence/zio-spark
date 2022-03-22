@@ -1,6 +1,7 @@
-package zio.spark.sql
+package zio.spark.experimental
 
 import zio._
+import zio.spark.sql.{Dataset, SIO, SparkSession}
 
 /**
  * A class representing a Spark pipeline. Generally speaking, a Spark

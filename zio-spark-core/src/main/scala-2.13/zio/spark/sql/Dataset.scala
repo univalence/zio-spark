@@ -277,18 +277,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group untypedrel
    * @since 2.0.0
    */
-  def apply(colName: String): TryAnalysis[Column] = getWithAnalysis(_.apply(colName))
-
-  /**
-   * Selects column based on the column name and returns it as a
-   * [[Column]].
-   *
-   * @note
-   *   The column name can also reference to a nested column like `a.b`.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
   def col(colName: String): TryAnalysis[Column] = getWithAnalysis(_.col(colName))
 
   /**
@@ -2070,6 +2058,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   // Ignored methods
   //
+  // [[org.apache.spark.sql.Dataset.apply]]
   // [[org.apache.spark.sql.Dataset.collectAsList]]
   // [[org.apache.spark.sql.Dataset.filter]]
   // [[org.apache.spark.sql.Dataset.flatMap]]

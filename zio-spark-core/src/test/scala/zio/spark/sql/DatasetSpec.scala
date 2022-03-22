@@ -17,44 +17,38 @@ object DatasetSpec {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
 
+  implicit class SparkTestOps[O](effect: SIO[O]) {
+    def check(f: O => Assert): SIO[Assert] = effect.map(f).orDie
+  }
+
   def datasetActionsSpec: SparkTestSpec =
     suite("Dataset Actions")(
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
 
-        val pipeline = Pipeline.buildWithoutTransformation(read)(write)
-
-        pipeline.run.map(assert(_)(equalTo(4L)))
+        read.flatMap(write).check(res => assertTrue(res == 4L))
       },
       test("Dataset should implement collect correctly") {
         val write: DataFrame => Task[Seq[Row]] = _.collect
 
-        val pipeline = Pipeline.buildWithoutTransformation(read)(write)
-
-        pipeline.run.map(assert(_)(hasSize(equalTo(4))))
+        read.flatMap(write).check(res => assertTrue(res.length == 4))
       },
       test("Dataset should implement head(n)/take(n) correctly") {
         val process: DataFrame => Dataset[String]       = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[Seq[String]] = _.take(2)
 
-        val pipeline = Pipeline.build(read)(process)(write)
-
-        pipeline.run.map(assert(_)(equalTo(Seq("Maria", "John"))))
+        read.map(process).flatMap(write).check(res => assertTrue(res == Seq("Maria", "John")))
       },
       test("Dataset should implement head/first correctly") {
         val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[String] = _.first
 
-        val pipeline = Pipeline.build(read)(process)(write)
-
-        pipeline.run.map(assert(_)(equalTo("Maria")))
+        read.map(process).flatMap(write).check(res => assertTrue(res == "Maria"))
       },
       test("Dataset should implement headOption/firstOption correctly") {
         val write: DataFrame => Task[Option[Row]] = _.firstOption
 
-        val pipeline = Pipeline.buildWithoutTransformation(readEmpty)(write)
-
-        pipeline.run.map(assert(_)(isNone))
+        readEmpty.flatMap(write).check(res => assertTrue(res.isEmpty))
       },
       test("Dataset should implement show correctly") {
         val result =
@@ -109,35 +103,24 @@ object DatasetSpec {
       } @@ silent
     )
 
-  implicit class PipelineTestOps[S, O, R](pipeline: Pipeline[S, O, R]) {
-    def check(f: R => Assert): ZIO[SparkSession, Throwable, Assert] = pipeline.run.map(f)
-  }
-
-  def testDataframeTransform(
-      name: String
-  )(transform: DataFrame => DataFrame, expectedCount: Long): ZSpec[SparkSession, Throwable] =
-    test(name)(Pipeline.build(read)(transform)(_.count).check(x => assertTrue(x == expectedCount)))
-
   def errorSpec: SparkTestSpec =
     suite("Dataset error handling")(
       test("Dataset still can dies with AnalysisException using 'throwAnalysisException' implicit") {
-
         val process: DataFrame => DataFrame = _.selectExpr("yolo")
         val job: SIO[DataFrame]             = read.map(process)
 
         job.exit.map(assert(_)(dies(isSubtype[AnalysisException](anything))))
       },
-      testDataframeTransform("Dataset can revover from one Analysis error")(
-        transform     = x => x.selectExpr("yolo").recover(_ => x),
-        expectedCount = 4
-      ),
+      test("Dataset can revover from one Analysis error") {
+        val process: DataFrame => DataFrame = x => x.selectExpr("yolo").recover(_ => x)
+
+        read.map(process).flatMap(_.count).check(res => assertTrue(res == 4L))
+      },
       test("Dataset can recover from the first Analysis error") {
         val process: DataFrame => DataFrame = x => x.selectExpr("yolo").filter("tata = titi").recover(_ => x)
         val write: DataFrame => Task[Long]  = _.count
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.check(x => assertTrue(x == 4L))
+        read.map(process).flatMap(write).check(x => assertTrue(x == 4L))
       },
       test("Dataset can be converted from the first Analysis error") {
         val process: DataFrame => Try[DataFrame] = x => x.selectExpr("yolo").filter("tata = titi").toTry
@@ -152,66 +135,50 @@ object DatasetSpec {
         val process: DataFrame => DataFrame = _.limit(2)
         val write: DataFrame => Task[Long]  = _.count
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(assert(_)(equalTo(2L)))
+        read.map(process).flatMap(write).map(assert(_)(equalTo(2L)))
       },
       test("Dataset should implement as correctly") {
         val process: DataFrame => Dataset[Person]  = _.as[Person]
         val write: Dataset[Person] => Task[Person] = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assertTrue(res == Person("Maria", 93)))
+        read.map(process).flatMap(write).map(res => assertTrue(res == Person("Maria", 93)))
       },
       test("Dataset should implement map correctly") {
         val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[String] = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assertTrue(res == "Maria"))
+        read.map(process).flatMap(write).map(res => assertTrue(res == "Maria"))
       },
       test("Dataset should implement flatMap correctly") {
         val process: DataFrame => Dataset[String]  = _.as[Person].flatMap(_.name.toSeq.map(_.toString))
         val write: Dataset[String] => Task[String] = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assertTrue(res == "M"))
+        read.map(process).flatMap(write).map(res => assertTrue(res == "M"))
       },
       test("Dataset should implement transform correctly") {
         val subprocess: DataFrame => Dataset[String] = _.as[Person].map(_.name.drop(1))
         val process: DataFrame => Dataset[String]    = _.transform(subprocess)
         val write: Dataset[String] => Task[String]   = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assertTrue(res == "aria"))
+        read.map(process).flatMap(write).map(res => assertTrue(res == "aria"))
       },
       test("Dataset should implement dropDuplicates with colnames correctly") {
         val process: DataFrame => Dataset[Person] = _.as[Person].flatMap(r => List(r, r)).dropDuplicates("name")
         val write: Dataset[Person] => Task[Long]  = _.count
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assertTrue(res == 4L))
+        read.map(process).flatMap(write).map(res => assertTrue(res == 4L))
       },
       test("Dataset should implement distinct/dropDuplicates all correctly") {
         val process: DataFrame => Dataset[Person] = _.as[Person].flatMap(r => List(r, r)).distinct
         val write: Dataset[Person] => Task[Long]  = _.count
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assertTrue(res == 4L))
+        read.map(process).flatMap(write).map(res => assertTrue(res == 4L))
       },
       test("Dataset should implement filter/where correctly") {
         val process: DataFrame => Dataset[Person]  = _.as[Person].where(_.name == "Peter")
         val write: Dataset[Person] => Task[Person] = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
+        read.map(process).flatMap(write).map(res => assert(res.name)(equalTo("Peter")))
       },
       test("Dataset should implement filter/where correctly using sql") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
@@ -219,9 +186,7 @@ object DatasetSpec {
         val process: DataFrame => Dataset[Person]  = _.as[Person].where("name == 'Peter'")
         val write: Dataset[Person] => Task[Person] = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
+        read.map(process).flatMap(write).map(res => assert(res.name)(equalTo("Peter")))
       },
       test("Dataset should implement filter/where correctly using column expression") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
@@ -229,9 +194,7 @@ object DatasetSpec {
         val process: DataFrame => Dataset[Person]  = _.as[Person].where($"name" === "Peter")
         val write: Dataset[Person] => Task[Person] = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assert(res.name)(equalTo("Peter")))
+        read.map(process).flatMap(write).map(res => assert(res.name)(equalTo("Peter")))
       },
       test("Dataset should implement selectExpr correctly") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
@@ -239,9 +202,7 @@ object DatasetSpec {
         val process: DataFrame => Dataset[String]  = _.selectExpr("name").as[String]
         val write: Dataset[String] => Task[String] = _.head
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assert(res)(equalTo("Maria")))
+        read.map(process).flatMap(write).map(res => assert(res)(equalTo("Maria")))
       },
       test("Dataset should implement drop using colname correctly") {
         for {

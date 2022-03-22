@@ -1,8 +1,9 @@
-package zio.spark.effect
+package zio.spark.experimental
 
-import zio._
-import zio.spark.effect.NewType.{Ratio, Weight}
-import zio.test._
+import NewType.{Ratio, Weight}
+
+import zio.ZIO
+import zio.test.DefaultRunnableSpec
 
 object CircuitTapSpec extends DefaultRunnableSpec {
 

@@ -1,9 +1,9 @@
-package zio.spark.effect
+package zio.spark.experimental
 
 import zio.{Ref, UIO, ZIO}
 import zio.prelude.Assertion._
 import zio.prelude.Subtype
-import zio.spark.effect.NewType._
+import zio.spark.experimental.NewType._
 
 object NewType {
   object Weight extends Subtype[Long] { self =>
