@@ -13,7 +13,7 @@ zio-spark is, for the moment, composed by only one core library regrouping the s
 If you are using sbt, just add the following line to your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.1.0"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.2.0"
 ```
 
 Spark version is provided. It means that you have to provide your own Spark version (as you would usually).
