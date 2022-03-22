@@ -213,7 +213,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking: UIO[Dataset[T]] = UIO(transformation(_.unpersist(blocking = true)))
+  def unpersistBlocking: UIO[Dataset[T]] = UIO.succeed(transformation(_.unpersist(blocking = true)))
 
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)

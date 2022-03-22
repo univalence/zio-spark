@@ -20,13 +20,14 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       runtime <- ZIO.runtime[R with SparkSession]
       sc      <- fromSpark(_.sparkContext).orDie
       listener <-
-        UIO(new SparkFirehoseListener {
+        UIO.succeed(new SparkFirehoseListener {
           override def onEvent(event: SparkListenerEvent): Unit = runtime.unsafeRun(events.update(_ :+ event))
         })
-      _ <- UIO(sc.addSparkListener(listener))
+      _ <- UIO.succeed(sc.addSparkListener(listener))
       x <- zio
       _ <-
-        UIO(removeSparkListener(sc, listener))
+        UIO
+          .succeed(removeSparkListener(sc, listener))
           .delay(1.seconds)
           .provideSomeLayer(Clock.live) // wait a bit the last events to be published
       allEvents <- events.getAndSet(Chunk.empty)

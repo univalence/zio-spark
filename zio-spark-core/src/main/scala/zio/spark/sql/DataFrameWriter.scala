@@ -14,7 +14,7 @@ final case class DataFrameWriter[T](
 
   /** Saves a DataFrame using one of the dataframe saver. */
   private def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit): Task[Unit] =
-    Task(f(ds.underlyingDataset.write.options(options).format(source.toString).mode(mode)))
+    Task.attempt(f(ds.underlyingDataset.write.options(options).format(source.toString).mode(mode)))
 
   /** Saves the content of the DataFrame as the specified table. */
   def save: Task[Unit] = saveUsing(_.save())
