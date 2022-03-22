@@ -198,13 +198,12 @@ def addVersionPadding(baseVersion: String): String = {
   val paddingSize    = 5
   val counter: Regex = "\\+([0-9]+)-".r
 
-  val counterWithPadding: String =
-    counter.findFirstMatchIn(baseVersion) match {
-      case Some(regex) =>
-        val count = regex.group(1)
-        "0" * (paddingSize - count.length) + count
-      case None => throw new RuntimeException("This should never happen")
-    }
+  counter.findFirstMatchIn(baseVersion) match {
+    case Some(regex) =>
+      val count          = regex.group(1)
+      val snapshotNumber = "0" * (paddingSize - count.length) + count
+      counter.replaceFirstIn(baseVersion, s"+$snapshotNumber-")
+    case None => baseVersion
+  }
 
-  counter.replaceFirstIn(baseVersion, s"+$counterWithPadding-")
 }

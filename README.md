@@ -46,7 +46,7 @@ it using:
 
 ```scala
 resolvers += Resolver.sonatypeRepo("snapshots"),
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.2.0"
+libraryDependencies += "io.univalence" %% "zio-spark" % "<SNAPSHOT-VERSION>"
 ```
 
 You can find the latest version on 
