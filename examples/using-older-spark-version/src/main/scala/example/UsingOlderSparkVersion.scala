@@ -3,6 +3,8 @@ package example
 import org.apache.spark.sql.Row
 
 import zio._
+import zio.spark.experimental
+import zio.spark.experimental.Pipeline
 import zio.spark.parameter._
 import zio.spark.sql._
 import zio.spark.sql.implicits._
@@ -21,7 +23,7 @@ object UsingOlderSparkVersion extends ZIOAppDefault {
 
   def output(transformedDs: Dataset[Person]): Task[Option[Person]] = transformedDs.headOption
 
-  val pipeline: Pipeline[Row, Person, Option[Person]] = Pipeline(read, transform, output)
+  val pipeline: Pipeline[Row, Person, Option[Person]] = experimental.Pipeline(read, transform, output)
 
   val job: ZIO[SparkSession with Console, Throwable, Unit] =
     for {

@@ -1,7 +1,7 @@
-package zio.spark.effect
+package zio.spark.experimental
 
 import zio.{IO, ZEnv}
-import zio.spark.effect.NewType.{Ratio, Weight}
+import zio.spark.experimental.NewType._
 import zio.spark.rdd.RDD
 
 import scala.util.Either

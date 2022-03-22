@@ -1,7 +1,6 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.Row
-
 import zio.Task
 import zio.spark.helper.Fixture._
 import zio.test._
@@ -21,9 +20,7 @@ object ExtraDatasetFeatureTest {
         val process: DataFrame => DataFrame    = _.summary(Statistics.Count, Statistics.Max)
         val write: DataFrame => Task[Seq[Row]] = _.collect
 
-        val pipeline = Pipeline(read, process, write)
-
-        pipeline.run.map(res => assert(res)(hasSize(equalTo(2))))
+        read.map(process).flatMap(write).map(res => assert(res)(hasSize(equalTo(2))))
       },
       test("Dataset should implement explain correctly") {
         for {
