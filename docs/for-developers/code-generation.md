@@ -35,7 +35,7 @@ When SBT is compiling the `core` module, based on the `zio-spark-codegen` plugin
 
 ### Overlays
 
-At the begining, the generated code contains only one kind of code: the code automatically generated from Spark.
+At the beginning, the generated code contains only one kind of code: the code automatically generated from Spark.
 
 You can then use this code to generate an overlays. They allow us to add our scala version specific and non-specific
 functions.
@@ -43,14 +43,10 @@ functions.
 These overlays can be found in `zio-spark-core/src/it/scala...`.
 
 For Dataset, you will find four overlays:
-- `zio-spark-core/src/it/scala/DatasetOverlay_$SUFFIX.scala` -> The code shared by all scala versions
-- `zio-spark-core/src/it/scala-$version/DatasetOverlay_$SUFFIX.scala` -> The code specific for all scala versions
+- `zio-spark-core/src/it/scala/DatasetOverlay.scala` -> The code shared by all scala versions
+- `zio-spark-core/src/it/scala-$version/DatasetOverlay.scala` -> The code specific for all scala versions
 
-A `$SUFFIX` can be used to split the code into different parts and avoid collision between a scala version specific 
-overlay and a non version specific (it wouldn't stop the code generation from working, however it will break the 
-compilation checks on `src/main/it`).
-
-For general name pattern is `${ClassName}Overlay_${SUFFIX}` (`$ClassName` in `Dataset`, `RDD`, ...)
+For general name pattern is `${ClassName}Overlay` (`$ClassName` in `Dataset`, `RDD`, ...)
 
 If you recompile adding these overlays, the function between `template:on` and `template:off` will be added to the
 generated code.
