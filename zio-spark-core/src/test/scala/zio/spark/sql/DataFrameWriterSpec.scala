@@ -9,7 +9,7 @@ import zio.stream.{Sink, ZStream}
 import zio.test._
 import zio.test.TestAspect._
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 
 object DataFrameWriterSpec {
 
