@@ -6,15 +6,24 @@ import zio.Task
 import zio.spark.sql.DataFrameWriter.Source
 
 final case class DataFrameWriter[T](
-    ds:      Dataset[T],
-    source:  Source,
-    mode:    SaveMode,
-    options: Map[String, String]
+    ds:                  Dataset[T],
+    source:              Source,
+    mode:                SaveMode,
+    options:             Map[String, String],
+    partitioningColumns: Seq[String]
 ) {
 
+  private def construct: UnderlyingDataFrameWriter[T] = {
+    val base = ds.underlyingDataset.write.options(options).format(source.toString).mode(mode)
+
+    partitioningColumns match {
+      case Nil  => base
+      case cols => base.partitionBy(cols: _*)
+    }
+  }
+
   /** Saves a DataFrame using one of the dataframe saver. */
-  private def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit): Task[Unit] =
-    Task.attempt(f(ds.underlyingDataset.write.options(options).format(source.toString).mode(mode)))
+  private def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit): Task[Unit] = Task.attempt(f(construct))
 
   /** Saves the content of the DataFrame as the specified table. */
   def save: Task[Unit] = saveUsing(_.save())
@@ -80,15 +89,22 @@ final case class DataFrameWriter[T](
   /** Setups a new [[SaveMode]] for the DataFrameWriter. */
   def mode(m: SaveMode): DataFrameWriter[T] = copy(mode = m)
 
+  /**
+   * Partitions the output by the given columns on the file system.
+   *
+   * See [[UnderlyingDataFrameWriter.partitionBy]] for more information.
+   */
+  def partitionBy(colNames: String*): DataFrameWriter[T] = copy(partitioningColumns = colNames)
 }
 
 object DataFrameWriter {
   def apply[T](ds: Dataset[T]): DataFrameWriter[T] =
     DataFrameWriter(
-      ds,
-      Source.Parquet,
-      SaveMode.ErrorIfExists,
-      Map.empty
+      ds                  = ds,
+      source              = Source.Parquet,
+      mode                = SaveMode.ErrorIfExists,
+      options             = Map.empty,
+      partitioningColumns = Seq.empty
     )
 
   sealed trait Source {

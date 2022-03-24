@@ -213,7 +213,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking: UIO[Dataset[T]] = UIO(transformation(_.unpersist(blocking = true)))
+  def unpersistBlocking: UIO[Dataset[T]] = UIO.succeed(transformation(_.unpersist(blocking = true)))
 
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)
@@ -266,18 +266,6 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def stat: DataFrameStatFunctions = get(_.stat)
 
   // ===============
-
-  /**
-   * Selects column based on the column name and returns it as a
-   * [[Column]].
-   *
-   * @note
-   *   The column name can also reference to a nested column like `a.b`.
-   *
-   * @group untypedrel
-   * @since 2.0.0
-   */
-  def apply(colName: String): TryAnalysis[Column] = getWithAnalysis(_.apply(colName))
 
   /**
    * Selects column based on the column name and returns it as a
@@ -2070,6 +2058,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
 
   // Ignored methods
   //
+  // [[org.apache.spark.sql.Dataset.apply]]
   // [[org.apache.spark.sql.Dataset.collectAsList]]
   // [[org.apache.spark.sql.Dataset.filter]]
   // [[org.apache.spark.sql.Dataset.flatMap]]
