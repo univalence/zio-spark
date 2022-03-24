@@ -5,6 +5,7 @@ import org.apache.spark.sql.{Row, SaveMode}
 
 import zio.{Console, Task}
 import zio.spark.helper.Fixture._
+import zio.stream.{Sink, ZStream}
 import zio.test._
 import zio.test.TestAspect._
 
@@ -38,7 +39,11 @@ object DataFrameWriterSpec {
           writer = df.write.partitionBy(partitionCol)
           _     <- writer.csv(path)
           files <- Task.attempt(Files.walk(Paths.get(path)))
-          isPartitioned = files.anyMatch((path: Path) => path.getFileName.toString.startsWith(s"$partitionCol="))
+          isPartitioned <-
+            ZStream
+              .fromJavaStream(files)
+              .run(Sink.collectAllWhile(_.getFileName.toString.startsWith(s"$partitionCol=")))
+              .map(_.nonEmpty)
           _ <- deleteGeneratedFolder(path)
         } yield assertTrue(writer.partitioningColumns == Seq(partitionCol)) && assertTrue(isPartitioned)
       }
