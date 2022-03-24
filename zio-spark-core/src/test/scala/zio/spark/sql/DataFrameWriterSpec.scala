@@ -42,8 +42,8 @@ object DataFrameWriterSpec {
           isPartitioned <-
             ZStream
               .fromJavaStream(files)
-              .run(Sink.collectAllWhile(_.getFileName.toString.startsWith(s"$partitionCol=")))
-              .map(_.nonEmpty)
+              .run(Sink.collectAll)
+              .map(_.exists(_.getFileName.toString.startsWith(s"$partitionCol=")))
           _ <- deleteGeneratedFolder(path)
         } yield assertTrue(writer.partitioningColumns == Seq(partitionCol)) && assertTrue(isPartitioned)
       }
