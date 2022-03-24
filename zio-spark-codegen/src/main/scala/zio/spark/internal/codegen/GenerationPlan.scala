@@ -233,14 +233,28 @@ object GenerationPlan {
             |import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
             |""".stripMargin
         case RelationalGroupedDatasetPlan =>
-          """import org.apache.spark.sql.{
-            |  Column,
-            |  DataFrame => UnderlyingDataFrame,
-            |  Encoder,
-            |  KeyValueGroupedDataset,
-            |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
-            |}
-            |""".stripMargin
+          val relationalGroupedDatasetCommonImports =
+            """import org.apache.spark.sql.{
+              |  Column,
+              |  DataFrame => UnderlyingDataFrame,
+              |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
+              |}
+              |""".stripMargin
+
+          val relationalGroupedDatasetSpecificImports =
+            scalaBinaryVersion match {
+              case ScalaBinaryVersion.V2_11 => ""
+              case _ =>
+                """import org.apache.spark.sql.{
+                  | Encoder,
+                  | KeyValueGroupedDataset,
+                  |}
+                  |""".stripMargin
+            }
+
+          s"""$relationalGroupedDatasetCommonImports
+             |$relationalGroupedDatasetSpecificImports""".stripMargin
+
       }
 
     final def suppressWarnings: String =

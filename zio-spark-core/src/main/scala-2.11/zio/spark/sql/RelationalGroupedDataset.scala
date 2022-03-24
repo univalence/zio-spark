@@ -10,8 +10,6 @@ package zio.spark.sql
 import org.apache.spark.sql.{
   Column,
   DataFrame => UnderlyingDataFrame,
-  Encoder,
-  KeyValueGroupedDataset,
   RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
 }
 

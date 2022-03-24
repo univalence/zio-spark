@@ -8,7 +8,7 @@ import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.TestAspect._
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 object DataFrameWriterSpec {
 
@@ -38,7 +38,7 @@ object DataFrameWriterSpec {
           writer = df.write.partitionBy(partitionCol)
           _     <- writer.csv(path)
           files <- Task.attempt(Files.walk(Paths.get(path)))
-          isPartitioned = files.anyMatch(_.getFileName.toString.startsWith(s"$partitionCol="))
+          isPartitioned = files.anyMatch((path: Path) => path.getFileName.toString.startsWith(s"$partitionCol="))
           _ <- deleteGeneratedFolder(path)
         } yield assertTrue(writer.partitioningColumns == Seq(partitionCol)) && assertTrue(isPartitioned)
       }
