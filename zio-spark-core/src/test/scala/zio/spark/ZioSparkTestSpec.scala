@@ -41,6 +41,7 @@ object ZioSparkTestSpec extends DefaultRunnableSpec {
         DatasetSpec.errorSpec,
         DatasetSpec.fromSparkSpec,
         DataFrameReaderSpec.dataFrameReaderReadingSpec,
+        DataFrameWriterSpec.dataFrameWriterBuilderSpec,
         DataFrameWriterSpec.dataFrameWriterSavingSpec,
         DataFrameWriterSpec.dataFrameWriterOptionDefinitionsSpec,
         ExtraDatasetFeatureTest.spec,
