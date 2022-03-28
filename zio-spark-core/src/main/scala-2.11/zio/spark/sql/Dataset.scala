@@ -311,7 +311,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def head(n: Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.head(n).toSeq)
+  def head(n: => Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.head(n).toSeq)
 
   /**
    * Returns the first row.
@@ -349,7 +349,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def take(n: Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.take(n).toSeq)
+  def take(n: => Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.take(n).toSeq)
 
   /**
    * Returns an iterator that contains all rows in this Dataset.
@@ -401,7 +401,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.1.0
    */
-  def checkpoint(eager: Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.checkpoint(eager))
+  def checkpoint(eager: => Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.checkpoint(eager))
 
   /**
    * Creates a global temporary view using the given name. The lifetime
@@ -420,7 +420,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.1.0
    */
-  def createGlobalTempView(viewName: String)(implicit trace: ZTraceElement): Task[Unit] =
+  def createGlobalTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
     action(_.createGlobalTempView(viewName))
 
   /**
@@ -438,7 +438,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.2.0
    */
-  def createOrReplaceGlobalTempView(viewName: String)(implicit trace: ZTraceElement): Task[Unit] =
+  def createOrReplaceGlobalTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
     action(_.createOrReplaceGlobalTempView(viewName))
 
   /**
@@ -449,7 +449,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.0.0
    */
-  def createOrReplaceTempView(viewName: String)(implicit trace: ZTraceElement): Task[Unit] =
+  def createOrReplaceTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
     action(_.createOrReplaceTempView(viewName))
 
   /**
@@ -469,7 +469,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.0.0
    */
-  def createTempView(viewName: String)(implicit trace: ZTraceElement): Task[Unit] = action(_.createTempView(viewName))
+  def createTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
+    action(_.createTempView(viewName))
 
   /**
    * Returns all column names and their data types as an array.
@@ -537,7 +538,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.3.0
    */
-  def localCheckpoint(eager: Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] =
+  def localCheckpoint(eager: => Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] =
     action(_.localCheckpoint(eager))
 
   /**
@@ -559,7 +560,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def persist(newLevel: StorageLevel)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.persist(newLevel))
+  def persist(newLevel: => StorageLevel)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.persist(newLevel))
 
   /**
    * Registers this Dataset as a temporary table using the given name.
@@ -570,7 +571,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   @deprecated("Use createOrReplaceTempView(viewName) instead.", "2.0.0")
-  def registerTempTable(tableName: String)(implicit trace: ZTraceElement): Task[Unit] =
+  def registerTempTable(tableName: => String)(implicit trace: ZTraceElement): Task[Unit] =
     action(_.registerTempTable(tableName))
 
   /**
@@ -593,7 +594,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def unpersist(blocking: Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.unpersist(blocking))
+  def unpersist(blocking: => Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.unpersist(blocking))
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it

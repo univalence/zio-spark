@@ -18,7 +18,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
   val fullName: String               = s"${planType.pkg}.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
 
-  val comment =
+  val comment: String =
     if (comments.leading(df).isEmpty) ""
     else
       comments
@@ -42,7 +42,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
           }
 
         val parameters = {
-          val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = false)).mkString("")
+          val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = effectful)).mkString("")
 
           calls match {
             case list if effectful && !list.exists(_.hasImplicit) => s"$sparkParameters(implicit trace: ZTraceElement)"
