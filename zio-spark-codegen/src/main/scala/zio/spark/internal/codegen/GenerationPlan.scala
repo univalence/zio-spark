@@ -308,11 +308,13 @@ object GenerationPlan {
     @inline final def fold[C](planType: PlanType => C): C = planType(this)
   }
 
-  case object RDDPlan                      extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-  case object DatasetPlan                  extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-  case object DataFrameNaFunctionsPlan     extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
-  case object DataFrameStatFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
-  case object RelationalGroupedDatasetPlan extends PlanType("spark-sql", "org/apache/spark/sql/RelationalGroupedDataset.scala")
+  case object RDDPlan                  extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
+  case object DatasetPlan              extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
+  case object DataFrameNaFunctionsPlan extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
+  case object DataFrameStatFunctionsPlan
+      extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
+  case object RelationalGroupedDatasetPlan
+      extends PlanType("spark-sql", "org/apache/spark/sql/RelationalGroupedDataset.scala")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
 
@@ -343,7 +345,8 @@ object GenerationPlan {
     self =>
     def apply(name: String, withParam: Boolean): String
 
-    def &&(other: Helper): Helper = (name: String, withParam: Boolean) => self(name, withParam) + "\n\n" + other(name, withParam)
+    def &&(other: Helper): Helper =
+      (name: String, withParam: Boolean) => self(name, withParam) + "\n\n" + other(name, withParam)
   }
 
   object Helper {
@@ -357,7 +360,7 @@ object GenerationPlan {
       // 2. It's necessary for "makeItCancellable" to work
       val tParam = if (withParam) "[T]" else ""
       s"""/** Applies an action to the underlying $name. */
-         |def action[U](f: Underlying$name$tParam => U): Task[U] = ZIO.attempt(get(f))""".stripMargin
+         |def action[U](f: Underlying$name$tParam => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))""".stripMargin
     }
 
     val transformation: Helper = { (name, withParam) =>
