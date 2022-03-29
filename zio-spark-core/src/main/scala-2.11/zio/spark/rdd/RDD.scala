@@ -21,10 +21,9 @@ import scala.io.Codec
 import scala.reflect._
 
 @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
-final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
+final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
   // scalafix:off
-  implicit private def lift[U](x: UnderlyingRDD[U]): RDD[U]   = RDD(x)
-  implicit private def escape[U](x: RDD[U]): UnderlyingRDD[U] = x.underlyingRDD
+  implicit private def lift[U](x: UnderlyingRDD[U]): RDD[U] = RDD(x)
 
   implicit private def arrayToSeq2[U](x: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = x.map(_.toIndexedSeq)
   @inline private def noOrdering[U]: Ordering[U]                                         = null
@@ -34,10 +33,10 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   def action[U](f: UnderlyingRDD[T] => U): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying RDD. */
-  def transformation[U](f: UnderlyingRDD[T] => UnderlyingRDD[U]): RDD[U] = RDD(f(underlyingRDD))
+  def transformation[TNew](f: UnderlyingRDD[T] => UnderlyingRDD[TNew]): RDD[TNew] = RDD(f(underlying))
 
   /** Applies an action to the underlying RDD. */
-  def get[U](f: UnderlyingRDD[T] => U): U = f(underlyingRDD)
+  def get[U](f: UnderlyingRDD[T] => U): U = f(underlying)
 
   // Handmade functions specific to zio-spark
 
@@ -89,7 +88,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    *   partitions
    */
   def aggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U): Task[U] =
-    action(_.aggregate(zeroValue)(seqOp, combOp))
+    action(_.aggregate[U](zeroValue)(seqOp, combOp))
 
   /**
    * Return an array that contains all of the elements in this RDD.
@@ -399,7 +398,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    *   suggested depth of the tree (default: 2)
    */
   def treeAggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U, depth: Int = 2): Task[U] =
-    action(_.treeAggregate(zeroValue)(seqOp, combOp, depth))
+    action(_.treeAggregate[U](zeroValue)(seqOp, combOp, depth))
 
   /**
    * Reduces the elements of this RDD in a multi-level tree pattern.
@@ -532,14 +531,14 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * elements will appear multiple times (use `.distinct()` to eliminate
    * them).
    */
-  def ++(other: RDD[T]): RDD[T] = transformation(_.++(other))
+  def ++(other: RDD[T]): RDD[T] = transformation(_.++(other.underlying))
 
   /**
    * Return the Cartesian product of this RDD and another one, that is,
    * the RDD of all pairs of elements (a, b) where a is in `this` and b
    * is in `other`.
    */
-  def cartesian[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.cartesian(other))
+  def cartesian[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.cartesian[U](other.underlying))
 
   /**
    * Return a new RDD that is reduced into `numPartitions` partitions.
@@ -591,7 +590,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * Return a new RDD by first applying a function to all elements of
    * this RDD, and then flattening the results.
    */
-  def flatMap[U: ClassTag](f: T => TraversableOnce[U]): RDD[U] = transformation(_.flatMap(f))
+  def flatMap[U: ClassTag](f: T => TraversableOnce[U]): RDD[U] = transformation(_.flatMap[U](f))
 
   /**
    * Return an RDD created by coalescing all elements within each
@@ -607,7 +606,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * @note
    *   This method performs a shuffle internally.
    */
-  def intersection(other: RDD[T]): RDD[T] = transformation(_.intersection(other))
+  def intersection(other: RDD[T]): RDD[T] = transformation(_.intersection(other.underlying))
 
   /**
    * Return the intersection of this RDD and another one. The output
@@ -621,7 +620,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    *   Partitioner to use for the resulting RDD
    */
   def intersection(other: RDD[T], partitioner: Partitioner)(implicit ord: Ordering[T] = noOrdering): RDD[T] =
-    transformation(_.intersection(other, partitioner))
+    transformation(_.intersection(other.underlying, partitioner))
 
   /**
    * Return the intersection of this RDD and another one. The output
@@ -634,17 +633,18 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * @param numPartitions
    *   How many partitions to use in the resulting RDD
    */
-  def intersection(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.intersection(other, numPartitions))
+  def intersection(other: RDD[T], numPartitions: Int): RDD[T] =
+    transformation(_.intersection(other.underlying, numPartitions))
 
   /** Creates tuples of the elements in this RDD by applying `f`. */
-  def keyBy[K](f: T => K): RDD[(K, T)] = transformation(_.keyBy(f))
+  def keyBy[K](f: T => K): RDD[(K, T)] = transformation(_.keyBy[K](f))
 
   // Transformations (return a new RDD)
   /**
    * Return a new RDD by applying a function to all elements of this
    * RDD.
    */
-  def map[U: ClassTag](f: T => U): RDD[U] = transformation(_.map(f))
+  def map[U: ClassTag](f: T => U): RDD[U] = transformation(_.map[U](f))
 
   /**
    * Return a new RDD by applying a function to each partition of this
@@ -655,7 +655,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * pair RDD and the input function doesn't modify the keys.
    */
   def mapPartitions[U: ClassTag](f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] =
-    transformation(_.mapPartitions(f, preservesPartitioning))
+    transformation(_.mapPartitions[U](f, preservesPartitioning))
 
   /**
    * Return a new RDD by applying a function to each partition of this
@@ -668,7 +668,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   def mapPartitionsWithIndex[U: ClassTag](
       f: (Int, Iterator[T]) => Iterator[U],
       preservesPartitioning: Boolean = false
-  ): RDD[U] = transformation(_.mapPartitionsWithIndex(f, preservesPartitioning))
+  ): RDD[U] = transformation(_.mapPartitionsWithIndex[U](f, preservesPartitioning))
 
   /**
    * Return an RDD created by piping elements to a forked external
@@ -774,7 +774,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
   def sortBy[K](f: (T) => K, ascending: Boolean = true, numPartitions: Int = this.partitions.length)(implicit
       ord: Ordering[K],
       ctag: ClassTag[K]
-  ): RDD[T] = transformation(_.sortBy(f, ascending, numPartitions))
+  ): RDD[T] = transformation(_.sortBy[K](f, ascending, numPartitions))
 
   /**
    * Return an RDD with the elements from `this` that are not in
@@ -783,27 +783,27 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * Uses `this` partitioner/partition size, because even if `other` is
    * huge, the resulting RDD will be &lt;= us.
    */
-  def subtract(other: RDD[T]): RDD[T] = transformation(_.subtract(other))
+  def subtract(other: RDD[T]): RDD[T] = transformation(_.subtract(other.underlying))
 
   /**
    * Return an RDD with the elements from `this` that are not in
    * `other`.
    */
-  def subtract(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.subtract(other, numPartitions))
+  def subtract(other: RDD[T], numPartitions: Int): RDD[T] = transformation(_.subtract(other.underlying, numPartitions))
 
   /**
    * Return an RDD with the elements from `this` that are not in
    * `other`.
    */
   def subtract(other: RDD[T], p: Partitioner)(implicit ord: Ordering[T] = noOrdering): RDD[T] =
-    transformation(_.subtract(other, p))
+    transformation(_.subtract(other.underlying, p))
 
   /**
    * Return the union of this RDD and another one. Any identical
    * elements will appear multiple times (use `.distinct()` to eliminate
    * them).
    */
-  def union(other: RDD[T]): RDD[T] = transformation(_.union(other))
+  def union(other: RDD[T]): RDD[T] = transformation(_.union(other.underlying))
 
   /**
    * Zips this RDD with another one, returning key-value pairs with the
@@ -812,7 +812,7 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    * *same number of elements in each partition* (e.g. one was made
    * through a map on the other).
    */
-  def zip[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.zip(other))
+  def zip[U: ClassTag](other: RDD[U]): RDD[(T, U)] = transformation(_.zip[U](other.underlying))
 
   /**
    * Zip this RDD's partitions with one (or more) RDD(s) and return a
@@ -823,18 +823,18 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
    */
   def zipPartitions[B: ClassTag, V: ClassTag](rdd2: RDD[B], preservesPartitioning: Boolean)(
       f: (Iterator[T], Iterator[B]) => Iterator[V]
-  ): RDD[V] = transformation(_.zipPartitions(rdd2, preservesPartitioning)(f))
+  ): RDD[V] = transformation(_.zipPartitions[B, V](rdd2.underlying, preservesPartitioning)(f))
 
   def zipPartitions[B: ClassTag, V: ClassTag](rdd2: RDD[B])(f: (Iterator[T], Iterator[B]) => Iterator[V]): RDD[V] =
-    transformation(_.zipPartitions(rdd2)(f))
+    transformation(_.zipPartitions[B, V](rdd2.underlying)(f))
 
   def zipPartitions[B: ClassTag, C: ClassTag, V: ClassTag](rdd2: RDD[B], rdd3: RDD[C], preservesPartitioning: Boolean)(
       f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V]
-  ): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, preservesPartitioning)(f))
+  ): RDD[V] = transformation(_.zipPartitions[B, C, V](rdd2.underlying, rdd3.underlying, preservesPartitioning)(f))
 
   def zipPartitions[B: ClassTag, C: ClassTag, V: ClassTag](rdd2: RDD[B], rdd3: RDD[C])(
       f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V]
-  ): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3)(f))
+  ): RDD[V] = transformation(_.zipPartitions[B, C, V](rdd2.underlying, rdd3.underlying)(f))
 
   def zipPartitions[B: ClassTag, C: ClassTag, D: ClassTag, V: ClassTag](
       rdd2: RDD[B],
@@ -842,11 +842,13 @@ final case class RDD[T](underlyingRDD: UnderlyingRDD[T]) { self =>
       rdd4: RDD[D],
       preservesPartitioning: Boolean
   )(f: (Iterator[T], Iterator[B], Iterator[C], Iterator[D]) => Iterator[V]): RDD[V] =
-    transformation(_.zipPartitions(rdd2, rdd3, rdd4, preservesPartitioning)(f))
+    transformation(
+      _.zipPartitions[B, C, D, V](rdd2.underlying, rdd3.underlying, rdd4.underlying, preservesPartitioning)(f)
+    )
 
   def zipPartitions[B: ClassTag, C: ClassTag, D: ClassTag, V: ClassTag](rdd2: RDD[B], rdd3: RDD[C], rdd4: RDD[D])(
       f: (Iterator[T], Iterator[B], Iterator[C], Iterator[D]) => Iterator[V]
-  ): RDD[V] = transformation(_.zipPartitions(rdd2, rdd3, rdd4)(f))
+  ): RDD[V] = transformation(_.zipPartitions[B, C, D, V](rdd2.underlying, rdd3.underlying, rdd4.underlying)(f))
 
   /**
    * Zips this RDD with its element indices. The ordering is first based

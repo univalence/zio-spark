@@ -17,7 +17,7 @@ class DatasetOverlay[T](self: Dataset[T]) {
 
   /** Transforms the Dataset into a RelationalGroupedDataset. */
   def group(f: UnderlyingDataset[T] => UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
-    RelationalGroupedDataset(f(underlyingDataset))
+    RelationalGroupedDataset(f(underlying))
 
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)
@@ -52,7 +52,7 @@ class DatasetOverlay[T](self: Dataset[T]) {
    */
   def show(numRows: Int, truncate: Boolean): RIO[Console, Unit] = {
     val trunc         = if (truncate) 20 else 0
-    val stringifiedDf = Sniffer.datasetShowString(underlyingDataset, numRows, truncate = trunc)
+    val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
   }
 

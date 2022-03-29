@@ -18,7 +18,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
   val fullName: String               = s"${planType.pkg}.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
 
-  val comment =
+  val comment: String =
     if (comments.leading(df).isEmpty) ""
     else
       comments
@@ -37,8 +37,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
       case MethodType.ToImplement => s"[[$fullName]]"
       case MethodType.ToHandle    => s"[[$fullName]]"
       case _ =>
-        val parameters = calls.map(_.toCode(isArgs = false)).mkString("")
-        val arguments  = calls.map(_.toCode(isArgs = true)).mkString("")
+        val parameters = calls.map(_.toCode(isArgs = false, planType.className)).mkString("")
+        val arguments  = calls.map(_.toCode(isArgs = true, planType.className)).mkString("")
 
         val transformation =
           methodType match {
@@ -64,7 +64,11 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             case _                                     => cleanReturnType
           }
 
-        val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode).mkString(", ")}]" else ""
+        val strTypeParams: Boolean => String =
+          inDefinition => if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode(inDefinition)).mkString(", ")}]" else ""
+
+        val defTypeParams  = strTypeParams(true)
+        val bodyTypeParams = strTypeParams(false)
 
         val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
 
@@ -75,7 +79,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             .getOrElse("")
 
         s"""$comment$deprecation
-           |def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)""".stripMargin
+           |def $name$defTypeParams$parameters: $trueReturnType = 
+           |  $transformation(_.$name$bodyTypeParams$arguments$conversion)""".stripMargin
     }
 
   def isSetter: Boolean = name.startsWith("set")

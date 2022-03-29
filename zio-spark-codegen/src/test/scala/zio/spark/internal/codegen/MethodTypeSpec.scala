@@ -1,13 +1,7 @@
 package zio.spark.internal.codegen
 
 import zio.*
-import zio.spark.internal.codegen.GenerationPlan.{
-  DataFrameNaFunctionsPlan,
-  DataFrameStatFunctionsPlan,
-  DatasetPlan,
-  RDDPlan,
-  RelationalGroupedDatasetPlan
-}
+import zio.spark.internal.codegen.GenerationPlan.*
 import zio.spark.internal.codegen.Helpers.{findMethod, planLayer}
 import zio.spark.internal.codegen.MethodType.*
 import zio.test.*
@@ -67,6 +61,13 @@ object MethodTypeSpec extends DefaultRunnableSpec {
       testMethodTypeFor("drop", arity = 1, args = List("cols"))(UnpackWithAnalysis)
     ).provideLayer(planLayer(DataFrameNaFunctionsPlan))
 
+  val keyValueGroupedDatasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+    suite("Check method types for KeyValueGroupedDataset")(
+      testMethodTypeFor("count")(Unpack),
+      testMethodTypeFor("keyAs")(Transformation),
+      testMethodTypeFor("mapValues")(Transformation)
+    ).provideLayer(planLayer(KeyValueGroupedDatasetPlan))
+
   override def spec: ZSpec[TestEnvironment, Any] = {
     val specs =
       Seq(
@@ -74,7 +75,8 @@ object MethodTypeSpec extends DefaultRunnableSpec {
         datasetMethodTypes,
         relationalGroupedDatasetMethodTypes,
         dataFrameStatFunctionsMethodTypes,
-        dataFrameNaFunctionsMethodTypes
+        dataFrameNaFunctionsMethodTypes,
+        keyValueGroupedDatasetMethodTypes
       )
 
     specs.reduce(_ + _)

@@ -24,7 +24,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @since 1.6.0
    */
   def explain(extended: Boolean): RIO[SparkSession with Console, Unit] = {
-    val queryExecution = underlyingDataset.queryExecution
+    val queryExecution = underlying.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
     for {

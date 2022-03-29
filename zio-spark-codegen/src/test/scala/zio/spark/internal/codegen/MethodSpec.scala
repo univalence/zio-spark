@@ -1,7 +1,7 @@
 package zio.spark.internal.codegen
 
 import zio.ZIO
-import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, RDDPlan}
+import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, KeyValueGroupedDatasetPlan, RDDPlan}
 import zio.spark.internal.codegen.Helpers.{findMethod, planLayer}
 import zio.test.*
 
@@ -51,6 +51,16 @@ object MethodSpec extends DefaultRunnableSpec {
     )
   }.provide(planLayer(DatasetPlan))
 
-  override def spec: ZSpec[TestEnvironment, Any] = rddMethods + datasetMethods
+  val keyValueGroupedDatasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
+    def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
+        genCodeFragment: String
+    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)
+
+    suite("Check method generations for Dataset")(
+      checkGen("cogroup")("other.underlying")
+    )
+  }.provide(planLayer(KeyValueGroupedDatasetPlan))
+
+  override def spec: ZSpec[TestEnvironment, Any] = rddMethods + datasetMethods + keyValueGroupedDatasetMethods
 
 }

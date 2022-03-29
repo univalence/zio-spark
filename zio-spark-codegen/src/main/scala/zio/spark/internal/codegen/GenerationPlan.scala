@@ -79,8 +79,14 @@ case class GenerationPlan(
 }
 
 object GenerationPlan {
-  sealed abstract class PlanType(module: String, path: String) {
+  case class Module(name: String, path: String)
+  val coreModule: Module = Module("spark-core", "org/apache/spark/rdd")
+  val sqlModule: Module  = Module("spark-sql", "org/apache/spark/sql")
+
+  sealed abstract class PlanType(module: Module, val className: String) {
     self =>
+    final def path: String = s"${module.path}/$className.scala"
+
     final def name: String = path.replace(".scala", "").split('/').last
 
     final def pkg: String = path.replace(".scala", "").replace('/', '.')
@@ -89,35 +95,36 @@ object GenerationPlan {
 
     final def zioSparkPackage: String = zioSparkPath.split("/").dropRight(1).mkString(".")
 
-    final def hasTypeParameter: Boolean =
+    final def typeParameters: List[String] =
       fold {
-        case RDDPlan | DatasetPlan => true
-        case _                     => false
+        case RDDPlan | DatasetPlan      => List("T")
+        case KeyValueGroupedDatasetPlan => List("K", "V")
+        case _                          => Nil
       }
 
-    final def tparam: String = if (hasTypeParameter) "[T]" else ""
+    final def hasTypeParameter: Boolean = typeParameters.nonEmpty
+
+    final def tparam: String = if (hasTypeParameter) s"[${typeParameters.mkString(", ")}]" else ""
 
     final def definition: String = {
       val className      = s"$name$tparam"
       val underlyingName = s"Underlying$name$tparam"
 
-      s"final case class $className(underlying$name: $underlyingName)"
+      s"final case class $className(underlying: $underlyingName)"
     }
 
-    final def implicits: String = {
-      val defaultImplicits =
-        s"""private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
-           |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name""".stripMargin
+    final def implicits(scalaBinaryVersion: ScalaBinaryVersion): String = {
+      val lift = s"private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)"
 
       val allImplicits =
         fold {
           case RDDPlan =>
-            s"""$defaultImplicits
+            s"""$lift
                |
                |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]]): Underlying$name[Seq[U]] = x.map(_.toIndexedSeq)
                |@inline private def noOrdering[U]: Ordering[U] = null""".stripMargin
           case DatasetPlan =>
-            s"""$defaultImplicits
+            s"""$lift
                |
                |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] =
                |  iterator.asScala
@@ -125,6 +132,15 @@ object GenerationPlan {
                |  DataFrameNaFunctions(x)
                |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
                |  DataFrameStatFunctions(x)""".stripMargin
+          case RelationalGroupedDatasetPlan =>
+            scalaBinaryVersion match {
+              case ScalaBinaryVersion.V2_11 => ""
+              case _ =>
+                s"""implicit private def liftKeyValueGroupedDataset[K, V](
+                   |  x: UnderlyingKeyValueGroupedDataset[K, V]
+                   |): KeyValueGroupedDataset[K, V] = KeyValueGroupedDataset(x)""".stripMargin
+            }
+
           case _ => ""
         }
 
@@ -145,6 +161,7 @@ object GenerationPlan {
         case DataFrameNaFunctionsPlan     => unpacks
         case DataFrameStatFunctionsPlan   => unpacks && transformations && gets
         case RelationalGroupedDatasetPlan => unpacks && transformations && gets
+        case KeyValueGroupedDatasetPlan   => unpacks && transformation
       }
 
     final def imports(scalaBinaryVersion: ScalaBinaryVersion): String =
@@ -220,41 +237,46 @@ object GenerationPlan {
              |$datasetSpecificImports""".stripMargin
         case DataFrameNaFunctionsPlan =>
           """import org.apache.spark.sql.{
-            | DataFrame => UnderlyingDataFrame,
+            | Dataset => UnderlyingDataset, 
             | DataFrameNaFunctions => UnderlyingDataFrameNaFunctions
             |}
             |""".stripMargin
         case DataFrameStatFunctionsPlan =>
           """import org.apache.spark.sql.{
             |  Column,
-            |  DataFrame => UnderlyingDataFrame,
+            |  Dataset => UnderlyingDataset, 
             |  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions
             |}
             |import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
             |""".stripMargin
         case RelationalGroupedDatasetPlan =>
-          val relationalGroupedDatasetCommonImports =
-            """import org.apache.spark.sql.{
-              |  Column,
-              |  DataFrame => UnderlyingDataFrame,
-              |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
-              |}
-              |""".stripMargin
-
-          val relationalGroupedDatasetSpecificImports =
-            scalaBinaryVersion match {
-              case ScalaBinaryVersion.V2_11 => ""
-              case _ =>
-                """import org.apache.spark.sql.{
-                  | Encoder,
-                  | KeyValueGroupedDataset,
-                  |}
-                  |""".stripMargin
-            }
-
-          s"""$relationalGroupedDatasetCommonImports
-             |$relationalGroupedDatasetSpecificImports""".stripMargin
-
+          scalaBinaryVersion match {
+            case ScalaBinaryVersion.V2_11 =>
+              """import org.apache.spark.sql.{
+                |  Column,
+                |  Dataset => UnderlyingDataset,
+                |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
+                |}
+                |""".stripMargin
+            case _ =>
+              """import org.apache.spark.sql.{
+                |  Column,
+                |  Encoder,
+                |  Dataset => UnderlyingDataset,
+                |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
+                |  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
+                |}
+                |""".stripMargin
+          }
+        case KeyValueGroupedDatasetPlan =>
+          """import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout, OutputMode}
+            |import org.apache.spark.sql.{
+            |  Encoder, 
+            |  TypedColumn, 
+            |  Dataset => UnderlyingDataset, 
+            |  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset
+            |}
+            |""".stripMargin
       }
 
     final def suppressWarnings: String =
@@ -279,9 +301,9 @@ object GenerationPlan {
          |
          |$suppressWarnings
          |$definition { self =>
-         |$implicits
+         |${implicits(scalaBinaryVersion)}
          |
-         |${helpers(name, hasTypeParameter)}
+         |${helpers(name, typeParameters)}
          |
          |  // Handmade functions specific to zio-spark
          |  
@@ -300,7 +322,7 @@ object GenerationPlan {
         version: ScalaBinaryVersion
     ): zio.Task[GenerationPlan] =
       for {
-        sparkSources <- GetSources.getSource(module, path)(classpath)
+        sparkSources <- GetSources.getSource(module.name, path)(classpath)
         overlaySources         = sourceFromFile(itSource / s"${name}Overlay.scala")
         overlaySpecificSources = sourceFromFile(versioned(itSource, version) / s"${name}OverlaySpecific.scala")
       } yield GenerationPlan(self, sparkSources, overlaySources, overlaySpecificSources, version)
@@ -308,11 +330,12 @@ object GenerationPlan {
     @inline final def fold[C](planType: PlanType => C): C = planType(this)
   }
 
-  case object RDDPlan                      extends PlanType("spark-core", "org/apache/spark/rdd/RDD.scala")
-  case object DatasetPlan                  extends PlanType("spark-sql", "org/apache/spark/sql/Dataset.scala")
-  case object DataFrameNaFunctionsPlan     extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameNaFunctions.scala")
-  case object DataFrameStatFunctionsPlan   extends PlanType("spark-sql", "org/apache/spark/sql/DataFrameStatFunctions.scala")
-  case object RelationalGroupedDatasetPlan extends PlanType("spark-sql", "org/apache/spark/sql/RelationalGroupedDataset.scala")
+  case object RDDPlan                      extends PlanType(coreModule, "RDD")
+  case object DatasetPlan                  extends PlanType(sqlModule, "Dataset")
+  case object DataFrameNaFunctionsPlan     extends PlanType(sqlModule, "DataFrameNaFunctions")
+  case object DataFrameStatFunctionsPlan   extends PlanType(sqlModule, "DataFrameStatFunctions")
+  case object RelationalGroupedDatasetPlan extends PlanType(sqlModule, "RelationalGroupedDataset")
+  case object KeyValueGroupedDatasetPlan   extends PlanType(sqlModule, "KeyValueGroupedDataset")
 
   def sourceFromFile(file: File): Option[Source] = Try(IO.read(file)).toOption.flatMap(_.parse[Source].toOption)
 
@@ -341,36 +364,35 @@ object GenerationPlan {
 
   trait Helper {
     self =>
-    def apply(name: String, withParam: Boolean): String
+    def apply(name: String, typeParameters: List[String]): String
 
-    def &&(other: Helper): Helper = (name: String, withParam: Boolean) => self(name, withParam) + "\n\n" + other(name, withParam)
+    def &&(other: Helper): Helper = (name: String, typeParameters: List[String]) => self(name, typeParameters) + "\n\n" + other(name, typeParameters)
   }
 
   object Helper {
+    val strParams: List[String] => String =
+      (typeParameters: List[String]) => if (typeParameters.nonEmpty) s"[${typeParameters.mkString(", ")}]" else ""
 
-    // NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
-    // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
-    // 2. It's necessary for "makeItCancellable" to work
-    val action: Helper = { (name, withParam) =>
+    val action: Helper = { (name, typeParameters) =>
       // NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
       // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
       // 2. It's necessary for "makeItCancellable" to work
-      val tParam = if (withParam) "[T]" else ""
+      val tParam = if (typeParameters.nonEmpty) s"[${typeParameters.mkString(", ")}]" else ""
       s"""/** Applies an action to the underlying $name. */
          |def action[U](f: Underlying$name$tParam => U): Task[U] = ZIO.attempt(get(f))""".stripMargin
     }
 
-    val transformation: Helper = { (name, withParam) =>
-      val tParam = if (withParam) "[T]" else ""
-      val uParam = if (withParam) "[U]" else ""
+    val transformation: Helper = { (name, typeParameters) =>
+      val tParam = strParams(typeParameters)
+      val uParam = strParams(typeParameters.map(_ + "New"))
       s"""/** Applies a transformation to the underlying $name. */
          |def transformation$uParam(f: Underlying$name$tParam => Underlying$name$uParam): $name$uParam =
-         |  $name(f(underlying$name))""".stripMargin
+         |  $name(f(underlying))""".stripMargin
     }
 
-    val transformationWithAnalysis: Helper = { (name, withParam) =>
-      val tParam = if (withParam) "[T]" else ""
-      val uParam = if (withParam) "[U]" else ""
+    val transformationWithAnalysis: Helper = { (name, typeParameters) =>
+      val tParam = strParams(typeParameters)
+      val uParam = strParams(typeParameters.map(_ + "New"))
       s"""/** Applies a transformation to the underlying $name, it is used for
          | * transformations that can fail due to an AnalysisException. */
          |def transformationWithAnalysis$uParam(f: Underlying$name$tParam => Underlying$name$uParam): TryAnalysis[$name$uParam] =
@@ -379,37 +401,39 @@ object GenerationPlan {
 
     val transformations: Helper = transformation && transformationWithAnalysis
 
-    val get: Helper = { (name, withParam) =>
-      val tParam = if (withParam) "[T]" else ""
+    val get: Helper = { (name, typeParameters) =>
+      val tParam = strParams(typeParameters)
       s"""/** Applies an action to the underlying $name. */
-         |def get[U](f: Underlying$name$tParam => U): U = f(underlying$name)""".stripMargin
+         |def get[U](f: Underlying$name$tParam => U): U = f(underlying)""".stripMargin
     }
 
-    val getWithAnalysis: Helper = { (name, withParam) =>
-      val tParam = if (withParam) "[T]" else ""
+    val getWithAnalysis: Helper = { (name, typeParameters) =>
+      val tParam = strParams(typeParameters)
       s"""/** Applies an action to the underlying $name, it is used for
          | * transformations that can fail due to an AnalysisException.
          | */
          |def getWithAnalysis[U](f: Underlying$name$tParam => U): TryAnalysis[U] =
-         |  TryAnalysis(f(underlying$name))""".stripMargin
+         |  TryAnalysis(f(underlying))""".stripMargin
     }
 
     val gets: Helper = get && getWithAnalysis
 
-    val unpack: Helper = { (name, _) =>
+    val unpack: Helper = { (name, typeParameters) =>
+      val tParam = strParams(typeParameters)
       s"""/**
          | * Unpack the underlying $name into a DataFrame.
          | */
-         |def unpack(f: Underlying$name => UnderlyingDataFrame): DataFrame =
-         |  Dataset(f(underlying$name))""".stripMargin
+         |def unpack[U](f: Underlying$name$tParam => UnderlyingDataset[U]): Dataset[U] =
+         |  Dataset(f(underlying))""".stripMargin
     }
 
-    val unpackWithAnalysis: Helper = { (name, _) =>
+    val unpackWithAnalysis: Helper = { (name, typeParameters) =>
+      val tParam = strParams(typeParameters)
       s"""/**
          | * Unpack the underlying $name into a DataFrame, it is used for
          | * transformations that can fail due to an AnalysisException.
          | */
-         |def unpackWithAnalysis(f: Underlying$name => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+         |def unpackWithAnalysis[U](f: Underlying$name$tParam => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
          |  TryAnalysis(unpack(f))""".stripMargin
     }
 
