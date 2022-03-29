@@ -366,8 +366,7 @@ object GenerationPlan {
     self =>
     def apply(name: String, typeParameters: List[String]): String
 
-    def &&(other: Helper): Helper =
-      (name: String, typeParameters: List[String]) => self(name, typeParameters) + "\n\n" + other(name, typeParameters)
+    def &&(other: Helper): Helper = (name: String, typeParameters: List[String]) => self(name, typeParameters) + "\n\n" + other(name, typeParameters)
   }
 
   object Helper {
