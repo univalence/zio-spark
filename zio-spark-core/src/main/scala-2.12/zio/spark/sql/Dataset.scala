@@ -79,7 +79,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String)(implicit trace: ZTraceElement): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -88,7 +88,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode): SRIO[Console, Unit] =
+  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SRIO[Console, Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlyingDataset.queryExecution.explainString(mode))
@@ -96,7 +96,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
     } yield ()
 
   /** Alias for [[headOption]]. */
-  def firstOption: Task[Option[T]] = headOption
+  def firstOption(implicit trace: ZTraceElement): Task[Option[T]] = headOption
 
   // template:on
   /** Transforms the Dataset into a RelationalGroupedDataset. */
@@ -112,14 +112,14 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def groupBy(cols: Column*): RelationalGroupedDataset = group(_.groupBy(cols: _*))
 
   /** Takes the first element of a dataset or None. */
-  def headOption: Task[Option[T]] = head(1).map(_.headOption)
+  def headOption(implicit trace: ZTraceElement): Task[Option[T]] = head(1).map(_.headOption)
 
   // template:on
   /** Alias for [[tail]]. */
-  def last: Task[T] = tail
+  def last(implicit trace: ZTraceElement): Task[T] = tail
 
   /** Alias for [[tailOption]]. */
-  def lastOption: Task[Option[T]] = tailOption
+  def lastOption(implicit trace: ZTraceElement): Task[Option[T]] = tailOption
 
   /**
    * Prints the schema to the console in a nice tree format.
@@ -127,7 +127,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def printSchema: RIO[Console, Unit] = printSchema(Int.MaxValue)
+  def printSchema(implicit trace: ZTraceElement): RIO[Console, Unit] = printSchema(Int.MaxValue)
 
   /**
    * Prints the schema up to the given level to the console in a nice
@@ -136,7 +136,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def printSchema(level: Int): RIO[Console, Unit] = Console.printLine(schema.treeString(level))
+  def printSchema(level: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] =
+    Console.printLine(schema.treeString(level))
 
   /**
    * Transform the dataset into a [[RDD]].
@@ -151,7 +152,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int): RIO[Console, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -159,21 +160,21 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show: RIO[Console, Unit] = show(20)
+  def show(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean): RIO[Console, Unit] = show(20, truncate)
+  def show(truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean): RIO[Console, Unit] = {
+  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlyingDataset, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
@@ -192,13 +193,13 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[Dataset.tail]] for more information.
    */
-  def tail: Task[T] = self.tail(1).map(_.head)
+  def tail(implicit trace: ZTraceElement): Task[T] = self.tail(1).map(_.head)
 
   /** Takes the last element of a dataset or None. */
-  def tailOption: Task[Option[T]] = self.tail(1).map(_.headOption)
+  def tailOption(implicit trace: ZTraceElement): Task[Option[T]] = self.tail(1).map(_.headOption)
 
   /** Alias for [[tail]]. */
-  def takeRight(n: Int): Task[Seq[T]] = self.tail(n)
+  def takeRight(n: Int)(implicit trace: ZTraceElement): Task[Seq[T]] = self.tail(n)
 
   /**
    * Chains custom transformations.
@@ -213,7 +214,8 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking: UIO[Dataset[T]] = UIO.succeed(transformation(_.unpersist(blocking = true)))
+  def unpersistBlocking(implicit trace: ZTraceElement): UIO[Dataset[T]] =
+    UIO.succeed(transformation(_.unpersist(blocking = true)))
 
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)

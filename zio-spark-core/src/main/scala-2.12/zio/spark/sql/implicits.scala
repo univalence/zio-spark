@@ -3,10 +3,8 @@ package zio.spark.sql
 import org.apache.spark.sql.{ColumnName, Encoders}
 
 import scala.reflect.runtime.universe.TypeTag
-
 import org.apache.spark.sql.{ColumnName, Encoders}
-
-import zio.URIO
+import zio.{URIO, ZTraceElement}
 import zio.spark.rdd.{RDD, RDDConversionOps}
 
 import scala.reflect.ClassTag
@@ -63,12 +61,15 @@ object implicits extends LowPrioritySQLImplicits {
 
   implicit class seqDatasetHolderOps[T: org.apache.spark.sql.Encoder](seq: Seq[T]) {
     // SparkSession => Dataset[T] : UF[SparkSession, Dataset[T]]
-    def toDataset: URIO[SparkSession, Dataset[T]] =
+    def toDataset(implicit trace: ZTraceElement): URIO[SparkSession, Dataset[T]] =
       zio.spark.sql.fromSpark(ss => ss.implicits.localSeqToDatasetHolder(seq).toDS().zioSpark).orDie
+
+    def toDS(implicit trace: ZTraceElement): URIO[SparkSession, Dataset[T]] = toDataset
   }
 
   implicit class seqRddHolderOps[T: ClassTag](seq: Seq[T]) {
-    def toRDD: URIO[SparkSession, RDD[T]] = zio.spark.sql.fromSpark(_.sparkContext.makeRDD(seq).zioSpark).orDie
+    def toRDD(implicit trace: ZTraceElement): URIO[SparkSession, RDD[T]] =
+      zio.spark.sql.fromSpark(_.sparkContext.makeRDD(seq).zioSpark).orDie
   }
 
 }

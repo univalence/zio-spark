@@ -23,7 +23,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain(extended: Boolean): RIO[SparkSession with Console, Unit] = {
+  def explain(extended: Boolean)(implicit trace: ZTraceElement): RIO[SparkSession with Console, Unit] = {
     val queryExecution = underlyingDataset.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
@@ -39,7 +39,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain: SRIO[Console, Unit] = explain(extended = false)
+  def explain(implicit trace: ZTraceElement): SRIO[Console, Unit] = explain(extended = false)
 
   /**
    * Prints the schema to the console in a nice tree format.
@@ -47,6 +47,6 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def printSchema: RIO[Console, Unit] = Console.printLine(schema.treeString)
+  def printSchema(implicit trace: ZTraceElement): RIO[Console, Unit] = Console.printLine(schema.treeString)
   // template:off
 }

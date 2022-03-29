@@ -10,23 +10,23 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
   // template:on
 
   /** Alias for [[tail]]. */
-  def last: Task[T] = tail
+  def last(implicit trace: ZTraceElement): Task[T] = tail
 
   /**
    * Takes the last element of a dataset or throws an exception.
    *
    * See [[Dataset.tail]] for more information.
    */
-  def tail: Task[T] = self.tail(1).map(_.head)
+  def tail(implicit trace: ZTraceElement): Task[T] = self.tail(1).map(_.head)
 
   /** Alias for [[tailOption]]. */
-  def lastOption: Task[Option[T]] = tailOption
+  def lastOption(implicit trace: ZTraceElement): Task[Option[T]] = tailOption
 
   /** Takes the last element of a dataset or None. */
-  def tailOption: Task[Option[T]] = self.tail(1).map(_.headOption)
+  def tailOption(implicit trace: ZTraceElement): Task[Option[T]] = self.tail(1).map(_.headOption)
 
   /** Alias for [[tail]]. */
-  def takeRight(n: Int): Task[Seq[T]] = self.tail(n)
+  def takeRight(n: Int)(implicit trace: ZTraceElement): Task[Seq[T]] = self.tail(n)
 
   /**
    * Computes specified statistics for numeric and string columns.
@@ -51,7 +51,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String)(implicit trace: ZTraceElement): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -60,7 +60,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode): SRIO[Console, Unit] =
+  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SRIO[Console, Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlyingDataset.queryExecution.explainString(mode))
@@ -73,7 +73,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def printSchema: RIO[Console, Unit] = printSchema(Int.MaxValue)
+  def printSchema(implicit trace: ZTraceElement): RIO[Console, Unit] = printSchema(Int.MaxValue)
 
   /**
    * Prints the schema up to the given level to the console in a nice
@@ -82,7 +82,8 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def printSchema(level: Int): RIO[Console, Unit] = Console.printLine(schema.treeString(level))
+  def printSchema(level: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] =
+    Console.printLine(schema.treeString(level))
 
   // template:off
 }

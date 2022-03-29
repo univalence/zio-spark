@@ -2,6 +2,8 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{DataFrameReader => UnderlyingDataFrameReader, Dataset => UnderlyingDataset}
 
+import zio.ZTraceElement
+
 final case class DataFrameReader(options: Map[String, String]) {
 
   /**
@@ -9,53 +11,54 @@ final case class DataFrameReader(options: Map[String, String]) {
    *
    * See [[UnderlyingDataFrameReader.csv]] for more information.
    */
-  def csv(path: String): SIO[DataFrame] = csv(Seq(path): _*)
+  def csv(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = csv(Seq(path): _*)(trace)
 
   /**
    * Loads a dataframe from CSV files.
    *
    * See [[UnderlyingDataFrameReader.csv]] for more information.
    */
-  def csv(paths: String*): SIO[DataFrame] = loadUsing(_.csv(paths: _*))
+  def csv(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.csv(paths: _*))(trace)
 
   /**
    * Loads a dataframe from a JSON file.
    *
    * See [[UnderlyingDataFrameReader.json]] for more information.
    */
-  def json(path: String): SIO[DataFrame] = json(Seq(path): _*)
+  def json(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = json(Seq(path): _*)
 
   /**
    * Loads a dataframe from JSON files.
    *
    * See [[UnderlyingDataFrameReader.parquet]] for more information.
    */
-  def json(paths: String*): SIO[DataFrame] = loadUsing(_.json(paths: _*))
+  def json(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.json(paths: _*))
 
   /**
    * Loads a dataframe from a PARQUET file.
    *
    * See [[UnderlyingDataFrameReader.parquet]] for more information.
    */
-  def parquet(path: String): SIO[DataFrame] = parquet(Seq(path): _*)
+  def parquet(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = parquet(Seq(path): _*)
 
   /**
    * Loads a dataframe from PARQUET files.
    *
    * See [[UnderlyingDataFrameReader.parquet]] for more information.
    */
-  def parquet(paths: String*): SIO[DataFrame] = loadUsing(_.parquet(paths: _*))
+  def parquet(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.parquet(paths: _*))
 
   /**
    * Loads a dataframe from a text file.
    *
    * See [[UnderlyingDataFrameReader.textFile]] for more information.
    */
-  def textFile(path: String): SIO[Dataset[String]] = loadUsing(_.textFile(path))
+  def textFile(path: String)(implicit trace: ZTraceElement): SIO[Dataset[String]] = loadUsing(_.textFile(path))
 
   /** Loads a dataframe using one of the dataframe loader. */
-  private def loadUsing[T](f: UnderlyingDataFrameReader => UnderlyingDataset[T]): SIO[Dataset[T]] =
-    fromSpark(ss => Dataset(f(ss.read.options(options))))
+  private def loadUsing[T](f: UnderlyingDataFrameReader => UnderlyingDataset[T])(implicit
+      trace: ZTraceElement
+  ): SIO[Dataset[T]] = fromSpark(ss => Dataset(f(ss.read.options(options))))(trace)
 
   /** Adds multiple options to the DataFrameReader. */
   def options(options: Map[String, String]): DataFrameReader = DataFrameReader(this.options ++ options)
