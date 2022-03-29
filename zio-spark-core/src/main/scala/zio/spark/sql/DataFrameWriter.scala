@@ -14,7 +14,7 @@ final case class DataFrameWriter[T](
 ) {
 
   private def construct: UnderlyingDataFrameWriter[T] = {
-    val base = ds.underlyingDataset.write.options(options).format(source.toString).mode(mode)
+    val base = ds.underlying.write.options(options).format(source.toString).mode(mode)
 
     partitioningColumns match {
       case Nil  => base

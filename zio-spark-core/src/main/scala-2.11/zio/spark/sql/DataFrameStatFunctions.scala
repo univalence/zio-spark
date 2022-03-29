@@ -9,30 +9,29 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{
   Column,
-  DataFrame => UnderlyingDataFrame,
-  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions
+  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
+  Dataset => UnderlyingDataset
 }
 import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
 
-final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: UnderlyingDataFrameStatFunctions) { self =>
+final case class DataFrameStatFunctions(underlying: UnderlyingDataFrameStatFunctions) { self =>
 
   /** Unpack the underlying DataFrameStatFunctions into a DataFrame. */
-  def unpack(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): DataFrame =
-    Dataset(f(underlyingDataFrameStatFunctions))
+  def unpack[U](f: UnderlyingDataFrameStatFunctions => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlying))
 
   /**
    * Unpack the underlying DataFrameStatFunctions into a DataFrame, it
    * is used for transformations that can fail due to an
    * AnalysisException.
    */
-  def unpackWithAnalysis(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+  def unpackWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(unpack(f))
 
   /**
    * Applies a transformation to the underlying DataFrameStatFunctions.
    */
   def transformation(f: UnderlyingDataFrameStatFunctions => UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
-    DataFrameStatFunctions(f(underlyingDataFrameStatFunctions))
+    DataFrameStatFunctions(f(underlying))
 
   /**
    * Applies a transformation to the underlying DataFrameStatFunctions,
@@ -44,14 +43,13 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
   ): TryAnalysis[DataFrameStatFunctions] = TryAnalysis(transformation(f))
 
   /** Applies an action to the underlying DataFrameStatFunctions. */
-  def get[U](f: UnderlyingDataFrameStatFunctions => U): U = f(underlyingDataFrameStatFunctions)
+  def get[U](f: UnderlyingDataFrameStatFunctions => U): U = f(underlying)
 
   /**
    * Applies an action to the underlying DataFrameStatFunctions, it is
    * used for transformations that can fail due to an AnalysisException.
    */
-  def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] =
-    TryAnalysis(f(underlyingDataFrameStatFunctions))
+  def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
   // Handmade functions specific to zio-spark
 
@@ -394,6 +392,6 @@ final case class DataFrameStatFunctions(underlyingDataFrameStatFunctions: Underl
    * @since 1.5.0
    */
   def sampleBy[T](col: String, fractions: Map[T, Double], seed: Long): TryAnalysis[DataFrame] =
-    unpackWithAnalysis(_.sampleBy(col, fractions, seed))
+    unpackWithAnalysis(_.sampleBy[T](col, fractions, seed))
 
 }

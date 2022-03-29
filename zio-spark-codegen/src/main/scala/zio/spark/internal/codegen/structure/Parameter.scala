@@ -19,13 +19,16 @@ case class Parameter(underlying: Term.Param, scalaVersion: ScalaBinaryVersion) {
 
   val modifiers: Seq[Modifier] = if (underlying.collect { case d: Mod.Implicit => d }.nonEmpty) List(Modifier.Implicit) else Nil
 
-  def toCode(isArgs: Boolean, callByName: Boolean): String =
-    if (isArgs) toCodeArgument
+  def toCode(isArgs: Boolean, callByName: Boolean, className: String): String =
+    if (isArgs) toCodeArgument(className)
     else toCodeParameter(callByName)
 
-  private def toCodeArgument: String =
-    if (signature.contains("*")) s"$name: _*"
-    else name
+  private def toCodeArgument(className: String): String =
+    signature match {
+      case _ if signature.contains("*")              => s"$name: _*"
+      case _ if signature.startsWith(s"$className[") => s"$name.underlying"
+      case _                                         => name
+    }
 
   private def toCodeParameter(callByName: Boolean): String = {
     val byName = if (callByName && !signature.contains("=>")) "=> " else ""

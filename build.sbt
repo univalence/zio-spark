@@ -60,6 +60,7 @@ val excludedPackages: Seq[String] =
     "zio\\.spark\\.sql\\.Dataset.*",                // Generated source
     "zio\\.spark\\.sql\\.DataFrameNaFunctions.*",   // Generated source
     "zio\\.spark\\.sql\\.DataFrameStatFunctions.*", // Generated source
+    "zio\\.spark\\.sql\\.KeyValueGroupedDataset.*", // Generated source
     "zio\\.spark\\.sql\\.implicits.*",              // Spark implicits
     "zio\\.spark\\.sql\\.LowPrioritySQLImplicits.*" // Spark implicits
   )

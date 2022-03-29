@@ -28,10 +28,9 @@ import zio.spark.rdd._
 import scala.collection.JavaConverters._
 import scala.reflect.runtime.universe.TypeTag
 
-final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
+final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // scalafix:off
-  implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U]   = Dataset(x)
-  implicit private def escape[U](x: Dataset[U]): UnderlyingDataset[U] = x.underlyingDataset
+  implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U] = Dataset(x)
 
   implicit private def iteratorConversion[U](iterator: java.util.Iterator[U]): Iterator[U] = iterator.asScala
   implicit private def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
@@ -44,23 +43,23 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   def action[U](f: UnderlyingDataset[T] => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying Dataset. */
-  def transformation[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlyingDataset))
+  def transformation[TNew](f: UnderlyingDataset[T] => UnderlyingDataset[TNew]): Dataset[TNew] = Dataset(f(underlying))
 
   /**
    * Applies a transformation to the underlying Dataset, it is used for
    * transformations that can fail due to an AnalysisException.
    */
-  def transformationWithAnalysis[U](f: UnderlyingDataset[T] => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
+  def transformationWithAnalysis[TNew](f: UnderlyingDataset[T] => UnderlyingDataset[TNew]): TryAnalysis[Dataset[TNew]] =
     TryAnalysis(transformation(f))
 
   /** Applies an action to the underlying Dataset. */
-  def get[U](f: UnderlyingDataset[T] => U): U = f(underlyingDataset)
+  def get[U](f: UnderlyingDataset[T] => U): U = f(underlying)
 
   /**
    * Applies an action to the underlying Dataset, it is used for
    * transformations that can fail due to an AnalysisException.
    */
-  def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(f(underlyingDataset))
+  def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
   // Handmade functions specific to zio-spark
 
@@ -72,7 +71,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   def explain(extended: Boolean)(implicit trace: ZTraceElement): RIO[SparkSession with Console, Unit] = {
-    val queryExecution = underlyingDataset.queryExecution
+    val queryExecution = underlying.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
     for {
@@ -95,7 +94,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   // template:on
   /** Transforms the Dataset into a RelationalGroupedDataset. */
   def group(f: UnderlyingDataset[T] => UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
-    RelationalGroupedDataset(f(underlyingDataset))
+    RelationalGroupedDataset(f(underlying))
 
   /**
    * Groups the Dataset using the specified columns, so we ca run
@@ -153,7 +152,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    */
   def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = {
     val trunc         = if (truncate) 20 else 0
-    val stringifiedDf = Sniffer.datasetShowString(underlyingDataset, numRows, truncate = trunc)
+    val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
   }
 
@@ -676,7 +675,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group untypedrel
    * @since 2.1.0
    */
-  def crossJoin(right: Dataset[_]): DataFrame = transformation(_.crossJoin(right))
+  def crossJoin(right: Dataset[_]): DataFrame = transformation(_.crossJoin(right.underlying))
 
   /**
    * Returns a new Dataset that contains only the unique rows from this
@@ -755,7 +754,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 2.0.0
    */
-  def except(other: Dataset[T]): Dataset[T] = transformation(_.except(other))
+  def except(other: Dataset[T]): Dataset[T] = transformation(_.except(other.underlying))
 
   /**
    * Returns a new Dataset containing rows in this Dataset but not in
@@ -771,7 +770,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 2.4.0
    */
-  def exceptAll(other: Dataset[T]): Dataset[T] = transformation(_.exceptAll(other))
+  def exceptAll(other: Dataset[T]): Dataset[T] = transformation(_.exceptAll(other.underlying))
 
   /**
    * Returns a new Dataset where each row has been expanded to zero or
@@ -804,7 +803,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    */
   @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
   def explode[A <: Product: TypeTag](input: Column*)(f: Row => TraversableOnce[A]): DataFrame =
-    transformation(_.explode(input: _*)(f))
+    transformation(_.explode[A](input: _*)(f))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that only
@@ -823,7 +822,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 1.6.0
    */
-  def flatMap[U: Encoder](func: T => TraversableOnce[U]): Dataset[U] = transformation(_.flatMap(func))
+  def flatMap[U: Encoder](func: T => TraversableOnce[U]): Dataset[U] = transformation(_.flatMap[U](func))
 
   /**
    * Specifies some hint on the current Dataset. As an example, the
@@ -850,7 +849,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 1.6.0
    */
-  def intersect(other: Dataset[T]): Dataset[T] = transformation(_.intersect(other))
+  def intersect(other: Dataset[T]): Dataset[T] = transformation(_.intersect(other.underlying))
 
   /**
    * Returns a new Dataset containing rows only in both this Dataset and
@@ -866,7 +865,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 2.4.0
    */
-  def intersectAll(other: Dataset[T]): Dataset[T] = transformation(_.intersectAll(other))
+  def intersectAll(other: Dataset[T]): Dataset[T] = transformation(_.intersectAll(other.underlying))
 
   /**
    * Join with another `DataFrame`.
@@ -879,7 +878,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group untypedrel
    * @since 2.0.0
    */
-  def join(right: Dataset[_]): DataFrame = transformation(_.join(right))
+  def join(right: Dataset[_]): DataFrame = transformation(_.join(right.underlying))
 
   /**
    * Returns a new Dataset by taking the first `n` rows. The difference
@@ -899,7 +898,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 1.6.0
    */
-  def map[U: Encoder](func: T => U): Dataset[U] = transformation(_.map(func))
+  def map[U: Encoder](func: T => U): Dataset[U] = transformation(_.map[U](func))
 
   /**
    * :: Experimental :: (Scala-specific) Returns a new Dataset that
@@ -908,7 +907,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 1.6.0
    */
-  def mapPartitions[U: Encoder](func: Iterator[T] => Iterator[U]): Dataset[U] = transformation(_.mapPartitions(func))
+  def mapPartitions[U: Encoder](func: Iterator[T] => Iterator[U]): Dataset[U] = transformation(_.mapPartitions[U](func))
 
   /**
    * Returns a new Dataset that has exactly `numPartitions` partitions.
@@ -1004,7 +1003,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 1.6.0
    */
-  def select[U1](c1: TypedColumn[T, U1]): Dataset[U1] = transformation(_.select(c1))
+  def select[U1](c1: TypedColumn[T, U1]): Dataset[U1] = transformation(_.select[U1](c1))
 
   /**
    * :: Experimental :: Returns a new Dataset by computing the given
@@ -1014,7 +1013,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   def select[U1, U2](c1: TypedColumn[T, U1], c2: TypedColumn[T, U2]): Dataset[(U1, U2)] =
-    transformation(_.select(c1, c2))
+    transformation(_.select[U1, U2](c1, c2))
 
   /**
    * :: Experimental :: Returns a new Dataset by computing the given
@@ -1027,7 +1026,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
       c1: TypedColumn[T, U1],
       c2: TypedColumn[T, U2],
       c3: TypedColumn[T, U3]
-  ): Dataset[(U1, U2, U3)] = transformation(_.select(c1, c2, c3))
+  ): Dataset[(U1, U2, U3)] = transformation(_.select[U1, U2, U3](c1, c2, c3))
 
   /**
    * :: Experimental :: Returns a new Dataset by computing the given
@@ -1041,7 +1040,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
       c2: TypedColumn[T, U2],
       c3: TypedColumn[T, U3],
       c4: TypedColumn[T, U4]
-  ): Dataset[(U1, U2, U3, U4)] = transformation(_.select(c1, c2, c3, c4))
+  ): Dataset[(U1, U2, U3, U4)] = transformation(_.select[U1, U2, U3, U4](c1, c2, c3, c4))
 
   /**
    * :: Experimental :: Returns a new Dataset by computing the given
@@ -1056,7 +1055,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
       c3: TypedColumn[T, U3],
       c4: TypedColumn[T, U4],
       c5: TypedColumn[T, U5]
-  ): Dataset[(U1, U2, U3, U4, U5)] = transformation(_.select(c1, c2, c3, c4, c5))
+  ): Dataset[(U1, U2, U3, U4, U5)] = transformation(_.select[U1, U2, U3, U4, U5](c1, c2, c3, c4, c5))
 
   /**
    * Computes specified statistics for numeric and string columns.
@@ -1175,7 +1174,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 2.0.0
    */
-  def union(other: Dataset[T]): Dataset[T] = transformation(_.union(other))
+  def union(other: Dataset[T]): Dataset[T] = transformation(_.union(other.underlying))
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
@@ -1192,7 +1191,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   @deprecated("use union()", "2.0.0")
-  def unionAll(other: Dataset[T]): Dataset[T] = transformation(_.unionAll(other))
+  def unionAll(other: Dataset[T]): Dataset[T] = transformation(_.unionAll(other.underlying))
 
   /**
    * Returns a new Dataset containing union of rows in this Dataset and
@@ -1222,7 +1221,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group typedrel
    * @since 2.3.0
    */
-  def unionByName(other: Dataset[T]): Dataset[T] = transformation(_.unionByName(other))
+  def unionByName(other: Dataset[T]): Dataset[T] = transformation(_.unionByName(other.underlying))
 
   /**
    * Returns a new Dataset with a column renamed. This is a no-op if
@@ -1335,7 +1334,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as)
+  def as[U: Encoder]: TryAnalysis[Dataset[U]] = transformationWithAnalysis(_.as[U])
 
   /**
    * Computes basic statistics for numeric and string columns, including
@@ -1431,7 +1430,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
   @deprecated("use flatMap() or select() with functions.explode() instead", "2.0.0")
   def explode[A, B: TypeTag](inputColumn: String, outputColumn: String)(
       f: A => TraversableOnce[B]
-  ): TryAnalysis[DataFrame] = transformationWithAnalysis(_.explode(inputColumn, outputColumn)(f))
+  ): TryAnalysis[DataFrame] = transformationWithAnalysis(_.explode[A, B](inputColumn, outputColumn)(f))
 
   /**
    * Filters rows using the given condition.
@@ -1485,7 +1484,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def join(right: Dataset[_], usingColumn: String): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.join(right, usingColumn))
+    transformationWithAnalysis(_.join(right.underlying, usingColumn))
 
   /**
    * Inner equi-join with another `DataFrame` using the given columns.
@@ -1515,7 +1514,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def join(right: Dataset[_], usingColumns: Seq[String]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.join(right, usingColumns))
+    transformationWithAnalysis(_.join(right.underlying, usingColumns))
 
   /**
    * Equi-join with another `DataFrame` using the given columns. A cross
@@ -1546,7 +1545,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def join(right: Dataset[_], usingColumns: Seq[String], joinType: String): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.join(right, usingColumns, joinType))
+    transformationWithAnalysis(_.join(right.underlying, usingColumns, joinType))
 
   /**
    * Inner join with another `DataFrame`, using the given join
@@ -1562,7 +1561,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def join(right: Dataset[_], joinExprs: Column): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.join(right, joinExprs))
+    transformationWithAnalysis(_.join(right.underlying, joinExprs))
 
   /**
    * Join with another `DataFrame`, using the given join expression. The
@@ -1591,7 +1590,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def join(right: Dataset[_], joinExprs: Column, joinType: String): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.join(right, joinExprs, joinType))
+    transformationWithAnalysis(_.join(right.underlying, joinExprs, joinType))
 
   /**
    * :: Experimental :: Joins this Dataset returning a `Tuple2` for each
@@ -1619,7 +1618,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   def joinWith[U](other: Dataset[U], condition: Column, joinType: String): TryAnalysis[Dataset[(T, U)]] =
-    transformationWithAnalysis(_.joinWith(other, condition, joinType))
+    transformationWithAnalysis(_.joinWith[U](other.underlying, condition, joinType))
 
   /**
    * :: Experimental :: Using inner equi-join to join this Dataset
@@ -1635,7 +1634,7 @@ final case class Dataset[T](underlyingDataset: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   def joinWith[U](other: Dataset[U], condition: Column): TryAnalysis[Dataset[(T, U)]] =
-    transformationWithAnalysis(_.joinWith(other, condition))
+    transformationWithAnalysis(_.joinWith[U](other.underlying, condition))
 
   /**
    * Returns a new Dataset sorted by the given expressions. This is an

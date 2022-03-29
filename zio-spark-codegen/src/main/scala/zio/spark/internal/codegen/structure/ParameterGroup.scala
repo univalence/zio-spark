@@ -10,13 +10,13 @@ case class ParameterGroup(underlying: Seq[Term.Param], scalaVersion: ScalaBinary
 
   val hasImplicit: Boolean = parameters.exists(_.isImplicit)
 
-  def toCode(isArgs: Boolean, effectful: Boolean): String =
+  def toCode(isArgs: Boolean, effectful: Boolean, className: String): String =
     parameters match {
       case Nil => if (isArgs) "()" else ""
       case _ =>
         if (isArgs && hasImplicit) ""
         else {
-          val parameterCodes    = parameters.map(_.toCode(isArgs, callByName = effectful && !hasImplicit))
+          val parameterCodes    = parameters.map(_.toCode(isArgs, callByName = effectful && !hasImplicit, className))
           val parametersUnified = parameterCodes.mkString(", ")
           (hasImplicit, effectful) match {
             case (true, true)  => s"(implicit $parametersUnified, trace: ZTraceElement)"

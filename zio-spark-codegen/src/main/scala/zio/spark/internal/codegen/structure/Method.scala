@@ -42,7 +42,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
           }
 
         val parameters = {
-          val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = effectful)).mkString("")
+          val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = effectful, planType.className)).mkString("")
 
           calls match {
             case list if effectful && !list.exists(_.hasImplicit) => s"$sparkParameters(implicit trace: ZTraceElement)"
@@ -50,7 +50,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
           }
         }
 
-        val arguments = calls.map(_.toCode(isArgs = true, effectful = false)).mkString("")
+        val arguments = calls.map(_.toCode(isArgs = true, effectful = false, planType.className)).mkString("")
 
         val transformation =
           methodType match {
@@ -76,7 +76,11 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             case _                                     => cleanReturnType
           }
 
-        val strTypeParams = if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode).mkString(", ")}]" else ""
+        val strTypeParams: Boolean => String =
+          inDefinition => if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode(inDefinition)).mkString(", ")}]" else ""
+
+        val defTypeParams  = strTypeParams(true)
+        val bodyTypeParams = strTypeParams(false)
 
         val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
 
@@ -87,7 +91,8 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             .getOrElse("")
 
         s"""$comment$deprecation
-           |def $name$strTypeParams$parameters: $trueReturnType = $transformation(_.$name$arguments$conversion)""".stripMargin
+           |def $name$defTypeParams$parameters: $trueReturnType = 
+           |  $transformation(_.$name$bodyTypeParams$arguments$conversion)""".stripMargin
     }
 
   def isSetter: Boolean = name.startsWith("set")

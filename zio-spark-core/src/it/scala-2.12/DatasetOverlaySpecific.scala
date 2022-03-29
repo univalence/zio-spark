@@ -63,7 +63,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
   def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SRIO[Console, Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
-      plan <- ss.withActive(underlyingDataset.queryExecution.explainString(mode))
+      plan <- ss.withActive(underlying.queryExecution.explainString(mode))
       _    <- Console.printLine(plan)
     } yield ()
 
