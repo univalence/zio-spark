@@ -7,7 +7,7 @@ if [ -n "$1" ]; then
         if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
         then
             # update the version in README.md
-            sed -i '' -E "s|\"zio-spark\" % \".*\"|\"zio-spark\" % \"${1#v}\"|" README.md
+            sed -i '' -E "s|\"zio-spark\" % \"[0-9].*\"|\"zio-spark\" % \"${1#v}\"|" README.md
             # update the version in docs/getting-started.md
             sed -i '' -E "s|\"zio-spark\" % \".*\"|\"zio-spark\" % \"${1#v}\"|" docs/getting-started.md
             git add README.md

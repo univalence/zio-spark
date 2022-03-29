@@ -63,7 +63,9 @@ object MethodTypeSpec extends DefaultRunnableSpec {
 
   val keyValueGroupedDatasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for KeyValueGroupedDataset")(
-      testMethodTypeFor("count")(Unpack)
+      testMethodTypeFor("count")(Unpack),
+      testMethodTypeFor("keyAs")(Transformation),
+      testMethodTypeFor("mapValues")(Transformation)
     ).provideLayer(planLayer(KeyValueGroupedDatasetPlan))
 
   override def spec: ZSpec[TestEnvironment, Any] = {

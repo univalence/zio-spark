@@ -8,7 +8,7 @@ case class ParameterGroup(underlying: Seq[Term.Param], scalaVersion: ScalaBinary
 
   val parameters: Seq[Parameter] = underlying.map(p => Parameter.fromScalaMeta(p, scalaVersion))
 
-  def toCode(isArgs: Boolean): String = {
+  def toCode(isArgs: Boolean, className: String): String = {
     val hasImplicit: Boolean = parameters.exists(_.isImplicit)
 
     parameters match {
@@ -16,7 +16,7 @@ case class ParameterGroup(underlying: Seq[Term.Param], scalaVersion: ScalaBinary
       case _ =>
         if (isArgs && hasImplicit) ""
         else {
-          val parameterCodes = parameters.map(_.toCode(isArgs))
+          val parameterCodes = parameters.map(_.toCode(isArgs, className))
           val prefix         = if (hasImplicit) "(implicit " else "("
           prefix + parameterCodes.mkString(", ") + ")"
         }

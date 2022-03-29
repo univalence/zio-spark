@@ -9,27 +9,30 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{
   Column,
-  DataFrame => UnderlyingDataFrame,
+  Dataset => UnderlyingDataset,
   Encoder,
-  KeyValueGroupedDataset,
+  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
   RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
 }
 
-final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: UnderlyingRelationalGroupedDataset) {
-  self =>
+final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupedDataset) { self =>
+  // scalafix:off
+  implicit private def liftKeyValueGroupedDataset[K, V](
+      x: UnderlyingKeyValueGroupedDataset[K, V]
+  ): KeyValueGroupedDataset[K, V] = KeyValueGroupedDataset(x)
+  // scalafix:on
 
   /**
    * Unpack the underlying RelationalGroupedDataset into a DataFrame.
    */
-  def unpack(f: UnderlyingRelationalGroupedDataset => UnderlyingDataFrame): DataFrame =
-    Dataset(f(underlyingRelationalGroupedDataset))
+  def unpack[U](f: UnderlyingRelationalGroupedDataset => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlying))
 
   /**
    * Unpack the underlying RelationalGroupedDataset into a DataFrame, it
    * is used for transformations that can fail due to an
    * AnalysisException.
    */
-  def unpackWithAnalysis(f: UnderlyingRelationalGroupedDataset => UnderlyingDataFrame): TryAnalysis[DataFrame] =
+  def unpackWithAnalysis[U](f: UnderlyingRelationalGroupedDataset => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(unpack(f))
 
   /**
@@ -38,7 +41,7 @@ final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: Un
    */
   def transformation(
       f: UnderlyingRelationalGroupedDataset => UnderlyingRelationalGroupedDataset
-  ): RelationalGroupedDataset = RelationalGroupedDataset(f(underlyingRelationalGroupedDataset))
+  ): RelationalGroupedDataset = RelationalGroupedDataset(f(underlying))
 
   /**
    * Applies a transformation to the underlying
@@ -50,14 +53,13 @@ final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: Un
   ): TryAnalysis[RelationalGroupedDataset] = TryAnalysis(transformation(f))
 
   /** Applies an action to the underlying RelationalGroupedDataset. */
-  def get[U](f: UnderlyingRelationalGroupedDataset => U): U = f(underlyingRelationalGroupedDataset)
+  def get[U](f: UnderlyingRelationalGroupedDataset => U): U = f(underlying)
 
   /**
    * Applies an action to the underlying RelationalGroupedDataset, it is
    * used for transformations that can fail due to an AnalysisException.
    */
-  def getWithAnalysis[U](f: UnderlyingRelationalGroupedDataset => U): TryAnalysis[U] =
-    TryAnalysis(f(underlyingRelationalGroupedDataset))
+  def getWithAnalysis[U](f: UnderlyingRelationalGroupedDataset => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
   // Handmade functions specific to zio-spark
 
@@ -69,7 +71,7 @@ final case class RelationalGroupedDataset(underlyingRelationalGroupedDataset: Un
    *
    * @since 3.0.0
    */
-  def as[K: Encoder, T: Encoder]: TryAnalysis[KeyValueGroupedDataset[K, T]] = getWithAnalysis(_.as)
+  def as[K: Encoder, T: Encoder]: TryAnalysis[KeyValueGroupedDataset[K, T]] = getWithAnalysis(_.as[K, T])
 
   // ===============
 

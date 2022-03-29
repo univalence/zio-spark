@@ -76,7 +76,7 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
    * @since 1.6.0
    */
   def cogroup[U, R: Encoder](other: KeyValueGroupedDataset[K, U])(
-      f: (K, Iterator[V], Iterator[U]) => IterableOnce[R]
+      f: (K, Iterator[V], Iterator[U]) => TraversableOnce[R]
   ): Dataset[R] = unpack(_.cogroup[U, R](other.underlying)(f))
 
   /**
@@ -108,17 +108,17 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
    *
    * @since 1.6.0
    */
-  def flatMapGroups[U: Encoder](f: (K, Iterator[V]) => IterableOnce[U]): Dataset[U] = unpack(_.flatMapGroups[U](f))
+  def flatMapGroups[U: Encoder](f: (K, Iterator[V]) => TraversableOnce[U]): Dataset[U] = unpack(_.flatMapGroups[U](f))
 
   /**
-   * (Scala-specific) Applies the given function to each group of data,
-   * while maintaining a user-defined per-group state. The result
-   * Dataset will represent the objects returned by the function. For a
-   * static batch Dataset, the function will be invoked once per group.
-   * For a streaming Dataset, the function will be invoked for each
-   * group repeatedly in every trigger, and updates to each group's
-   * state will be saved across invocations. See `GroupState` for more
-   * details.
+   * ::Experimental:: (Scala-specific) Applies the given function to
+   * each group of data, while maintaining a user-defined per-group
+   * state. The result Dataset will represent the objects returned by
+   * the function. For a static batch Dataset, the function will be
+   * invoked once per group. For a streaming Dataset, the function will
+   * be invoked for each group repeatedly in every trigger, and updates
+   * to each group's state will be saved across invocations. See
+   * `GroupState` for more details.
    *
    * @tparam S
    *   The type of the user-defined state. Must be encodable to Spark
@@ -141,47 +141,6 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
   def flatMapGroupsWithState[S: Encoder, U: Encoder](outputMode: OutputMode, timeoutConf: GroupStateTimeout)(
       func: (K, Iterator[V], GroupState[S]) => Iterator[U]
   ): Dataset[U] = unpack(_.flatMapGroupsWithState[S, U](outputMode, timeoutConf)(func))
-
-  /**
-   * (Scala-specific) Applies the given function to each group of data,
-   * while maintaining a user-defined per-group state. The result
-   * Dataset will represent the objects returned by the function. For a
-   * static batch Dataset, the function will be invoked once per group.
-   * For a streaming Dataset, the function will be invoked for each
-   * group repeatedly in every trigger, and updates to each group's
-   * state will be saved across invocations. See `GroupState` for more
-   * details.
-   *
-   * @tparam S
-   *   The type of the user-defined state. Must be encodable to Spark
-   *   SQL types.
-   * @tparam U
-   *   The type of the output objects. Must be encodable to Spark SQL
-   *   types.
-   * @param func
-   *   Function to be called on every group.
-   * @param outputMode
-   *   The output mode of the function.
-   * @param timeoutConf
-   *   Timeout configuration for groups that do not receive data for a
-   *   while.
-   * @param initialState
-   *   The user provided state that will be initialized when the first
-   *   batch of data is processed in the streaming query. The user
-   *   defined function will be called on the state data even if there
-   *   are no other values in the group. To covert a Dataset `ds` of
-   *   type of type `Dataset[(K, S)]` to a `KeyValueGroupedDataset[K,
-   *   S]`, use {{{ds.groupByKey(x => x._1).mapValues(_._2)}}} See
-   *   [[Encoder]] for more details on what types are encodable to Spark
-   *   SQL.
-   * @since 3.2.0
-   */
-  def flatMapGroupsWithState[S: Encoder, U: Encoder](
-      outputMode: OutputMode,
-      timeoutConf: GroupStateTimeout,
-      initialState: KeyValueGroupedDataset[K, S]
-  )(func: (K, Iterator[V], GroupState[S]) => Iterator[U]): Dataset[U] =
-    unpack(_.flatMapGroupsWithState[S, U](outputMode, timeoutConf, initialState.underlying)(func))
 
   /**
    * Returns a [[Dataset]] that contains each unique key. This is
@@ -216,13 +175,13 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
   def mapGroups[U: Encoder](f: (K, Iterator[V]) => U): Dataset[U] = unpack(_.mapGroups[U](f))
 
   /**
-   * (Scala-specific) Applies the given function to each group of data,
-   * while maintaining a user-defined per-group state. The result
-   * Dataset will represent the objects returned by the function. For a
-   * static batch Dataset, the function will be invoked once per group.
-   * For a streaming Dataset, the function will be invoked for each
-   * group repeatedly in every trigger, and updates to each group's
-   * state will be saved across invocations. See
+   * ::Experimental:: (Scala-specific) Applies the given function to
+   * each group of data, while maintaining a user-defined per-group
+   * state. The result Dataset will represent the objects returned by
+   * the function. For a static batch Dataset, the function will be
+   * invoked once per group. For a streaming Dataset, the function will
+   * be invoked for each group repeatedly in every trigger, and updates
+   * to each group's state will be saved across invocations. See
    * [[org.apache.spark.sql.streaming.GroupState]] for more details.
    *
    * @tparam S
@@ -242,13 +201,13 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
     unpack(_.mapGroupsWithState[S, U](func))
 
   /**
-   * (Scala-specific) Applies the given function to each group of data,
-   * while maintaining a user-defined per-group state. The result
-   * Dataset will represent the objects returned by the function. For a
-   * static batch Dataset, the function will be invoked once per group.
-   * For a streaming Dataset, the function will be invoked for each
-   * group repeatedly in every trigger, and updates to each group's
-   * state will be saved across invocations. See
+   * ::Experimental:: (Scala-specific) Applies the given function to
+   * each group of data, while maintaining a user-defined per-group
+   * state. The result Dataset will represent the objects returned by
+   * the function. For a static batch Dataset, the function will be
+   * invoked once per group. For a streaming Dataset, the function will
+   * be invoked for each group repeatedly in every trigger, and updates
+   * to each group's state will be saved across invocations. See
    * [[org.apache.spark.sql.streaming.GroupState]] for more details.
    *
    * @tparam S
@@ -270,44 +229,6 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
   def mapGroupsWithState[S: Encoder, U: Encoder](timeoutConf: GroupStateTimeout)(
       func: (K, Iterator[V], GroupState[S]) => U
   ): Dataset[U] = unpack(_.mapGroupsWithState[S, U](timeoutConf)(func))
-
-  /**
-   * (Scala-specific) Applies the given function to each group of data,
-   * while maintaining a user-defined per-group state. The result
-   * Dataset will represent the objects returned by the function. For a
-   * static batch Dataset, the function will be invoked once per group.
-   * For a streaming Dataset, the function will be invoked for each
-   * group repeatedly in every trigger, and updates to each group's
-   * state will be saved across invocations. See
-   * [[org.apache.spark.sql.streaming.GroupState]] for more details.
-   *
-   * @tparam S
-   *   The type of the user-defined state. Must be encodable to Spark
-   *   SQL types.
-   * @tparam U
-   *   The type of the output objects. Must be encodable to Spark SQL
-   *   types.
-   * @param func
-   *   Function to be called on every group.
-   * @param timeoutConf
-   *   Timeout Conf, see GroupStateTimeout for more details
-   * @param initialState
-   *   The user provided state that will be initialized when the first
-   *   batch of data is processed in the streaming query. The user
-   *   defined function will be called on the state data even if there
-   *   are no other values in the group. To convert a Dataset ds of type
-   *   Dataset[(K, S)] to a KeyValueGroupedDataset[K, S] do
-   *   {{{ds.groupByKey(x => x._1).mapValues(_._2)}}}
-   *
-   * See [[Encoder]] for more details on what types are encodable to
-   * Spark SQL.
-   * @since 3.2.0
-   */
-  def mapGroupsWithState[S: Encoder, U: Encoder](
-      timeoutConf: GroupStateTimeout,
-      initialState: KeyValueGroupedDataset[K, S]
-  )(func: (K, Iterator[V], GroupState[S]) => U): Dataset[U] =
-    unpack(_.mapGroupsWithState[S, U](timeoutConf, initialState.underlying)(func))
 
   /**
    * (Scala-specific) Reduces the elements of each group of data using
@@ -365,76 +286,6 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
       col3: TypedColumn[V, U3],
       col4: TypedColumn[V, U4]
   ): TryAnalysis[Dataset[(K, U1, U2, U3, U4)]] = unpackWithAnalysis(_.agg[U1, U2, U3, U4](col1, col2, col3, col4))
-
-  /**
-   * Computes the given aggregations, returning a [[Dataset]] of tuples
-   * for each unique key and the result of computing these aggregations
-   * over all elements in the group.
-   *
-   * @since 3.0.0
-   */
-  def agg[U1, U2, U3, U4, U5](
-      col1: TypedColumn[V, U1],
-      col2: TypedColumn[V, U2],
-      col3: TypedColumn[V, U3],
-      col4: TypedColumn[V, U4],
-      col5: TypedColumn[V, U5]
-  ): TryAnalysis[Dataset[(K, U1, U2, U3, U4, U5)]] =
-    unpackWithAnalysis(_.agg[U1, U2, U3, U4, U5](col1, col2, col3, col4, col5))
-
-  /**
-   * Computes the given aggregations, returning a [[Dataset]] of tuples
-   * for each unique key and the result of computing these aggregations
-   * over all elements in the group.
-   *
-   * @since 3.0.0
-   */
-  def agg[U1, U2, U3, U4, U5, U6](
-      col1: TypedColumn[V, U1],
-      col2: TypedColumn[V, U2],
-      col3: TypedColumn[V, U3],
-      col4: TypedColumn[V, U4],
-      col5: TypedColumn[V, U5],
-      col6: TypedColumn[V, U6]
-  ): TryAnalysis[Dataset[(K, U1, U2, U3, U4, U5, U6)]] =
-    unpackWithAnalysis(_.agg[U1, U2, U3, U4, U5, U6](col1, col2, col3, col4, col5, col6))
-
-  /**
-   * Computes the given aggregations, returning a [[Dataset]] of tuples
-   * for each unique key and the result of computing these aggregations
-   * over all elements in the group.
-   *
-   * @since 3.0.0
-   */
-  def agg[U1, U2, U3, U4, U5, U6, U7](
-      col1: TypedColumn[V, U1],
-      col2: TypedColumn[V, U2],
-      col3: TypedColumn[V, U3],
-      col4: TypedColumn[V, U4],
-      col5: TypedColumn[V, U5],
-      col6: TypedColumn[V, U6],
-      col7: TypedColumn[V, U7]
-  ): TryAnalysis[Dataset[(K, U1, U2, U3, U4, U5, U6, U7)]] =
-    unpackWithAnalysis(_.agg[U1, U2, U3, U4, U5, U6, U7](col1, col2, col3, col4, col5, col6, col7))
-
-  /**
-   * Computes the given aggregations, returning a [[Dataset]] of tuples
-   * for each unique key and the result of computing these aggregations
-   * over all elements in the group.
-   *
-   * @since 3.0.0
-   */
-  def agg[U1, U2, U3, U4, U5, U6, U7, U8](
-      col1: TypedColumn[V, U1],
-      col2: TypedColumn[V, U2],
-      col3: TypedColumn[V, U3],
-      col4: TypedColumn[V, U4],
-      col5: TypedColumn[V, U5],
-      col6: TypedColumn[V, U6],
-      col7: TypedColumn[V, U7],
-      col8: TypedColumn[V, U8]
-  ): TryAnalysis[Dataset[(K, U1, U2, U3, U4, U5, U6, U7, U8)]] =
-    unpackWithAnalysis(_.agg[U1, U2, U3, U4, U5, U6, U7, U8](col1, col2, col3, col4, col5, col6, col7, col8))
 
   // ===============
 

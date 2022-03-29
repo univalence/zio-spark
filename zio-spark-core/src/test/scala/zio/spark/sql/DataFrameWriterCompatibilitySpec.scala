@@ -4,5 +4,5 @@ import zio.spark.helper.CompatibilityTestBetween
 
 object DataFrameWriterCompatibilitySpec
     extends CompatibilityTestBetween[org.apache.spark.sql.DataFrameWriter[Any], zio.spark.sql.DataFrameWriter[Any]](
-      allowedNewMethods = Seq("source", "withHeader", "ds")
+      allowedNewMethods = Seq("partitioningColumns", "source", "withHeader", "ds")
     )

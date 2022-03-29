@@ -9,11 +9,10 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{DataFrameNaFunctions => UnderlyingDataFrameNaFunctions, Dataset => UnderlyingDataset}
 
-final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: UnderlyingDataFrameNaFunctions) { self =>
+final case class DataFrameNaFunctions(underlying: UnderlyingDataFrameNaFunctions) { self =>
 
   /** Unpack the underlying DataFrameNaFunctions into a DataFrame. */
-  def unpack[U](f: UnderlyingDataFrameNaFunctions => UnderlyingDataset[U]): Dataset[U] =
-    Dataset(f(underlyingDataFrameNaFunctions))
+  def unpack[U](f: UnderlyingDataFrameNaFunctions => UnderlyingDataset[U]): Dataset[U] = Dataset(f(underlying))
 
   /**
    * Unpack the underlying DataFrameNaFunctions into a DataFrame, it is
@@ -199,7 +198,7 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * @since 1.3.1
    */
   def replace[T](col: String, replacement: Map[T, T]): TryAnalysis[DataFrame] =
-    unpackWithAnalysis(_.replace(col, replacement))
+    unpackWithAnalysis(_.replace[T](col, replacement))
 
   /**
    * Replaces values matching keys in `replacement` map.
@@ -223,6 +222,6 @@ final case class DataFrameNaFunctions(underlyingDataFrameNaFunctions: Underlying
    * @since 1.3.1
    */
   def replace[T](cols: Seq[String], replacement: Map[T, T]): TryAnalysis[DataFrame] =
-    unpackWithAnalysis(_.replace(cols, replacement))
+    unpackWithAnalysis(_.replace[T](cols, replacement))
 
 }

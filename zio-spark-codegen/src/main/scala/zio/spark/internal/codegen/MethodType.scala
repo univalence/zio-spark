@@ -47,11 +47,12 @@ object MethodType {
 
   def isTransformation(planType: PlanType, returnType: String): Boolean =
     planType match {
-      case _ if returnType == "this.type"  => true
-      case DatasetPlan                     => returnDataset(returnType)
-      case RDDPlan                         => returnType.startsWith("RDD[")
-      case plan if plan.name == returnType => true
-      case _                               => false
+      case _ if returnType == "this.type"                       => true
+      case DatasetPlan                                          => returnDataset(returnType)
+      case RDDPlan                                              => returnType.startsWith("RDD[")
+      case plan if plan.name == returnType                      => true
+      case plan if returnType.startsWith(s"${plan.className}[") => true
+      case _                                                    => false
     }
 
   def isDriverAction(method: Method): Boolean = {
@@ -218,6 +219,7 @@ object MethodType {
       case KeyValueGroupedDatasetPlan if method.name == "count"                 => Unpack
       case RelationalGroupedDatasetPlan if method.name == "count"               => Unpack
       case RelationalGroupedDatasetPlan if Set("min", "max")(method.name)       => UnpackWithAnalysis
+      case DatasetPlan if method.name == "apply"                                => Ignored
       case DatasetPlan if method.name == "drop"                                 => baseMethodType
       case DatasetPlan if datasetWithAnalysis(method.name)                      => baseMethodType.withAnalysis
       case DataFrameStatFunctionsPlan if dataframeStatWithAnalysis(method.name) => baseMethodType.withAnalysis

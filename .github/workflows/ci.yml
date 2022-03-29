@@ -96,6 +96,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         scala: [ "2.11.12", "2.12.15", "2.13.8" ]
     needs: [check, test, check-codegen, test-codegen]

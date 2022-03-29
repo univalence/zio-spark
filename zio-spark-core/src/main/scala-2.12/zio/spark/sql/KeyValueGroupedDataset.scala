@@ -76,7 +76,7 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
    * @since 1.6.0
    */
   def cogroup[U, R: Encoder](other: KeyValueGroupedDataset[K, U])(
-      f: (K, Iterator[V], Iterator[U]) => IterableOnce[R]
+      f: (K, Iterator[V], Iterator[U]) => TraversableOnce[R]
   ): Dataset[R] = unpack(_.cogroup[U, R](other.underlying)(f))
 
   /**
@@ -108,7 +108,7 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
    *
    * @since 1.6.0
    */
-  def flatMapGroups[U: Encoder](f: (K, Iterator[V]) => IterableOnce[U]): Dataset[U] = unpack(_.flatMapGroups[U](f))
+  def flatMapGroups[U: Encoder](f: (K, Iterator[V]) => TraversableOnce[U]): Dataset[U] = unpack(_.flatMapGroups[U](f))
 
   /**
    * (Scala-specific) Applies the given function to each group of data,

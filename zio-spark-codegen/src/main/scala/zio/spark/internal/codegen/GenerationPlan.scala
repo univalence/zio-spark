@@ -83,7 +83,7 @@ object GenerationPlan {
   val coreModule: Module = Module("spark-core", "org/apache/spark/rdd")
   val sqlModule: Module  = Module("spark-sql", "org/apache/spark/sql")
 
-  sealed abstract class PlanType(module: Module, className: String) {
+  sealed abstract class PlanType(module: Module, val className: String) {
     self =>
     final def path: String = s"${module.path}/$className.scala"
 
@@ -110,23 +110,21 @@ object GenerationPlan {
       val className      = s"$name$tparam"
       val underlyingName = s"Underlying$name$tparam"
 
-      s"final case class $className(underlying$name: $underlyingName)"
+      s"final case class $className(underlying: $underlyingName)"
     }
 
-    final def implicits: String = {
-      val defaultImplicits =
-        s"""private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
-           |private implicit def escape[U](x:$name[U]):Underlying$name[U] = x.underlying$name""".stripMargin
+    final def implicits(scalaBinaryVersion: ScalaBinaryVersion): String = {
+      val lift = s"private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)"
 
       val allImplicits =
         fold {
           case RDDPlan =>
-            s"""$defaultImplicits
+            s"""$lift
                |
                |private implicit def arrayToSeq2[U](x: Underlying$name[Array[U]]): Underlying$name[Seq[U]] = x.map(_.toIndexedSeq)
                |@inline private def noOrdering[U]: Ordering[U] = null""".stripMargin
           case DatasetPlan =>
-            s"""$defaultImplicits
+            s"""$lift
                |
                |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] =
                |  iterator.asScala
@@ -134,6 +132,15 @@ object GenerationPlan {
                |  DataFrameNaFunctions(x)
                |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
                |  DataFrameStatFunctions(x)""".stripMargin
+          case RelationalGroupedDatasetPlan =>
+            scalaBinaryVersion match {
+              case ScalaBinaryVersion.V2_11 => ""
+              case _ =>
+                s"""implicit private def liftKeyValueGroupedDataset[K, V](
+                   |  x: UnderlyingKeyValueGroupedDataset[K, V]
+                   |): KeyValueGroupedDataset[K, V] = KeyValueGroupedDataset(x)""".stripMargin
+            }
+
           case _ => ""
         }
 
@@ -154,7 +161,7 @@ object GenerationPlan {
         case DataFrameNaFunctionsPlan     => unpacks
         case DataFrameStatFunctionsPlan   => unpacks && transformations && gets
         case RelationalGroupedDatasetPlan => unpacks && transformations && gets
-        case KeyValueGroupedDatasetPlan   => unpacks
+        case KeyValueGroupedDatasetPlan   => unpacks && transformation
       }
 
     final def imports(scalaBinaryVersion: ScalaBinaryVersion): String =
@@ -243,14 +250,24 @@ object GenerationPlan {
             |import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
             |""".stripMargin
         case RelationalGroupedDatasetPlan =>
-          """import org.apache.spark.sql.{
-            |  Column,
-            |  Dataset => UnderlyingDataset, 
-            |  Encoder,
-            |  KeyValueGroupedDataset,
-            |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
-            |}
-            |""".stripMargin
+          scalaBinaryVersion match {
+            case ScalaBinaryVersion.V2_11 =>
+              """import org.apache.spark.sql.{
+                |  Column,
+                |  Dataset => UnderlyingDataset,
+                |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
+                |}
+                |""".stripMargin
+            case _ =>
+              """import org.apache.spark.sql.{
+                |  Column,
+                |  Encoder,
+                |  Dataset => UnderlyingDataset,
+                |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
+                |  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
+                |}
+                |""".stripMargin
+          }
         case KeyValueGroupedDatasetPlan =>
           """import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout, OutputMode}
             |import org.apache.spark.sql.{
@@ -284,7 +301,7 @@ object GenerationPlan {
          |
          |$suppressWarnings
          |$definition { self =>
-         |$implicits
+         |${implicits(scalaBinaryVersion)}
          |
          |${helpers(name, typeParameters)}
          |
@@ -357,9 +374,6 @@ object GenerationPlan {
     val strParams: List[String] => String =
       (typeParameters: List[String]) => if (typeParameters.nonEmpty) s"[${typeParameters.mkString(", ")}]" else ""
 
-    // NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
-    // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
-    // 2. It's necessary for "makeItCancellable" to work
     val action: Helper = { (name, typeParameters) =>
       // NOTE : action need to stay an attempt, and not an attemptBlocked for the moment.
       // 1. The ZIO Scheduler will catch up and treat it as if it's an attemptBlocked
@@ -374,7 +388,7 @@ object GenerationPlan {
       val uParam = strParams(typeParameters.map(_ + "New"))
       s"""/** Applies a transformation to the underlying $name. */
          |def transformation$uParam(f: Underlying$name$tParam => Underlying$name$uParam): $name$uParam =
-         |  $name(f(underlying$name))""".stripMargin
+         |  $name(f(underlying))""".stripMargin
     }
 
     val transformationWithAnalysis: Helper = { (name, typeParameters) =>
@@ -391,7 +405,7 @@ object GenerationPlan {
     val get: Helper = { (name, typeParameters) =>
       val tParam = strParams(typeParameters)
       s"""/** Applies an action to the underlying $name. */
-         |def get[U](f: Underlying$name$tParam => U): U = f(underlying$name)""".stripMargin
+         |def get[U](f: Underlying$name$tParam => U): U = f(underlying)""".stripMargin
     }
 
     val getWithAnalysis: Helper = { (name, typeParameters) =>
@@ -400,7 +414,7 @@ object GenerationPlan {
          | * transformations that can fail due to an AnalysisException.
          | */
          |def getWithAnalysis[U](f: Underlying$name$tParam => U): TryAnalysis[U] =
-         |  TryAnalysis(f(underlying$name))""".stripMargin
+         |  TryAnalysis(f(underlying))""".stripMargin
     }
 
     val gets: Helper = get && getWithAnalysis
@@ -411,7 +425,7 @@ object GenerationPlan {
          | * Unpack the underlying $name into a DataFrame.
          | */
          |def unpack[U](f: Underlying$name$tParam => UnderlyingDataset[U]): Dataset[U] =
-         |  Dataset(f(underlying$name))""".stripMargin
+         |  Dataset(f(underlying))""".stripMargin
     }
 
     val unpackWithAnalysis: Helper = { (name, typeParameters) =>

@@ -3,6 +3,7 @@ package zio.spark
 import org.apache.log4j.{Level, Logger}
 
 import zio._
+import zio.spark.experimental.PipelineSpec
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsSpec, RDDSpec}
 import zio.spark.sql.{
@@ -40,12 +41,14 @@ object ZioSparkTestSpec extends DefaultRunnableSpec {
         DatasetSpec.errorSpec,
         DatasetSpec.fromSparkSpec,
         DataFrameReaderSpec.dataFrameReaderReadingSpec,
+        DataFrameWriterSpec.dataFrameWriterBuilderSpec,
         DataFrameWriterSpec.dataFrameWriterSavingSpec,
         DataFrameWriterSpec.dataFrameWriterOptionDefinitionsSpec,
         ExtraDatasetFeatureTest.spec,
         RDDSpec.rddActionsSpec,
         RDDSpec.rddTransformationsSpec,
         PairRDDFunctionsSpec.spec,
+        PipelineSpec.pipelineSpec,
         RelationalGroupedDatasetSpec.relationalGroupedDatasetAggregationSpec
       )
 

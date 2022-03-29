@@ -1,30 +1,23 @@
-package zio.spark.effect
-
-import org.apache.spark.sql.{Dataset => UnderlyingDataset}
+package zio.spark.experimental
 
 import zio.{IO, Task, UIO}
 import zio.spark.ZioSparkTestSpec.session
-import zio.spark.effect.MapWithEffect._
+import zio.spark.experimental.MapWithEffect.RDDOps
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
-import zio.test._
+import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
 
 object MapWithEffectSpec extends DefaultRunnableSpec {
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("smoke")(
       test("basic smoke test") {
-        val getRddInt: SIO[RDD[Int]] =
-          zio.spark.sql.fromSpark { ss =>
-            import ss.implicits._
-            val ds: UnderlyingDataset[Int] = Seq(1, 2, 3).toDS()
-            ds.zioSpark.rdd
-          }
+        val getRddInt: SIO[RDD[Int]] = Seq(1, 2, 3).toRDD
 
         Seq(1, 2, 3).toDataset.map(_.rdd)
 
         def effect(rdd: RDD[Int]): Task[Seq[Either[String, Int]]] =
-          MapWithEffect(rdd.map(i => UIO(i)))("rejected").collect
+          MapWithEffect(rdd.map(i => UIO.succeed(i)))("rejected").collect
 
         (getRddInt flatMap effect).map(seq => assertTrue(seq.size == 3))
       },

@@ -36,7 +36,7 @@ https://calendly.com/zio-spark/help
 If you want to get the very last version of this library you can still download it using:
 
 ```scala
-libraryDependencies += "io.univalence" %% "zio-spark" % "0.1.0"
+libraryDependencies += "io.univalence" %% "zio-spark" % "0.3.0"
 ```
 
 ### Snapshots
@@ -46,7 +46,7 @@ it using:
 
 ```scala
 resolvers += Resolver.sonatypeRepo("snapshots"),
-libraryDependencies += "io.univalence" %% "zio-spark" % "<snapshot-version>"
+libraryDependencies += "io.univalence" %% "zio-spark" % "<SNAPSHOT-VERSION>"
 ```
 
 You can find the latest version on 

@@ -3,7 +3,13 @@ package zio.spark.internal.codegen.structure
 import scala.meta.*
 
 case class TypeParameter(underlying: Type.Param) {
-  def toCode: String = s"$underlying"
+  def toCode(inDefinition: Boolean): String =
+    if (inDefinition) {
+      s"$underlying"
+    } else {
+      val pattern = "([A-Za-z0-9]+)".r
+      pattern.findFirstIn(s"$underlying").get
+    }
 }
 
 object TypeParameter {
