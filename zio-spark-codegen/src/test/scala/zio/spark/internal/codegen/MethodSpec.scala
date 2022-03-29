@@ -7,41 +7,45 @@ import zio.test.*
 
 object MethodSpec extends DefaultRunnableSpec {
   def genTest2(name: String, arity: Int = -1, args: List[String] = Nil)(
-      generatedCode: String
+      expectedCode: String
   ): ZSpec[GenerationPlan, Nothing] =
     test(name) {
       ZIO.serviceWith[GenerationPlan][TestResult] { plan =>
         findMethod(name, plan, arity, args) match {
-          case Some(m) => assertTrue(m.toCode(MethodType.getMethodType(m, plan.planType)).contains(generatedCode))
-          case None    => assertNever(s"can't find $name")
+          case Some(m) =>
+            val generatedCode = m.toCode(MethodType.getMethodType(m, plan.planType))
+            assertTrue(generatedCode.contains(expectedCode))
+          case None => assertNever(s"can't find $name")
         }
       }
     }
 
   val rddMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
-        genCodeFragment: String
-    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)
+        expectedCode: String
+    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
 
     suite("Check method generations for RDD")(
-      checkGen("min")("min(implicit ord: Ordering[T]): Task[T]"),
-      checkGen("collect", 0)("collect: Task[Seq[T]]"),
-      checkGen("saveAsObjectFile")("saveAsObjectFile(path: String): Task[Unit]"),
+      checkGen("min")("min(implicit ord: Ordering[T], trace: ZTraceElement): Task[T]"),
+      checkGen("collect", 0)("collect(implicit trace: ZTraceElement): Task[Seq[T]]"),
+      checkGen("saveAsObjectFile")("saveAsObjectFile(path: => String)(implicit trace: ZTraceElement): Task[Unit]"),
       checkGen("countByValue")("Task[Map[T, Long]]"),
       checkGen("map")("map[U: ClassTag](f: T => U): RDD[U]"),
-      checkGen("cache")("cache: Task[RDD[T]]"),
-      checkGen("dependencies")("dependencies: Task[Seq[Dependency[_]]]"),
+      checkGen("cache")("cache(implicit trace: ZTraceElement): Task[RDD[T]]"),
+      checkGen("dependencies")("dependencies(implicit trace: ZTraceElement): Task[Seq[Dependency[_]]]"),
       checkGen("zipWithIndex")("zipWithIndex: RDD[(T, Long)]"),
       checkGen("countByValueApprox")("Task[PartialResult[Map[T, BoundedDouble]]]"),
       checkGen("distinct", 2)("distinct(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T]"),
-      checkGen("saveAsTextFile", 2)("saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit]")
+      checkGen("saveAsTextFile", 2)(
+        "saveAsTextFile(path: => String, codec: => Class[_ <: CompressionCodec])(implicit trace: ZTraceElement): Task[Unit]"
+      )
     )
   }.provide(planLayer(RDDPlan))
 
   val datasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
-        genCodeFragment: String
-    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)
+        expectedCode: String
+    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
 
     suite("Check method generations for Dataset")(
       checkGen("filter", 1, List("conditionExpr"))("filter(conditionExpr: String): TryAnalysis[Dataset[T]]"),

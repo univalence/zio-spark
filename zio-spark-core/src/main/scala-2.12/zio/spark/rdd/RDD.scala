@@ -31,7 +31,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
   // scalafix:on
 
   /** Applies an action to the underlying RDD. */
-  def action[U](f: UnderlyingRDD[T] => U): Task[U] = ZIO.attempt(get(f))
+  def action[U](f: UnderlyingRDD[T] => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying RDD. */
   def transformation[TNew](f: UnderlyingRDD[T] => UnderlyingRDD[TNew]): RDD[TNew] = RDD(f(underlying))
@@ -88,8 +88,9 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   an associative operator used to combine results from different
    *   partitions
    */
-  def aggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U): Task[U] =
-    action(_.aggregate[U](zeroValue)(seqOp, combOp))
+  def aggregate[U: ClassTag](zeroValue: => U)(seqOp: (U, T) => U, combOp: (U, U) => U)(implicit
+      trace: ZTraceElement
+  ): Task[U] = action(_.aggregate[U](zeroValue)(seqOp, combOp))
 
   /**
    * Return an array that contains all of the elements in this RDD.
@@ -99,10 +100,10 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   expected to be small, as all the data is loaded into the driver's
    *   memory.
    */
-  def collect: Task[Seq[T]] = action(_.collect().toSeq)
+  def collect(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.collect().toSeq)
 
   /** Return the number of elements in the RDD. */
-  def count: Task[Long] = action(_.count())
+  def count(implicit trace: ZTraceElement): Task[Long] = action(_.count())
 
   /**
    * Approximate version of count() that returns a potentially
@@ -122,8 +123,9 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * @return
    *   a potentially incomplete result, with error bounds
    */
-  def countApprox(timeout: Long, confidence: Double = 0.95): Task[PartialResult[BoundedDouble]] =
-    action(_.countApprox(timeout, confidence))
+  def countApprox(timeout: => Long, confidence: => Double = 0.95)(implicit
+      trace: ZTraceElement
+  ): Task[PartialResult[BoundedDouble]] = action(_.countApprox(timeout, confidence))
 
   /**
    * Return approximate number of distinct elements in the RDD.
@@ -145,7 +147,8 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   The precision value for the sparse set, between 0 and 32. If `sp`
    *   equals 0, the sparse representation is skipped.
    */
-  def countApproxDistinct(p: Int, sp: Int): Task[Long] = action(_.countApproxDistinct(p, sp))
+  def countApproxDistinct(p: => Int, sp: => Int)(implicit trace: ZTraceElement): Task[Long] =
+    action(_.countApproxDistinct(p, sp))
 
   /**
    * Return approximate number of distinct elements in the RDD.
@@ -159,7 +162,8 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   Relative accuracy. Smaller values create counters that require
    *   more space. It must be greater than 0.000017.
    */
-  def countApproxDistinct(relativeSD: Double = 0.05): Task[Long] = action(_.countApproxDistinct(relativeSD))
+  def countApproxDistinct(relativeSD: => Double = 0.05)(implicit trace: ZTraceElement): Task[Long] =
+    action(_.countApproxDistinct(relativeSD))
 
   /**
    * Return the count of each unique value in this RDD as a local map of
@@ -176,7 +180,8 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *
    * , which returns an RDD[T, Long] instead of a map.
    */
-  def countByValue(implicit ord: Ordering[T] = noOrdering): Task[Map[T, Long]] = action(_.countByValue())
+  def countByValue(implicit ord: Ordering[T] = noOrdering, trace: ZTraceElement): Task[Map[T, Long]] =
+    action(_.countByValue())
 
   /**
    * Approximate version of countByValue().
@@ -188,12 +193,13 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * @return
    *   a potentially incomplete result, with error bounds
    */
-  def countByValueApprox(timeout: Long, confidence: Double = 0.95)(implicit
-      ord: Ordering[T] = noOrdering
+  def countByValueApprox(timeout: => Long, confidence: => Double = 0.95)(implicit
+      ord: Ordering[T] = noOrdering,
+      trace: ZTraceElement
   ): Task[PartialResult[Map[T, BoundedDouble]]] = action(_.countByValueApprox(timeout, confidence))
 
   /** Return the first element in this RDD. */
-  def first: Task[T] = action(_.first())
+  def first(implicit trace: ZTraceElement): Task[T] = action(_.first())
 
   /**
    * Aggregate the elements of each partition, and then the results for
@@ -220,14 +226,15 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   an operator used to both accumulate results within a partition
    *   and combine results from different partitions
    */
-  def fold(zeroValue: T)(op: (T, T) => T): Task[T] = action(_.fold(zeroValue)(op))
+  def fold(zeroValue: => T)(op: (T, T) => T)(implicit trace: ZTraceElement): Task[T] = action(_.fold(zeroValue)(op))
 
   // Actions (launch a job to return a value to the user program)
   /** Applies a function f to all elements of this RDD. */
-  def foreach(f: T => Unit): Task[Unit] = action(_.foreach(f))
+  def foreach(f: T => Unit)(implicit trace: ZTraceElement): Task[Unit] = action(_.foreach(f))
 
   /** Applies a function f to each partition of this RDD. */
-  def foreachPartition(f: Iterator[T] => Unit): Task[Unit] = action(_.foreachPartition(f))
+  def foreachPartition(f: Iterator[T] => Unit)(implicit trace: ZTraceElement): Task[Unit] =
+    action(_.foreachPartition(f))
 
   /**
    * @note
@@ -241,7 +248,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   true if and only if the RDD contains no elements at all. Note
    *   that an RDD may be empty even when it has at least 1 partition.
    */
-  def isEmpty: Task[Boolean] = action(_.isEmpty())
+  def isEmpty(implicit trace: ZTraceElement): Task[Boolean] = action(_.isEmpty())
 
   /**
    * Internal method to this RDD; will read from cache if applicable, or
@@ -249,43 +256,45 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * directly, but is available for implementers of custom subclasses of
    * RDD.
    */
-  def iterator(split: Partition, context: TaskContext): Task[Iterator[T]] = action(_.iterator(split, context))
+  def iterator(split: => Partition, context: => TaskContext)(implicit trace: ZTraceElement): Task[Iterator[T]] =
+    action(_.iterator(split, context))
 
   /**
    * Returns the max of this RDD as defined by the implicit Ordering[T].
    * @return
    *   the maximum element of the RDD
    */
-  def max(implicit ord: Ordering[T]): Task[T] = action(_.max())
+  def max(implicit ord: Ordering[T], trace: ZTraceElement): Task[T] = action(_.max())
 
   /**
    * Returns the min of this RDD as defined by the implicit Ordering[T].
    * @return
    *   the minimum element of the RDD
    */
-  def min(implicit ord: Ordering[T]): Task[T] = action(_.min())
+  def min(implicit ord: Ordering[T], trace: ZTraceElement): Task[T] = action(_.min())
 
   /**
    * Reduces the elements of this RDD using the specified commutative
    * and associative binary operator.
    */
-  def reduce(f: (T, T) => T): Task[T] = action(_.reduce(f))
+  def reduce(f: (T, T) => T)(implicit trace: ZTraceElement): Task[T] = action(_.reduce(f))
 
   /** Save this RDD as a SequenceFile of serialized objects. */
-  def saveAsObjectFile(path: String): Task[Unit] = action(_.saveAsObjectFile(path))
+  def saveAsObjectFile(path: => String)(implicit trace: ZTraceElement): Task[Unit] = action(_.saveAsObjectFile(path))
 
   /**
    * Save this RDD as a text file, using string representations of
    * elements.
    */
-  def saveAsTextFile(path: String): Task[Unit] = action(_.saveAsTextFile(path))
+  def saveAsTextFile(path: => String)(implicit trace: ZTraceElement): Task[Unit] = action(_.saveAsTextFile(path))
 
   /**
    * Save this RDD as a compressed text file, using string
    * representations of elements.
    */
-  def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Task[Unit] =
-    action(_.saveAsTextFile(path, codec))
+  def saveAsTextFile(path: => String, codec: => Class[_ <: CompressionCodec])(implicit
+      trace: ZTraceElement
+  ): Task[Unit] = action(_.saveAsTextFile(path, codec))
 
   /**
    * Take the first num elements of the RDD. It works by first scanning
@@ -302,7 +311,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   will raise an exception if called on an RDD of `Nothing` or
    *   `Null`.
    */
-  def take(num: Int): Task[Seq[T]] = action(_.take(num).toSeq)
+  def take(num: => Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.take(num).toSeq)
 
   /**
    * Returns the first k (smallest) elements from this RDD as defined by
@@ -328,7 +337,8 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * @return
    *   an array of top elements
    */
-  def takeOrdered(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.takeOrdered(num).toSeq)
+  def takeOrdered(num: => Int)(implicit ord: Ordering[T], trace: ZTraceElement): Task[Seq[T]] =
+    action(_.takeOrdered(num).toSeq)
 
   /**
    * Return a fixed-size sampled subset of this RDD in an array
@@ -347,7 +357,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   expected to be small, as all the data is loaded into the driver's
    *   memory.
    */
-  def takeSample(withReplacement: Boolean, num: Int, seed: Long): Task[Seq[T]] =
+  def takeSample(withReplacement: => Boolean, num: => Int, seed: Long)(implicit trace: ZTraceElement): Task[Seq[T]] =
     action(_.takeSample(withReplacement, num, seed).toSeq)
 
   /**
@@ -362,7 +372,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   partitioners), to avoid recomputing the input RDD should be
    *   cached first.
    */
-  def toLocalIterator: Task[Iterator[T]] = action(_.toLocalIterator)
+  def toLocalIterator(implicit trace: ZTraceElement): Task[Iterator[T]] = action(_.toLocalIterator)
 
   /**
    * Returns the top k (largest) elements from this RDD as defined by
@@ -388,7 +398,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * @return
    *   an array of top elements
    */
-  def top(num: Int)(implicit ord: Ordering[T]): Task[Seq[T]] = action(_.top(num).toSeq)
+  def top(num: => Int)(implicit ord: Ordering[T], trace: ZTraceElement): Task[Seq[T]] = action(_.top(num).toSeq)
 
   /**
    * Aggregates the elements of this RDD in a multi-level tree pattern.
@@ -398,8 +408,9 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * @param depth
    *   suggested depth of the tree (default: 2)
    */
-  def treeAggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U, depth: Int = 2): Task[U] =
-    action(_.treeAggregate[U](zeroValue)(seqOp, combOp, depth))
+  def treeAggregate[U: ClassTag](zeroValue: => U)(seqOp: (U, T) => U, combOp: (U, U) => U, depth: => Int = 2)(implicit
+      trace: ZTraceElement
+  ): Task[U] = action(_.treeAggregate[U](zeroValue)(seqOp, combOp, depth))
 
   /**
    * Reduces the elements of this RDD in a multi-level tree pattern.
@@ -409,7 +420,8 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * @see
    *   [[org.apache.spark.rdd.RDD#reduce]]
    */
-  def treeReduce(f: (T, T) => T, depth: Int = 2): Task[T] = action(_.treeReduce(f, depth))
+  def treeReduce(f: (T, T) => T, depth: => Int = 2)(implicit trace: ZTraceElement): Task[T] =
+    action(_.treeReduce(f, depth))
 
   // ===============
 
@@ -433,12 +445,12 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   <a href="https://jira.apache.org/jira/browse/SPARK-24582">Design
    *   Doc</a>
    */
-  def barrier: Task[RDDBarrier[T]] = action(_.barrier())
+  def barrier(implicit trace: ZTraceElement): Task[RDDBarrier[T]] = action(_.barrier())
 
   /**
    * Persist this RDD with the default storage level (`MEMORY_ONLY`).
    */
-  def cache: Task[RDD[T]] = action(_.cache())
+  def cache(implicit trace: ZTraceElement): Task[RDD[T]] = action(_.cache())
 
   /**
    * Mark this RDD for checkpointing. It will be saved to a file inside
@@ -448,19 +460,19 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * RDD. It is strongly recommended that this RDD is persisted in
    * memory, otherwise saving it on a file will require recomputation.
    */
-  def checkpoint: Task[Unit] = action(_.checkpoint())
+  def checkpoint(implicit trace: ZTraceElement): Task[Unit] = action(_.checkpoint())
 
   /**
    * Get the list of dependencies of this RDD, taking into account
    * whether the RDD is checkpointed or not.
    */
-  def dependencies: Task[Seq[Dependency[_]]] = action(_.dependencies)
+  def dependencies(implicit trace: ZTraceElement): Task[Seq[Dependency[_]]] = action(_.dependencies)
 
   /**
    * Gets the name of the directory to which this RDD was checkpointed.
    * This is not defined if the RDD is checkpointed locally.
    */
-  def getCheckpointFile: Task[Option[String]] = action(_.getCheckpointFile)
+  def getCheckpointFile(implicit trace: ZTraceElement): Task[Option[String]] = action(_.getCheckpointFile)
 
   /**
    * Get the ResourceProfile specified with this RDD or null if it
@@ -469,19 +481,19 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    *   the user specified ResourceProfile or null (for Java
    *   compatibility) if none was specified
    */
-  def getResourceProfile: Task[ResourceProfile] = action(_.getResourceProfile())
+  def getResourceProfile(implicit trace: ZTraceElement): Task[ResourceProfile] = action(_.getResourceProfile())
 
   /**
    * Get the RDD's current storage level, or StorageLevel.NONE if none
    * is set.
    */
-  def getStorageLevel: Task[StorageLevel] = action(_.getStorageLevel)
+  def getStorageLevel(implicit trace: ZTraceElement): Task[StorageLevel] = action(_.getStorageLevel)
 
   /**
    * Return whether this RDD is checkpointed and materialized, either
    * reliably or locally.
    */
-  def isCheckpointed: Task[Boolean] = action(_.isCheckpointed)
+  def isCheckpointed(implicit trace: ZTraceElement): Task[Boolean] = action(_.isCheckpointed)
 
   /**
    * Mark this RDD for local checkpointing using Spark's existing
@@ -508,7 +520,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * The checkpoint directory set through
    * `SparkContext#setCheckpointDir` is not used.
    */
-  def localCheckpoint: Task[RDD[T]] = action(_.localCheckpoint())
+  def localCheckpoint(implicit trace: ZTraceElement): Task[RDD[T]] = action(_.localCheckpoint())
 
   /**
    * Set this RDD's storage level to persist its values across
@@ -516,12 +528,12 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * used to assign a new storage level if the RDD does not have a
    * storage level set yet. Local checkpointing is an exception.
    */
-  def persist(newLevel: StorageLevel): Task[RDD[T]] = action(_.persist(newLevel))
+  def persist(newLevel: => StorageLevel)(implicit trace: ZTraceElement): Task[RDD[T]] = action(_.persist(newLevel))
 
   /**
    * Persist this RDD with the default storage level (`MEMORY_ONLY`).
    */
-  def persist: Task[RDD[T]] = action(_.persist())
+  def persist(implicit trace: ZTraceElement): Task[RDD[T]] = action(_.persist())
 
   /**
    * Mark the RDD as non-persistent, and remove all blocks for it from
@@ -532,7 +544,8 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * @return
    *   This RDD.
    */
-  def unpersist(blocking: Boolean = false): Task[RDD[T]] = action(_.unpersist(blocking))
+  def unpersist(blocking: => Boolean = false)(implicit trace: ZTraceElement): Task[RDD[T]] =
+    action(_.unpersist(blocking))
 
   // ===============
 

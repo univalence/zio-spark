@@ -379,7 +379,7 @@ object GenerationPlan {
       // 2. It's necessary for "makeItCancellable" to work
       val tParam = if (typeParameters.nonEmpty) s"[${typeParameters.mkString(", ")}]" else ""
       s"""/** Applies an action to the underlying $name. */
-         |def action[U](f: Underlying$name$tParam => U): Task[U] = ZIO.attempt(get(f))""".stripMargin
+         |def action[U](f: Underlying$name$tParam => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))""".stripMargin
     }
 
     val transformation: Helper = { (name, typeParameters) =>

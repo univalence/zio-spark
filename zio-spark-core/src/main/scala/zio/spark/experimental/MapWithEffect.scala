@@ -1,6 +1,6 @@
 package zio.spark.experimental
 
-import zio.{IO, ZEnv}
+import zio.{IO, ZEnv, ZTraceElement}
 import zio.spark.experimental.NewType._
 import zio.spark.rdd.RDD
 
@@ -13,7 +13,8 @@ object MapWithEffect {
       onRejected: E2,
       maxErrorRatio: Ratio = Ratio.p05,
       decayScale: Weight = Weight(1000L)
-  ): RDD[Either[E2, A]] = rdd.mapZIO(identity, _ => onRejected, maxErrorRatio, decayScale)
+  )(implicit trace: ZTraceElement): RDD[Either[E2, A]] =
+    rdd.mapZIO(identity, _ => onRejected, maxErrorRatio, decayScale)
 
   implicit class RDDOps[T](private val rdd: RDD[T]) extends AnyVal {
     @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs"))
@@ -23,7 +24,7 @@ object MapWithEffect {
         maxErrorRatio: Ratio = Ratio.p05,
         decayScale: Weight = Weight(1000L),
         maxStack: Int = 16
-    ): RDD[Either[E, B]] =
+    )(implicit trace: ZTraceElement): RDD[Either[E, B]] =
       rdd.mapPartitions { it: Iterator[T] =>
         type EE = Option[E]
 

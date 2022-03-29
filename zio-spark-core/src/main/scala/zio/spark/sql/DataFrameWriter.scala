@@ -2,7 +2,7 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{DataFrameWriter => UnderlyingDataFrameWriter, SaveMode}
 
-import zio.Task
+import zio.{Task, ZTraceElement}
 import zio.spark.sql.DataFrameWriter.Source
 
 final case class DataFrameWriter[T](
@@ -23,44 +23,45 @@ final case class DataFrameWriter[T](
   }
 
   /** Saves a DataFrame using one of the dataframe saver. */
-  private def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit): Task[Unit] = Task.attempt(f(construct))
-
-  /** Saves the content of the DataFrame as the specified table. */
-  def save: Task[Unit] = saveUsing(_.save())
-
-  /** Saves the content of the DataFrame at the specified path. */
-  def save(path: String): Task[Unit] = saveUsing(_.save(path))
+  private def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit)(implicit trace: ZTraceElement): Task[Unit] =
+    Task.attempt(f(construct))
 
   /** Setups a new [[Source]] for the DataFrameWriter. */
   def format(s: Source): DataFrameWriter[T] = this.copy(source = s)
+
+  /** Saves the content of the DataFrame as the specified table. */
+  def save(implicit trace: ZTraceElement): Task[Unit] = saveUsing(_.save())
+
+  /** Saves the content of the DataFrame at the specified path. */
+  def save(path: String)(implicit trace: ZTraceElement): Task[Unit] = saveUsing(_.save(path))
 
   /**
    * Saves the DataFrame using the json format.
    *
    * See [[UnderlyingDataFrameWriter.json]] for more information.
    */
-  def json(path: String): Task[Unit] = format(Source.JSON).save(path)
+  def json(path: String)(implicit trace: ZTraceElement): Task[Unit] = format(Source.JSON).save(path)
 
   /**
    * Saves the DataFrame using the csv format.
    *
    * See [[UnderlyingDataFrameWriter.csv]] for more information.
    */
-  def csv(path: String): Task[Unit] = format(Source.CSV).save(path)
+  def csv(path: String)(implicit trace: ZTraceElement): Task[Unit] = format(Source.CSV).save(path)
 
   /**
    * Saves the DataFrame using the parquet format.
    *
    * See [[UnderlyingDataFrameWriter.parquet]] for more information.
    */
-  def parquet(path: String): Task[Unit] = format(Source.Parquet).save(path)
+  def parquet(path: String)(implicit trace: ZTraceElement): Task[Unit] = format(Source.Parquet).save(path)
 
   /**
    * Saves the DataFrame using the text format.
    *
    * See [[UnderlyingDataFrameWriter.text]] for more information.
    */
-  def text(path: String): Task[Unit] = format(Source.Text).save(path)
+  def text(path: String)(implicit trace: ZTraceElement): Task[Unit] = format(Source.Text).save(path)
 
   /** Adds multiple options to the DataFrameWriter. */
   def options(options: Map[String, String]): DataFrameWriter[T] = this.copy(options = this.options ++ options)

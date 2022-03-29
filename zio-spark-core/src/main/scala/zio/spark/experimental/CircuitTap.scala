@@ -1,13 +1,12 @@
 package zio.spark.experimental
 
-import zio.{Ref, UIO, ZIO}
+import zio.{Ref, UIO, ZIO, ZTraceElement}
 import zio.prelude.Assertion._
 import zio.prelude.Subtype
 import zio.spark.experimental.NewType._
 
 object NewType {
   object Weight extends Subtype[Long] { self =>
-
     @SuppressWarnings(Array("scalafix:ExplicitResultTypes"))
     override def assertion =
       assert {
@@ -57,9 +56,9 @@ trait CircuitTap[-E1, +E2] {
    * immediately with a default error depending on the service being
    * guarded by the tap.
    */
-  def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A]
+  def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A])(implicit trace: ZTraceElement): ZIO[R, E, A]
 
-  def getState: UIO[CircuitTap.State]
+  def getState(implicit trace: ZTraceElement): UIO[CircuitTap.State]
 }
 
 class SmartCircuitTap[-E1, +E2](
@@ -68,7 +67,7 @@ class SmartCircuitTap[-E1, +E2](
     rejected:  => E2,
     state:     Ref[CircuitTap.State]
 ) extends CircuitTap[E1, E2] {
-  override def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A]): ZIO[R, E, A] =
+  override def apply[R, E >: E2 <: E1, A](effect: ZIO[R, E, A])(implicit trace: ZTraceElement): ZIO[R, E, A] =
     state.get flatMap { s =>
       val tooMuchError: Boolean = s.decayingErrorRatio.ratio > errBound
       if (tooMuchError) {
@@ -86,7 +85,7 @@ class SmartCircuitTap[-E1, +E2](
     effect.tapBoth(tapError, _ => state.update(_.incSuccess))
   }
 
-  override def getState: UIO[CircuitTap.State] = state.get
+  override def getState(implicit trace: ZTraceElement): UIO[CircuitTap.State] = state.get
 }
 
 final case class DecayingRatio(ratio: Ratio, scale: Weight) {
@@ -137,7 +136,7 @@ object CircuitTap {
       qualified: E1 => Boolean,
       rejected: => E2,
       decayScale: Weight
-  ): UIO[CircuitTap[E1, E2]] =
+  )(implicit trace: ZTraceElement): UIO[CircuitTap[E1, E2]] =
     for {
       state <- Ref.make(zeroState(decayScale))
     } yield new SmartCircuitTap[E1, E2](maxError, qualified, rejected, state)

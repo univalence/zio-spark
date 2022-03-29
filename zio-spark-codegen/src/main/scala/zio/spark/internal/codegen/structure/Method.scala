@@ -33,12 +33,24 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
 
   def toCode(methodType: MethodType): String =
     methodType match {
-      case MethodType.Ignored     => s"[[$fullName]]"
-      case MethodType.ToImplement => s"[[$fullName]]"
-      case MethodType.ToHandle    => s"[[$fullName]]"
+      case MethodType.Ignored | MethodType.ToImplement | MethodType.ToHandle => s"[[$fullName]]"
       case _ =>
-        val parameters = calls.map(_.toCode(isArgs = false, planType.className)).mkString("")
-        val arguments  = calls.map(_.toCode(isArgs = true, planType.className)).mkString("")
+        val effectful: Boolean =
+          methodType match {
+            case MethodType.DriverAction | MethodType.DistributedComputation => true
+            case _                                                           => false
+          }
+
+        val parameters = {
+          val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = effectful, planType.className)).mkString("")
+
+          calls match {
+            case list if effectful && !list.exists(_.hasImplicit) => s"$sparkParameters(implicit trace: ZTraceElement)"
+            case _                                                => sparkParameters
+          }
+        }
+
+        val arguments = calls.map(_.toCode(isArgs = true, effectful = false, planType.className)).mkString("")
 
         val transformation =
           methodType match {
