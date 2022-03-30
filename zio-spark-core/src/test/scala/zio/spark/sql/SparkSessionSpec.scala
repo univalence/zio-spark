@@ -9,12 +9,17 @@ object SparkSessionSpec extends DefaultRunnableSpec {
     sparkSessionOptionsSpec + sparkSessionDefinitionsSpec
 
   def sparkSessionOptionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
-    suite("DataFrameReader Options")(
-      test("DataFrameReader should apply options correctly") {
+    suite("SparkSession Builder Options")(
+      test("SparkSession Builder should apply options correctly") {
         val configs                 = Map("a" -> "x", "b" -> "y")
         val sparkSessionWithConfigs = SparkSession.builder.configs(configs)
 
         assert(sparkSessionWithConfigs.extraConfigs)(equalTo(configs))
+      },
+      test("SparkSession Builder should enable hive support correctly") {
+        val sparkSessionWithConfigs = SparkSession.builder.enableHiveSupport
+
+        assert(sparkSessionWithConfigs.hiveSupport)(equalTo(true))
       }
     )
 
