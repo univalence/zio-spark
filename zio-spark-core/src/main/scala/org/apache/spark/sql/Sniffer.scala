@@ -1,10 +1,9 @@
 package org.apache.spark.sql
 
 import org.apache.spark.SparkContext
-import org.apache.spark.util.{CallSite, Utils}
-import org.apache.spark.util.Utils.sparkInternalExclusionFunction
+import org.apache.spark.util.CallSite
 
-import zio.ZTraceElement
+import zio.{Chunk, Ref, System, Task, UIO, ZIO, ZTraceElement}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -27,9 +26,6 @@ object Sniffer {
   /** Backdoor for SparkContext's setCallSite private function. */
   def sparkContextSetCallSite(sc: SparkContext, callSite: CallSite): Unit = sc.setCallSite(callSite)
 
-  /** Backdoor for Utils's getCallSite private function. */
-  def utilsGetCallSite(skipClass: String => Boolean): CallSite = getCallSite(skipClass)
-
   /**
    * When called inside a class in the spark package, returns the name
    * of the user code class (outside the spark package) that called into
@@ -39,64 +35,102 @@ object Sniffer {
    * @param skipClass
    *   Function that is used to exclude non-user-code classes.
    */
-  def getCallSite(skipClass: String => Boolean): CallSite = {
+  def getCallSite(skipClass: String => Boolean)(implicit trace: ZTraceElement): ZIO[System, Throwable, CallSite] = {
     // Keep crawling up the stack trace until we find the first function not inside of the spark
     // package. We track the last (shallowest) contiguous Spark method. This might be an RDD
     // transformation, a SparkContext function (such as parallelize), or anything else that leads
     // to instantiation of an RDD. We also track the first (deepest) user method, file, and line.
-    var lastSparkMethod = "<unknown>"
-    var firstUserFile   = "<unknown>"
-    var firstUserLine   = 0
-    var insideSpark     = true
-    val callStack       = new ArrayBuffer[String]() :+ "<unknown>"
-
-    Thread.currentThread.getStackTrace.foreach { ste: StackTraceElement =>
-      val zTraceElement: ZTraceElement = ZTraceElement.fromJava(ste)
-
-      // When running under some profilers, the current stack trace might contain some bogus
-      // frames. This is intended to ensure that we don't crash in these situations by
-      // ignoring any frames that we can't examine.
-      if (
-        ste != null && ste.getMethodName != null
-        && !ste.getMethodName.contains("getStackTrace")
-      ) {
-        if (insideSpark) {
-          if (skipClass(ste.getClassName)) {
-            lastSparkMethod =
-              if (ste.getMethodName == "<init>") {
-                // Spark method is a constructor; get its class name
-                ste.getClassName.substring(ste.getClassName.lastIndexOf('.') + 1)
-              } else {
-                ste.getMethodName
-              }
-            callStack(0) = ste.toString // Put last Spark method on top of the stack trace.
-          } else {
-            if (ste.getFileName != null) {
-              firstUserFile = ste.getFileName
-              if (ste.getLineNumber >= 0) {
-                firstUserLine = ste.getLineNumber
-              }
-            }
-            callStack += ste.toString
-            insideSpark = false
-          }
+    case class Context(
+        lastSparkMethod: String,
+        firstUserFile:   String,
+        firstUserLine:   Int,
+        callStack:       Chunk[String],
+        insideSpark:     Boolean
+    ) { self =>
+      def shortForm: String =
+        if (firstUserFile == "HiveSessionImpl.java") {
+          "Spark JDBC Server Query"
         } else {
-          callStack += ste.toString
+          s"$lastSparkMethod at $firstUserFile:$firstUserLine"
         }
-      }
+
+      def prependStackTrace(trace: String): Context = copy(callStack = self.callStack.prepended(trace))
+
+      def appendStackTrace(trace: String): Context = copy(callStack = self.callStack.appended(trace))
+
+      def updateLastSparkMethod(newLastSparkMethod: String): Context = copy(lastSparkMethod = newLastSparkMethod)
+
+      def updateFirstUserFile(newFirstUserFile: String): Context = copy(firstUserFile = newFirstUserFile)
+
+      def updateFirstUserLine(newFirstUserLine: Int): Context = copy(firstUserLine = newFirstUserLine)
+
+      def updateInsideSpark(newInsideSpark: Boolean): Context = copy(insideSpark = newInsideSpark)
+
     }
 
-    val callStackDepth = System.getProperty("spark.callstack.depth", "20").toInt
-    val shortForm =
-      if (firstUserFile == "HiveSessionImpl.java") {
-        // To be more user friendly, show a nicer string for queries submitted from the JDBC
-        // server.
-        "Spark JDBC Server Query"
-      } else {
-        s"$lastSparkMethod at $firstUserFile:$firstUserLine"
-      }
-    val longForm = callStack.take(callStackDepth).mkString("\n")
+    object Context {
+      val default: Context =
+        Context(
+          lastSparkMethod = "<unknown>",
+          firstUserFile   = "<unknown>",
+          firstUserLine   = 0,
+          callStack       = Chunk[String]("<unknown>"),
+          insideSpark     = true
+        )
+    }
 
-    CallSite(shortForm, longForm)
+    def handleStackTraceElement(trace: ZTraceElement, ref: Ref[Context]): UIO[Unit] =
+      ZTraceElement.toJava(trace) match {
+        case None => ref.update(_.appendStackTrace(trace.toString))
+        case Some(ste) if ste.getMethodName == null || !ste.getMethodName.contains("getStackTrace") =>
+          ref.update(_.appendStackTrace(ste.toString))
+        case Some(ste) =>
+          for {
+            context <- ref.get
+            _ <-
+              (context.insideSpark, skipClass(ste.getClassName)) match {
+                case (false, _) => ref.update(_.appendStackTrace(ste.toString))
+                case (true, false) =>
+                  val lastSparkMethod =
+                    if (ste.getMethodName == "<init>") {
+                      ste.getClassName.substring(ste.getClassName.lastIndexOf('.') + 1)
+                    } else {
+                      ste.getMethodName
+                    }
+                  for {
+                    _ <- ref.update(_.updateLastSparkMethod(lastSparkMethod))
+                    _ <- ref.update(_.prependStackTrace(ste.toString))
+                  } yield ()
+                case (true, true) =>
+                  for {
+                    _ <-
+                      ZIO
+                        .when(ste.getFileName != null)(
+                          ref.update(_.updateFirstUserFile(ste.getFileName)) *>
+                            ZIO.when(ste.getLineNumber >= 0)(
+                              ref.update(_.updateFirstUserLine(ste.getLineNumber))
+                            )
+                        )
+                    _ <- ref.update(_.appendStackTrace(ste.toString))
+                    _ <- ref.update(_.updateInsideSpark(false))
+                  } yield ()
+              }
+          } yield ()
+      }
+
+    for {
+      ztrace              <- Task.trace
+      ref                 <- Ref.make(Context.default)
+      _                   <- ztrace.stackTrace.mapZIODiscard(t => handleStackTraceElement(t, ref))
+      context             <- ref.get
+      maybeCallStackDepth <- System.property("spark.callstack.depth")
+      callStackDepth <-
+        maybeCallStackDepth match {
+          case None    => UIO.succeed(20)
+          case Some(v) => Task.attempt(v.toInt).orElse(UIO.succeed(20))
+        }
+      shortForm = context.shortForm
+      longForm  = context.callStack.take(callStackDepth).mkString("\n")
+    } yield CallSite(shortForm, longForm)
   }
 }

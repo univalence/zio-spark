@@ -20,7 +20,7 @@ import zio.test._
 object ZioSparkTestSpec extends DefaultRunnableSpec {
   Logger.getLogger("org").setLevel(Level.OFF)
 
-  val session: ZLayer[Any, Nothing, SparkSession] =
+  val session: ZLayer[System, Nothing, SparkSession] =
     SparkSession.builder
       .master(localAllNodes)
       .appName("zio-spark")

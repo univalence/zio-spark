@@ -1,7 +1,7 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
-import org.apache.spark.sql.Sniffer.{sparkContextSetCallSite, utilsGetCallSite}
+import org.apache.spark.sql.Sniffer.{getCallSite, sparkContextSetCallSite}
 
 import zio._
 import zio.spark.parameter._
@@ -49,7 +49,7 @@ object SparkSession extends Accessible[SparkSession] {
      * Transforms the creation of the SparkSession into a managed layer
      * that will open and close the SparkSession when the job is done.
      */
-    def asLayer: ZLayer[Any, Throwable, SparkSession] = ZLayer.scoped(acquireRelease)
+    def asLayer: ZLayer[System, Throwable, SparkSession] = ZLayer.scoped(acquireRelease)
 
     private def construct: UnderlyingSparkSession.Builder =
       extraConfigs.foldLeft(builder) { case (oldBuilder, (configKey, configValue)) =>
@@ -63,15 +63,19 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def getOrCreate(implicit trace: ZTraceElement): Task[SparkSession] =
-      Task.attempt {
-        val underlying = {
-          val sparkSession = self.construct.getOrCreate()
-          sparkContextSetCallSite(sparkSession.sparkContext, utilsGetCallSite(zioSparkInternalExclusionFunction))
-          sparkSession
-        }
-        SparkSession(underlying)
-      }
+    def getOrCreate(implicit trace: ZTraceElement): ZIO[System, Throwable, SparkSession] =
+      for {
+        callSite <- getCallSite(zioSparkInternalExclusionFunction)
+        ss <-
+          Task.attempt {
+            val underlying = {
+              val sparkSession = self.construct.getOrCreate()
+              sparkContextSetCallSite(sparkSession.sparkContext, callSite)
+              sparkSession
+            }
+            SparkSession(underlying)
+          }
+      } yield ss
 
     /**
      * Tries to create a spark session.
@@ -79,7 +83,7 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def acquireRelease(implicit trace: ZTraceElement): ZIO[Scope, Throwable, SparkSession] =
+    def acquireRelease(implicit trace: ZTraceElement): ZIO[System with Scope, Throwable, SparkSession] =
       ZIO.acquireRelease(getOrCreate)(ss => Task.attempt(ss.close).orDie)
 
     /** Adds multiple configurations to the Builder. */
