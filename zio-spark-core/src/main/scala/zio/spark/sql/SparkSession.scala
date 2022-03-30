@@ -1,10 +1,12 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
+import org.apache.spark.sql.Sniffer.{sparkContextSetCallSite, utilsGetCallSite}
 
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql.SparkSession.Conf
+import zio.spark.util.Utils.zioSparkInternalExclusionFunction
 
 final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
     extends ExtraSparkSessionFeature(underlyingSparkSession) {
@@ -62,7 +64,14 @@ object SparkSession extends Accessible[SparkSession] {
      * information.
      */
     def getOrCreate(implicit trace: ZTraceElement): Task[SparkSession] =
-      Task.attempt(SparkSession(self.construct.getOrCreate()))
+      Task.attempt {
+        val underlying = {
+          val sparkSession = self.construct.getOrCreate()
+          sparkContextSetCallSite(sparkSession.sparkContext, utilsGetCallSite(zioSparkInternalExclusionFunction))
+          sparkSession
+        }
+        SparkSession(underlying)
+      }
 
     /**
      * Tries to create a spark session.

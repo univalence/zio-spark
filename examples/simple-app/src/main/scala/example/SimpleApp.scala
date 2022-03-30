@@ -25,9 +25,10 @@ object SimpleApp extends ZIOAppDefault {
 
   val pipeline: Pipeline[Row, Person, Option[Person]] = experimental.Pipeline(read, transform, output)
 
-  val job: ZIO[SparkSession with Console, Throwable, Unit] =
+  val job: ZIO[SparkSession with Console with Clock, Throwable, Unit] =
     for {
       maybePeople <- pipeline.run
+      _           <- Clock.sleep(1000.seconds)
       _ <-
         maybePeople match {
           case None    => Console.printLine("There is nobody :(.")
