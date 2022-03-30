@@ -49,7 +49,7 @@ object SparkSession extends Accessible[SparkSession] {
      * Transforms the creation of the SparkSession into a managed layer
      * that will open and close the SparkSession when the job is done.
      */
-    def asLayer: ZLayer[System, Throwable, SparkSession] = ZLayer.scoped(acquireRelease)
+    def asLayer: ZLayer[System with Console, Throwable, SparkSession] = ZLayer.scoped(acquireRelease)
 
     private def construct: UnderlyingSparkSession.Builder =
       extraConfigs.foldLeft(builder) { case (oldBuilder, (configKey, configValue)) =>
@@ -63,7 +63,7 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def getOrCreate(implicit trace: ZTraceElement): ZIO[System, Throwable, SparkSession] =
+    def getOrCreate(implicit trace: ZTraceElement): ZIO[System with Console, Throwable, SparkSession] =
       for {
         callSite <- getCallSite(zioSparkInternalExclusionFunction)
         ss <-
@@ -83,7 +83,7 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def acquireRelease(implicit trace: ZTraceElement): ZIO[System with Scope, Throwable, SparkSession] =
+    def acquireRelease(implicit trace: ZTraceElement): ZIO[System with Scope with Console, Throwable, SparkSession] =
       ZIO.acquireRelease(getOrCreate)(ss => Task.attempt(ss.close).orDie)
 
     /** Adds multiple configurations to the Builder. */
