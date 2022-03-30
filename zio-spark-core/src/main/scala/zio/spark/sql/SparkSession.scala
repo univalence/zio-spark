@@ -40,7 +40,11 @@ object SparkSession extends Accessible[SparkSession] {
   def attempt[Out](f: UnderlyingSparkSession => Out)(implicit trace: ZTraceElement): SIO[Out] =
     ZIO.serviceWithZIO[SparkSession](ss => ZIO.attempt(f(ss.underlyingSparkSession))(trace))
 
-  final case class Builder(builder: UnderlyingSparkSession.Builder, extraConfigs: Map[String, String]) {
+  final case class Builder(
+      builder:      UnderlyingSparkSession.Builder,
+      extraConfigs: Map[String, String],
+      hiveSupport:  Boolean = false
+  ) {
     self =>
 
     /**
@@ -49,10 +53,15 @@ object SparkSession extends Accessible[SparkSession] {
      */
     def asLayer: ZLayer[Any, Throwable, SparkSession] = ZLayer.scoped(acquireRelease)
 
-    private def construct: UnderlyingSparkSession.Builder =
-      extraConfigs.foldLeft(builder) { case (oldBuilder, (configKey, configValue)) =>
-        oldBuilder.config(configKey, configValue)
-      }
+    private def construct: UnderlyingSparkSession.Builder = {
+      val configuredBuilder: UnderlyingSparkSession.Builder =
+        extraConfigs.foldLeft(builder) { case (oldBuilder, (configKey, configValue)) =>
+          oldBuilder.config(configKey, configValue)
+        }
+
+      if (hiveSupport) configuredBuilder.enableHiveSupport()
+      else configuredBuilder
+    }
 
     /**
      * Unsafely get or create a SparkSession without ensuring that the
@@ -117,5 +126,14 @@ object SparkSession extends Accessible[SparkSession] {
      * command line option or in your default properties file.
      */
     def driverMemory(size: String): Builder = config("spark.driver.memory", size)
+
+    /**
+     * Enables Hive support, including connectivity to a persistent Hive
+     * metastore, support for Hive serdes, and Hive user-defined
+     * functions.
+     *
+     * @since 2.0.0
+     */
+    def enableHiveSupport: Builder = copy(hiveSupport = true)
   }
 }
