@@ -1,6 +1,9 @@
 package zio.spark.sql
 
+import zio.spark.helper.Fixture._
 import zio.spark.sql.implicits._
+import zio.test._
+import zio.test.TestAspect._
 
 object ExtraDatasetFeatureTest {
 
