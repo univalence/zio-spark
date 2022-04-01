@@ -1,10 +1,6 @@
 package example
 
-import org.apache.spark.sql.Row
-
 import zio._
-import zio.spark.experimental
-import zio.spark.experimental.Pipeline
 import zio.spark.parameter._
 import zio.spark.sql._
 import zio.spark.sql.implicits._
@@ -17,17 +13,18 @@ object SimpleApp extends ZIOAppDefault {
 
   val filePath: String = "examples/simple-app/src/main/resources/data.csv"
 
-  def read: SIO[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
+  def read: ZIO[SparkSession with Console with System, Throwable, DataFrame] =
+    SparkSession.read.inferSchema.withHeader.withDelimiter(";").csvTest(filePath)
 
   def transform(inputDs: DataFrame): Dataset[Person] = inputDs.as[Person]
 
-  def output(transformedDs: Dataset[Person]): Task[Option[Person]] = transformedDs.headOption
+  def output(transformedDs: Dataset[Person]): ZIO[System with Console, Throwable, Option[Person]] =
+    transformedDs.headOptionTest
 
-  val pipeline: Pipeline[Row, Person, Option[Person]] = experimental.Pipeline(read, transform, output)
-
-  val job: ZIO[SparkSession with Console, Throwable, Unit] =
+  val job: ZIO[SparkSession with Console with Clock with System, Throwable, Unit] =
     for {
-      maybePeople <- pipeline.run
+      maybePeople <- read.map(transform).flatMap(output)
+      _           <- Clock.sleep(1000.seconds)
       _ <-
         maybePeople match {
           case None    => Console.printLine("There is nobody :(.")

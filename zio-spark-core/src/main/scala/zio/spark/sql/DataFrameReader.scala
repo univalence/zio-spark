@@ -1,8 +1,10 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{DataFrameReader => UnderlyingDataFrameReader, Dataset => UnderlyingDataset}
+import org.apache.spark.sql.Sniffer.{getCallSite, sparkContextSetCallSite}
 
-import zio.ZTraceElement
+import zio._
+import zio.spark.util.Utils.zioSparkInternalExclusionFunction
 
 final case class DataFrameReader(options: Map[String, String]) {
 
@@ -59,6 +61,16 @@ final case class DataFrameReader(options: Map[String, String]) {
   private def loadUsing[T](f: UnderlyingDataFrameReader => UnderlyingDataset[T])(implicit
       trace: ZTraceElement
   ): SIO[Dataset[T]] = fromSpark(ss => Dataset(f(ss.read.options(options))))(trace)
+
+  /** Loads a dataframe using one of the dataframe loader. */
+  def csvTest(
+      path: String
+  )(implicit trace: ZTraceElement): ZIO[System with Console with SparkSession, Throwable, DataFrame] =
+    for {
+      ss       <- ZIO.service[SparkSession]
+      callSite <- getCallSite(zioSparkInternalExclusionFunction)
+      _        <- Task.attempt(sparkContextSetCallSite(ss.underlyingSparkSession.sparkContext, callSite))
+    } yield Dataset(ss.underlyingSparkSession.read.options(options).csv(path))
 
   /** Adds multiple options to the DataFrameReader. */
   def options(options: Map[String, String]): DataFrameReader = DataFrameReader(this.options ++ options)

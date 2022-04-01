@@ -18,12 +18,14 @@ import org.apache.spark.sql.{
   Sniffer,
   TypedColumn
 }
+import org.apache.spark.sql.Sniffer.{getCallSite, sparkContextSetCallSite}
 import org.apache.spark.sql.execution.ExplainMode
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
 import zio._
 import zio.spark.rdd._
+import zio.spark.util.Utils.zioSparkInternalExclusionFunction
 
 import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.TypeTag
@@ -40,6 +42,15 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
 
   /** Applies an action to the underlying Dataset. */
   def action[U](f: UnderlyingDataset[T] => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))
+
+  /** Applies an action to the underlying Dataset. */
+  def actionTest[U](
+      f: UnderlyingDataset[T] => U
+  )(implicit trace: ZTraceElement): ZIO[System with Console, Throwable, U] =
+    for {
+      callSite <- getCallSite(zioSparkInternalExclusionFunction)
+      _        <- Task.attempt(sparkContextSetCallSite(underlying.sparkSession.sparkContext, callSite))
+    } yield get(f)
 
   /** Applies a transformation to the underlying Dataset. */
   def transformation[TNew](f: UnderlyingDataset[T] => UnderlyingDataset[TNew]): Dataset[TNew] = Dataset(f(underlying))
@@ -110,6 +121,10 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
 
   /** Takes the first element of a dataset or None. */
   def headOption(implicit trace: ZTraceElement): Task[Option[T]] = head(1).map(_.headOption)
+
+  /** Takes the first element of a dataset or None. */
+  def headOptionTest(implicit trace: ZTraceElement): ZIO[System with Console, Throwable, Option[T]] =
+    actionTest(_.head(1).toSeq).map(_.headOption)
 
   // template:on
   /** Alias for [[tail]]. */
