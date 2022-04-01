@@ -1,9 +1,9 @@
-package zio.spark.internal.codegen
+package zio.spark.codegen
 
 import zio.*
-import zio.spark.internal.codegen.GenerationPlan.*
-import zio.spark.internal.codegen.Helpers.{findMethod, planLayer}
-import zio.spark.internal.codegen.MethodType.*
+import zio.spark.codegen.GenerationPlan.*
+import zio.spark.codegen.Helpers.{findMethod, planLayer}
+import zio.spark.codegen.MethodType.*
 import zio.test.*
 
 object MethodTypeSpec extends DefaultRunnableSpec {

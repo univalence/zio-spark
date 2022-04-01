@@ -52,7 +52,6 @@ final case class DataFrameStatFunctions(underlying: UnderlyingDataFrameStatFunct
   def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
   // Generated functions coming from spark
-
   /**
    * Builds a Bloom filter over a specified column.
    *

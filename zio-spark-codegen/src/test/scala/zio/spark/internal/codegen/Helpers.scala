@@ -1,11 +1,11 @@
-package zio.spark.internal.codegen
+package zio.spark.codegen
 
 import sbt.Keys.Classpath
 import sbt.internal.util.Attributed
 
 import zio.{Task, UIO, ZLayer}
-import zio.spark.internal.codegen.GenerationPlan.PlanType
-import zio.spark.internal.codegen.structure.Method
+import zio.spark.codegen.GenerationPlan.PlanType
+import zio.spark.codegen.structure.Method
 
 import java.io.File
 import java.net.URLClassLoader

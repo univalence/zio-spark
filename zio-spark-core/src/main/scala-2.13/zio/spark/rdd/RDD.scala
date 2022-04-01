@@ -22,9 +22,11 @@ import scala.reflect._
 
 @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
+  // scalafix:off
   implicit private def lift[U](x: UnderlyingRDD[U]): RDD[U]                              = RDD(x)
   implicit private def arrayToSeq2[U](x: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = x.map(_.toIndexedSeq)
   @inline private def noOrdering[U]: Ordering[U]                                         = null
+  // scalafix:on
 
   /** Applies an action to the underlying RDD. */
   def action[U](f: UnderlyingRDD[T] => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))
@@ -36,7 +38,6 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
   def get[U](f: UnderlyingRDD[T] => U): U = f(underlying)
 
   // Generated functions coming from spark
-
   /** Returns the number of partitions of this RDD. */
   def getNumPartitions: Int = get(_.getNumPartitions)
 

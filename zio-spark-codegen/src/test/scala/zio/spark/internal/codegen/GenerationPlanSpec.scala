@@ -1,6 +1,6 @@
-package zio.spark.internal.codegen
+package zio.spark.codegen
 
-import zio.spark.internal.codegen.GenerationPlan.Helper
+import zio.spark.codegen.GenerationPlan.Helper
 import zio.test.*
 
 object GenerationPlanSpec extends DefaultRunnableSpec {

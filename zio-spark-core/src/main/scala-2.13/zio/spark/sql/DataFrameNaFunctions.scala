@@ -22,7 +22,6 @@ final case class DataFrameNaFunctions(underlying: UnderlyingDataFrameNaFunctions
     TryAnalysis(unpack(f))
 
   // Generated functions coming from spark
-
   /**
    * Returns a new `DataFrame` that drops rows containing any null or
    * NaN values.

@@ -1,8 +1,8 @@
-package zio.spark.internal.codegen
+package zio.spark.codegen
 
 import zio.ZIO
-import zio.spark.internal.codegen.GenerationPlan.{DatasetPlan, KeyValueGroupedDatasetPlan, RDDPlan}
-import zio.spark.internal.codegen.Helpers.{findMethod, planLayer}
+import zio.spark.codegen.GenerationPlan.{DatasetPlan, KeyValueGroupedDatasetPlan, RDDPlan}
+import zio.spark.codegen.Helpers.{findMethod, planLayer}
 import zio.test.*
 
 object MethodSpec extends DefaultRunnableSpec {
