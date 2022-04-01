@@ -1,6 +1,6 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
+import org.apache.spark.sql.{Sniffer212, SparkSession => UnderlyingSparkSession}
 import zio.{Task, ZTraceElement}
 
 abstract class ExtraSparkSessionFeature(underlyingSparkSession: UnderlyingSparkSession) {
