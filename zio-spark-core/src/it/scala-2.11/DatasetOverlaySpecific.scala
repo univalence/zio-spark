@@ -1,5 +1,3 @@
-import org.apache.spark.sql.execution.command.ExplainCommand
-
 import zio._
 import zio.spark.sql._
 

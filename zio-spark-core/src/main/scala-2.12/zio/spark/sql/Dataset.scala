@@ -7,21 +7,10 @@
 
 package zio.spark.sql
 
-import org.apache.spark.sql.{
-  Column,
-  DataFrameNaFunctions => UnderlyingDataFrameNaFunctions,
-  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
-  Dataset => UnderlyingDataset,
-  Encoder,
-  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
-  Row,
-  Sniffer,
-  TypedColumn
-}
 import org.apache.spark.sql.execution.ExplainMode
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{Column, Encoder, Row, Sniffer, TypedColumn, DataFrameNaFunctions => UnderlyingDataFrameNaFunctions, DataFrameStatFunctions => UnderlyingDataFrameStatFunctions, Dataset => UnderlyingDataset, RelationalGroupedDataset => UnderlyingRelationalGroupedDataset}
 import org.apache.spark.storage.StorageLevel
-
 import zio._
 import zio.spark.rdd._
 

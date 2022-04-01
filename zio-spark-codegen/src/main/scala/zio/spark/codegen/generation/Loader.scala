@@ -3,7 +3,7 @@ package zio.spark.codegen.generation
 import sbt.File
 import sbt.Keys.Classpath
 
-import zio.{Console, IO, Task, UIO, ZIO}
+import zio.{IO, Task, UIO, ZIO}
 import zio.spark.codegen.generation.Error.*
 
 import scala.io.{BufferedSource, Source}
@@ -20,7 +20,7 @@ object Loader {
    *
    * We need, in SBT, to download spark with sources.
    */
-  private def findSourceJar(moduleName: String, classpath: Classpath): ZIO[Console, CodegenError, JarFile] = {
+  private def findSourceJar(moduleName: String, classpath: Classpath): ZIO[Logger, CodegenError, JarFile] = {
     val maybePath: Option[String] =
       classpath
         .map(_.data)
@@ -34,7 +34,7 @@ object Loader {
       case Some(path) =>
         Task
           .attempt(new JarFile(new File(path)))
-          .tap(jar => Console.printLine(s"found  $moduleName in ${jar.getName}"))
+          .tap(jar => Logger.info(s"Found  $moduleName in ${jar.getName}"))
           .orDie
     }
   }
@@ -47,7 +47,7 @@ object Loader {
       filePath: String,
       moduleName: String,
       classpath: Classpath
-  ): ZIO[Console, CodegenError, meta.Source] =
+  ): ZIO[Logger, CodegenError, meta.Source] =
     ZIO.scoped {
       for {
         jar <- ZIO.acquireRelease(findSourceJar(moduleName, classpath))(x => Task.attempt(x.close()).ignore)
@@ -60,7 +60,7 @@ object Loader {
 
               content.getLines().mkString("\n").parse[meta.Source].get
             }
-            .mapError(_ => SourceNotFoundError(filePath, moduleName))
+            .mapError(SourceNotFoundError(filePath, moduleName, _))
       } yield source
     }
 
@@ -71,8 +71,8 @@ object Loader {
    */
   def sourceFromFile(file: File): IO[CodegenError, meta.Source] =
     for {
-      content <- ZIO.attempt(sbt.IO.read(file)).mapError(_ => FileReadingError(file.getPath))
-      source  <- ZIO.attempt(content.parse[meta.Source].get).mapError(_ => ContentIsNotSourceError(file.getPath))
+      content <- ZIO.attempt(sbt.IO.read(file)).mapError(FileReadingError(file.getPath, _))
+      source  <- ZIO.attempt(content.parse[meta.Source].get).mapError(ContentIsNotSourceError(file.getPath, _))
     } yield source
 
   /**
@@ -82,8 +82,8 @@ object Loader {
   def optionalSourceFromFile(file: File): IO[CodegenError, Option[meta.Source]] =
     sourceFromFile(file).foldZIO(
       failure = {
-        case FileReadingError(_) => UIO.succeed(None)
-        case e                   => ZIO.fail(e)
+        case FileReadingError(_, _) => UIO.succeed(None)
+        case e                      => ZIO.fail(e)
       },
       success = source => UIO.succeed(Some(source))
     )

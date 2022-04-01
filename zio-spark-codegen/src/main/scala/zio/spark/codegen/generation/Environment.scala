@@ -4,7 +4,7 @@ import org.scalafmt.interfaces.Scalafmt
 import sbt.File
 import sbt.Keys.Classpath
 
-import zio.{Accessible, Console}
+import zio.Accessible
 import zio.spark.codegen.ScalaBinaryVersion
 import zio.spark.codegen.ScalaBinaryVersion.versioned
 
@@ -15,7 +15,7 @@ import java.nio.file.Path
  * it is all sbt settings that we need in the codebase.
  */
 object Environment {
-  type Environment = Console & Classpath & ScalaBinaryVersion & ZIOSparkFolders & ScalafmtFormatter
+  type Environment = Logger & Classpath & ScalaBinaryVersion & ZIOSparkFolders & ScalafmtFormatter
 
   trait ZIOSparkFolders {
     def mainFolder: File

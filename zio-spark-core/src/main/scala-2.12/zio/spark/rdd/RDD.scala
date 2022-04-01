@@ -8,12 +8,11 @@
 package zio.spark.rdd
 
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
 import org.apache.spark.partial.{BoundedDouble, PartialResult}
-import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD, RDDBarrier}
+import org.apache.spark.rdd.{PartitionCoalescer, RDDBarrier, RDD => UnderlyingRDD}
 import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.storage.StorageLevel
-
+import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
 import zio._
 
 import scala.collection.Map

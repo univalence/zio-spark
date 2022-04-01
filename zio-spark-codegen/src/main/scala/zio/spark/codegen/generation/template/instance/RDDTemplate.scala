@@ -5,7 +5,7 @@ import zio.spark.codegen.generation.template.{Helper, Template}
 import zio.spark.codegen.generation.template.Helper.*
 
 case object RDDTemplate extends Template.Default {
-  override def name: String = "RDD"
+  override def name: String = "RD"
 
   override def typeParameters: List[String] = List("T")
 

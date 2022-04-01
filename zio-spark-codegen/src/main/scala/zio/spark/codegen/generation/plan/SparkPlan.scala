@@ -1,11 +1,11 @@
 package zio.spark.codegen.generation.plan
 
-import sbt.*
 import sbt.Keys.Classpath
+import sbt.fileToRichFile
 
-import zio.{Console, URIO, ZIO}
+import zio.{URIO, ZIO}
 import zio.spark.codegen.ScalaBinaryVersion
-import zio.spark.codegen.generation.{MethodType, Module}
+import zio.spark.codegen.generation.{Logger, MethodType, Module}
 import zio.spark.codegen.generation.Environment.{Environment, ZIOSparkFolders}
 import zio.spark.codegen.generation.Error.{CodegenError, NotIndentedError, UnimplementedMethodsError}
 import zio.spark.codegen.generation.Loader.{optionalSourceFromFile, sourceFromClasspath}
@@ -44,7 +44,7 @@ case class SparkPlan(module: Module, template: Template) extends Plan { self =>
           .getOrElse(Seq.empty)
     } yield overlayFunctions ++ overlaySpecificFunctions
 
-  def generateOverlayCode: ZIO[Console & Environment, CodegenError, SurroundedString] =
+  def generateOverlayCode: ZIO[Environment, CodegenError, SurroundedString] =
     generateOverlayMethods.map { methods =>
       val code = methods.sortBy(_.name).map(_.raw).mkString("\n\n")
       "  // Handmade functions specific to zio-spark" <<< code
@@ -68,7 +68,7 @@ case class SparkPlan(module: Module, template: Template) extends Plan { self =>
       .filterNot(_.anyParameters.map(_.signature).exists(_.contains("java")))  // Java specific implementation
       .filterNot(_.anyParameters.map(_.signature).exists(_.contains("Array"))) // Java specific implementation
 
-  def getSparkMethods: ZIO[Console & Classpath & ScalaBinaryVersion, CodegenError, Seq[Method]] =
+  def getSparkMethods: ZIO[Logger & Classpath & ScalaBinaryVersion, CodegenError, Seq[Method]] =
     for {
       classpath    <- ZIO.service[Classpath]
       scalaVersion <- ZIO.service[ScalaBinaryVersion]
@@ -83,7 +83,7 @@ case class SparkPlan(module: Module, template: Template) extends Plan { self =>
       .sortBy(_.name)
       .groupBy(template.getMethodType)
 
-  def generateSparkCode: ZIO[Console & Environment, CodegenError, SurroundedString] =
+  def generateSparkCode: ZIO[Environment, CodegenError, SurroundedString] =
     for {
       groupedMethods <- generateSparkGroupedMethods
       code =
@@ -157,6 +157,8 @@ case class SparkPlan(module: Module, template: Template) extends Plan { self =>
     } yield if (missingMethods.isEmpty) ZIO.unit else ZIO.fail(UnimplementedMethodsError(missingMethods))
 
   override def postValidation(code: String): ZIO[Environment, CodegenError, Unit] =
-    if ("\n//(.*?)\n".r.findFirstIn(code).isEmpty) ZIO.unit else ZIO.fail(NotIndentedError)
-
+    "\n//(.*?)\n".r.findAllIn(code).toList match {
+      case Nil   => ZIO.unit
+      case lines => ZIO.fail(NotIndentedError(lines))
+    }
 }

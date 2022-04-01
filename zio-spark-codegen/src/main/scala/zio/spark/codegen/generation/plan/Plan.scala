@@ -5,15 +5,7 @@ import zio.spark.codegen.generation.Environment.{Environment, ScalafmtFormatter}
 import zio.spark.codegen.generation.Error.CodegenError
 import zio.spark.codegen.generation.Module.{coreModule, sqlModule}
 import zio.spark.codegen.generation.Output
-import zio.spark.codegen.generation.template.*
-import zio.spark.codegen.generation.template.instance.{
-  DataFrameNaFunctionsTemplate,
-  DataFrameStatFunctionsTemplate,
-  DatasetTemplate,
-  KeyValueGroupedDatasetTemplate,
-  RDDTemplate,
-  RelationalGroupedDatasetTemplate
-}
+import zio.spark.codegen.generation.template.instance.*
 
 import java.nio.file.Path
 
@@ -31,6 +23,8 @@ object Plan {
  * work.
  */
 trait Plan {
+  val name: String
+
   def generatePath: URIO[Environment, Path]
 
   def generateCode: ZIO[Environment, CodegenError, String]

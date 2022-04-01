@@ -3,11 +3,11 @@ package zio.spark.codegen
 import sbt.Keys.Classpath
 import sbt.internal.util.Attributed
 
-import zio.{Console, ZIO, ZLayer}
+import zio.{ZIO, ZLayer}
 import zio.spark.codegen.generation.Error.CodegenError
+import zio.spark.codegen.generation.Logger
 import zio.spark.codegen.generation.plan.SparkPlan
 import zio.spark.codegen.structure.Method
-import zio.test.{TestConsole, TestEnvironment}
 
 import java.io.File
 import java.net.URLClassLoader
@@ -25,7 +25,7 @@ object Helpers {
       name: String,
       arity: Int,
       args: List[String] = Nil
-  ): ZIO[Console & SparkPlan & Classpath & ScalaBinaryVersion, CodegenError, Option[Method]] =
+  ): ZIO[Logger & SparkPlan & Classpath & ScalaBinaryVersion, CodegenError, Option[Method]] =
     for {
       plan         <- ZIO.service[SparkPlan]
       sparkMethods <- plan.getSparkMethods
@@ -43,12 +43,11 @@ object Helpers {
       name: String,
       arity: Int,
       args: List[String] = Nil
-  ): ZIO[TestEnvironment & SparkPlan, CodegenError, Option[Method]] = {
+  ): ZIO[SparkPlan, CodegenError, Option[Method]] = {
     val classpathLayer    = ZLayer.succeed(classLoaderToClasspath(this.getClass.getClassLoader))
-    val consoleLayer      = TestConsole.silent
     val scalaVersionLayer = ZLayer.succeed(ScalaBinaryVersion.V2_13)
-    val layers            = classpathLayer ++ scalaVersionLayer ++ consoleLayer
-    findMethod(name, arity, args).provideSomeLayer[TestEnvironment & SparkPlan](layers)
+    val layers            = classpathLayer ++ scalaVersionLayer ++ Logger.silent
+    findMethod(name, arity, args).provideSomeLayer[SparkPlan](layers)
   }
 
   def planLayer(plan: SparkPlan): ZLayer[Any, Nothing, SparkPlan] = ZLayer.succeed(plan)

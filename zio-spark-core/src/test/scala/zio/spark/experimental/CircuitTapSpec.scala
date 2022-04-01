@@ -1,8 +1,7 @@
 package zio.spark.experimental
 
-import NewType.{Ratio, Weight}
-
 import zio.ZIO
+import zio.spark.experimental.NewType.{Ratio, Weight}
 import zio.test.DefaultRunnableSpec
 
 object CircuitTapSpec extends DefaultRunnableSpec {

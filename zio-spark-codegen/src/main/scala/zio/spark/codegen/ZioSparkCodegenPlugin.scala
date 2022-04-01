@@ -1,12 +1,13 @@
 package zio.spark.codegen
 
 import org.scalafmt.interfaces.Scalafmt
-import sbt.*
+import sbt.{settingKey, AutoPlugin, Compile, Def}
 import sbt.Keys.*
 
 import zio.{Console, ULayer, URLayer, ZIO, ZLayer}
-import zio.spark.codegen.generation.{Generator, Output}
+import zio.spark.codegen.generation.{Generator, Logger, Output}
 import zio.spark.codegen.generation.Environment.{ScalafmtFormatter, ScalafmtFormatterLive, ZIOSparkFolders, ZIOSparkFoldersLive}
+import zio.spark.codegen.generation.plan.Plan
 import zio.spark.codegen.generation.plan.Plan.*
 
 import java.nio.file.*
@@ -49,26 +50,29 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             } yield ZIOSparkFoldersLive((Compile / scalaSource).value, scalaVersion)
           }
 
-        val generator: Generator =
-          Generator(
-            Seq(
-              rddPlan,
-              datasetPlan,
-              dataFrameNaFunctionsPlan,
-              dataFrameStatFunctionsPlan,
-              relationalGroupedDatasetPlan,
-              keyValueGroupedDatasetPlan
-            )
+        val plans: Seq[Plan] =
+          Seq(
+            rddPlan,
+            datasetPlan,
+            dataFrameNaFunctionsPlan,
+            dataFrameStatFunctionsPlan,
+            relationalGroupedDatasetPlan,
+            keyValueGroupedDatasetPlan
           )
 
         val outputs: Seq[Output] =
           zio.Runtime.default.unsafeRun(
-            generator.generate
-              .tapError(e => Console.printLine(e.forHuman))
-              .provide(scalaVersionLayer, classpathLayer, scalafmtLayer, zioSparkFoldersLayer, Console.live)
+            Generator
+              .generateAll(plans)
+              .provide(
+                scalaVersionLayer,
+                classpathLayer,
+                scalafmtLayer,
+                zioSparkFoldersLayer,
+                Console.live,
+                Logger.live
+              )
           )
-
-        outputs.foreach(output => IO.write(output.file, output.code))
 
         outputs.map(_.file)
       }.taskValue
