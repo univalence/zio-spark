@@ -1,10 +1,19 @@
 package zio.spark.codegen.generation.plan
 
-import zio.{Console, IO, UIO, URIO, ZIO}
-import zio.spark.codegen.generation.{Environment, Output}
+import zio.{UIO, URIO, ZIO}
+import zio.spark.codegen.generation.Environment.{Environment, ScalafmtFormatter}
 import zio.spark.codegen.generation.Error.CodegenError
 import zio.spark.codegen.generation.Module.{coreModule, sqlModule}
+import zio.spark.codegen.generation.Output
 import zio.spark.codegen.generation.template.*
+import zio.spark.codegen.generation.template.instance.{
+  DataFrameNaFunctionsTemplate,
+  DataFrameStatFunctionsTemplate,
+  DatasetTemplate,
+  KeyValueGroupedDatasetTemplate,
+  RDDTemplate,
+  RelationalGroupedDatasetTemplate
+}
 
 import java.nio.file.Path
 
@@ -24,18 +33,18 @@ object Plan {
 trait Plan {
   def generatePath: URIO[Environment, Path]
 
-  def generateCode: ZIO[Console & Environment, CodegenError, String]
+  def generateCode: ZIO[Environment, CodegenError, String]
 
   def formatCode(code: String): URIO[Environment, String] =
     for {
-      environment <- ZIO.service[Environment]
-      path        <- generatePath
-    } yield environment.scalafmt.format(environment.scalafmtConfiguration, path, code)
+      scalafmt <- ZIO.service[ScalafmtFormatter]
+      path     <- generatePath
+    } yield scalafmt.format(code, path)
 
-  def preValidation: ZIO[Console & Environment, CodegenError, Unit]                = UIO.unit
-  def postValidation(code: String): ZIO[Console & Environment, CodegenError, Unit] = UIO.unit
+  def preValidation: ZIO[Environment, CodegenError, Unit]                = UIO.unit
+  def postValidation(code: String): ZIO[Environment, CodegenError, Unit] = UIO.unit
 
-  def generate: ZIO[Console & Environment, CodegenError, Output] =
+  def generate: ZIO[Environment, CodegenError, Output] =
     for {
       _    <- preValidation
       path <- generatePath

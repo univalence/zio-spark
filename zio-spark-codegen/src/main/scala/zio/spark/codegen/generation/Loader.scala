@@ -1,9 +1,9 @@
 package zio.spark.codegen.generation
 
-import sbt.{File, IO}
+import sbt.File
 import sbt.Keys.Classpath
 
-import zio.{Console, Task, UIO, ZIO}
+import zio.{Console, IO, Task, UIO, ZIO}
 import zio.spark.codegen.generation.Error.*
 
 import scala.io.{BufferedSource, Source}
@@ -69,9 +69,9 @@ object Loader {
    * @param file
    *   The file to retrieve content from
    */
-  def sourceFromFile(file: File): ZIO[Environment, CodegenError, meta.Source] =
+  def sourceFromFile(file: File): IO[CodegenError, meta.Source] =
     for {
-      content <- ZIO.attempt(IO.read(file)).mapError(_ => FileReadingError(file.getPath))
+      content <- ZIO.attempt(sbt.IO.read(file)).mapError(_ => FileReadingError(file.getPath))
       source  <- ZIO.attempt(content.parse[meta.Source].get).mapError(_ => ContentIsNotSourceError(file.getPath))
     } yield source
 
@@ -79,7 +79,7 @@ object Loader {
    * Retrieves the content of a Scala file as Scala meta source, returns
    * None if the file doesn't not exist.
    */
-  def optionalSourceFromFile(file: File): ZIO[Environment, CodegenError, Option[meta.Source]] =
+  def optionalSourceFromFile(file: File): IO[CodegenError, Option[meta.Source]] =
     sourceFromFile(file).foldZIO(
       failure = {
         case FileReadingError(_) => UIO.succeed(None)

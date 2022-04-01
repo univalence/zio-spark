@@ -1,26 +1,28 @@
-package zio.spark.codegen
+package zio.spark.codegen.generation
 
-import zio.*
-import zio.spark.codegen.GenerationPlan.*
-import zio.spark.codegen.Helpers.{findMethod, planLayer}
-import zio.spark.codegen.MethodType.*
-import zio.test.*
+import zio.{URIO, ZIO}
+import zio.spark.codegen.Helpers.{findMethodDefault, planLayer}
+import zio.spark.codegen.generation.MethodType.*
+import zio.spark.codegen.generation.plan.Plan.*
+import zio.spark.codegen.generation.plan.SparkPlan
+import zio.test.{assertNever, assertTrue, DefaultRunnableSpec, Spec, TestEnvironment, TestFailure, TestResult, TestSuccess, ZSpec}
 
 object MethodTypeSpec extends DefaultRunnableSpec {
   def testMethodTypeFor(name: String, arity: Int = -1, args: List[String] = Nil)(
       expected: MethodType
-  ): ZSpec[GenerationPlan, Nothing] = {
+  ): ZSpec[TestEnvironment & SparkPlan, Nothing] = {
     val outputName = if (args.isEmpty) name else s"$name(${args.mkString(", ")})"
 
     test(s"The function '$outputName' should be a $expected") {
       val maybeMethodEffect =
         for {
-          generationPlan <- ZIO.service[GenerationPlan]
-          method         <- ZIO.fromOption(findMethod(name, generationPlan, arity, args))
-          methodType = getMethodType(method, generationPlan.planType)
+          plan        <- ZIO.service[SparkPlan]
+          maybeMethod <- findMethodDefault(name, arity, args)
+          method      <- ZIO.fromOption(maybeMethod)
+          methodType = plan.template.getMethodType(method)
         } yield methodType
 
-      val res: URIO[GenerationPlan, TestResult] =
+      val res: URIO[TestEnvironment & SparkPlan, TestResult] =
         maybeMethodEffect.fold(
           failure = _ => assertNever(s"can't find '$outputName'.'"),
           success = methodType => assertTrue(methodType == expected)
@@ -30,43 +32,43 @@ object MethodTypeSpec extends DefaultRunnableSpec {
     }
   }
 
-  val rddMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+  val rddMethodTypes: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for RDD")(
       testMethodTypeFor("withResources")(Transformation),
       testMethodTypeFor("countApproxDistinct")(DistributedComputation)
-    ).provideLayer(planLayer(RDDPlan))
+    ).provideSomeLayer[TestEnvironment](planLayer(rddPlan))
 
-  val datasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+  val datasetMethodTypes: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for Dataset")(
       testMethodTypeFor("as", arity = 1, args = List("alias"))(Transformation),
       testMethodTypeFor("as", arity = 0)(TransformationWithAnalysis),
       testMethodTypeFor("withColumn")(TransformationWithAnalysis),
       testMethodTypeFor("drop")(Transformation),
       testMethodTypeFor("persist")(DriverAction)
-    ).provideLayer(planLayer(DatasetPlan))
+    ).provideSomeLayer[TestEnvironment](planLayer(datasetPlan))
 
-  val relationalGroupedDatasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+  val relationalGroupedDatasetMethodTypes: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for RelationalGroupedDataset")(
       testMethodTypeFor("as")(GetWithAnalysis),
       testMethodTypeFor("count")(Unpack)
-    ).provideLayer(planLayer(RelationalGroupedDatasetPlan))
+    ).provideSomeLayer[TestEnvironment](planLayer(relationalGroupedDatasetPlan))
 
-  val dataFrameStatFunctionsMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+  val dataFrameStatFunctionsMethodTypes: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for DataFrameStatFunctions")(
       testMethodTypeFor("countMinSketch")(GetWithAnalysis)
-    ).provideLayer(planLayer(DataFrameStatFunctionsPlan))
+    ).provideSomeLayer[TestEnvironment](planLayer(dataFrameStatFunctionsPlan))
 
-  val dataFrameNaFunctionsMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+  val dataFrameNaFunctionsMethodTypes: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for DataFrameNaFunctions")(
       testMethodTypeFor("drop", arity = 1, args = List("cols"))(UnpackWithAnalysis)
-    ).provideLayer(planLayer(DataFrameNaFunctionsPlan))
+    ).provideSomeLayer[TestEnvironment](planLayer(dataFrameNaFunctionsPlan))
 
-  val keyValueGroupedDatasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
+  val keyValueGroupedDatasetMethodTypes: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for KeyValueGroupedDataset")(
       testMethodTypeFor("count")(Unpack),
       testMethodTypeFor("keyAs")(Transformation),
       testMethodTypeFor("mapValues")(Transformation)
-    ).provideLayer(planLayer(KeyValueGroupedDatasetPlan))
+    ).provideSomeLayer[TestEnvironment](planLayer(keyValueGroupedDatasetPlan))
 
   override def spec: ZSpec[TestEnvironment, Any] = {
     val specs =

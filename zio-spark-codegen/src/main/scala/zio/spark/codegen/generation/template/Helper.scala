@@ -1,8 +1,5 @@
 package zio.spark.codegen.generation.template
 
-import zio.spark.codegen.structure.SurroundedString
-import zio.spark.codegen.structure.SurroundedString.*
-
 trait Helper {
   self =>
   def apply(name: String, typeParameters: List[String]): String

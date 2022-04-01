@@ -4,8 +4,9 @@ import org.scalafmt.interfaces.Scalafmt
 import sbt.*
 import sbt.Keys.*
 
-import zio.{Console, ULayer, ZLayer}
-import zio.spark.codegen.generation.{Environment, Generator, Output}
+import zio.{Console, ULayer, URLayer, ZIO, ZLayer}
+import zio.spark.codegen.generation.{Generator, Output}
+import zio.spark.codegen.generation.Environment.{ScalafmtFormatter, ScalafmtFormatterLive, ZIOSparkFolders, ZIOSparkFoldersLive}
 import zio.spark.codegen.generation.plan.Plan.*
 
 import java.nio.file.*
@@ -25,23 +26,28 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
   override lazy val projectSettings =
     Seq(
       Compile / sourceGenerators += Def.task {
-        val version =
+        val version: ScalaBinaryVersion =
           scalaBinaryVersion.value match {
             case "2.11" => ScalaBinaryVersion.V2_11
             case "2.12" => ScalaBinaryVersion.V2_12
             case "2.13" => ScalaBinaryVersion.V2_13
           }
 
-        val environment: ULayer[Environment] =
+        val scalaVersionLayer: ULayer[ScalaBinaryVersion] = ZLayer.succeed(version)
+        val classpathLayer: ULayer[Classpath]             = ZLayer.succeed((Compile / dependencyClasspathAsJars).value)
+        val scalafmtLayer: ULayer[ScalafmtFormatter] =
           ZLayer.succeed(
-            Environment(
-              mainFolder            = (Compile / scalaSource).value,
-              classpath             = (Compile / dependencyClasspathAsJars).value,
-              scalaVersion          = version,
-              scalafmt              = Scalafmt.create(this.getClass.getClassLoader),
-              scalafmtConfiguration = Paths.get(".scalafmt.conf")
+            ScalafmtFormatterLive(
+              Scalafmt.create(this.getClass.getClassLoader),
+              Paths.get(".scalafmt.conf")
             )
           )
+        val zioSparkFoldersLayer: URLayer[ScalaBinaryVersion, ZIOSparkFolders] =
+          ZLayer {
+            for {
+              scalaVersion <- ZIO.service[ScalaBinaryVersion]
+            } yield ZIOSparkFoldersLive((Compile / scalaSource).value, scalaVersion)
+          }
 
         val generator: Generator =
           Generator(
@@ -59,7 +65,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
           zio.Runtime.default.unsafeRun(
             generator.generate
               .tapError(e => Console.printLine(e.forHuman))
-              .provideCustomLayer(environment)
+              .provide(scalaVersionLayer, classpathLayer, scalafmtLayer, zioSparkFoldersLayer, Console.live)
           )
 
         outputs.foreach(output => IO.write(output.file, output.code))

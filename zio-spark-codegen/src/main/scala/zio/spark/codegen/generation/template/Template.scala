@@ -1,6 +1,6 @@
 package zio.spark.codegen.generation.template
 
-import zio.spark.codegen.generation.Environment
+import zio.spark.codegen.ScalaBinaryVersion
 import zio.spark.codegen.generation.MethodType
 import zio.spark.codegen.structure.Method
 
@@ -11,11 +11,11 @@ trait Template {
 
   def helpers: Helper
 
-  def imports(environment: Environment): Option[String]
+  def imports(scalaVersion: ScalaBinaryVersion): Option[String]
 
-  def implicits(environment: Environment): Option[String]
+  def implicits(scalaVersion: ScalaBinaryVersion): Option[String]
 
-  def annotations(environment: Environment): Option[String]
+  def annotations(scalaVersion: ScalaBinaryVersion): Option[String]
 
   final def typeParameter: String = if (typeParameters.nonEmpty) s"[${typeParameters.mkString(", ")}]" else ""
 
@@ -35,11 +35,11 @@ object Template {
 
     override def typeParameters: List[String] = Nil
 
-    override def imports(environment: Environment): Option[String] = None
+    override def imports(scalaVersion: ScalaBinaryVersion): Option[String] = None
 
-    override def implicits(environment: Environment): Option[String] = None
+    override def implicits(scalaVersion: ScalaBinaryVersion): Option[String] = None
 
-    override def annotations(environment: Environment): Option[String] = None
+    override def annotations(scalaVersion: ScalaBinaryVersion): Option[String] = None
 
     override def getMethodType(method: Method): MethodType = MethodType.defaultMethodType(method, self)
   }

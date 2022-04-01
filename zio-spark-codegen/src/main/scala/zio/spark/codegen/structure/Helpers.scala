@@ -1,5 +1,6 @@
 package zio.spark.codegen.structure
 import zio.spark.codegen.ScalaBinaryVersion
+import zio.spark.codegen.generation.plan.SparkPlan
 
 import scala.meta.*
 
@@ -18,7 +19,10 @@ object Helpers {
     res.toString()
   }
 
-  def cleanType(type_ : String): String = cleanPrefixPackage(type_).replaceAll(",\\b", ", ")
+  def cleanType(type_ : String, plan: SparkPlan): String =
+    cleanPrefixPackage(type_)
+      .replaceAll(",\\b", ", ")
+      .replace("this.type", s"${plan.name}${plan.template.typeParameter}")
 
   def checkMods(mods: List[Mod]): Boolean =
     !mods.exists {
@@ -43,7 +47,7 @@ object Helpers {
       false
     )
 
-  def functionsFromSource(
+  def methodsFromSource(
       source: Source,
       filterOverlay: Boolean,
       hierarchy: String,

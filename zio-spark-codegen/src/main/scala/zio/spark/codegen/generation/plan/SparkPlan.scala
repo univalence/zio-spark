@@ -1,14 +1,17 @@
 package zio.spark.codegen.generation.plan
 
 import sbt.*
+import sbt.Keys.Classpath
 
 import zio.{Console, URIO, ZIO}
-import zio.spark.codegen.generation.{Environment, MethodType, Module}
+import zio.spark.codegen.ScalaBinaryVersion
+import zio.spark.codegen.generation.{MethodType, Module}
+import zio.spark.codegen.generation.Environment.{Environment, ZIOSparkFolders}
 import zio.spark.codegen.generation.Error.{CodegenError, NotIndentedError, UnimplementedMethodsError}
 import zio.spark.codegen.generation.Loader.{optionalSourceFromFile, sourceFromClasspath}
 import zio.spark.codegen.generation.template.Template
 import zio.spark.codegen.structure.{Method, SurroundedString}
-import zio.spark.codegen.structure.Helpers.functionsFromSource
+import zio.spark.codegen.structure.Helpers.methodsFromSource
 import zio.spark.codegen.structure.SurroundedString.*
 
 import java.nio.file.Path
@@ -20,23 +23,24 @@ import java.nio.file.Path
  *   - The methods from ZIO Spark overlay
  *   - The methods from ZIO Spark specific overlay
  */
-case class SparkPlan(module: Module, template: Template) extends Plan {
+case class SparkPlan(module: Module, template: Template) extends Plan { self =>
   val name: String = template.name
 
-  def generateOverlayMethods: ZIO[Console & Environment, CodegenError, Seq[Method]] =
+  def generateOverlayMethods: ZIO[ScalaBinaryVersion & ZIOSparkFolders, CodegenError, Seq[Method]] =
     for {
-      environment <- ZIO.service[Environment]
-      overlayPath         = environment.itFolder / s"${name}Overlay.scala"
-      overlaySpecificPath = environment.itFolderVersioned / s"${name}OverlaySpecific.scala"
+      scalaVersion    <- ZIO.service[ScalaBinaryVersion]
+      zioSparkFolders <- ZIO.service[ZIOSparkFolders]
+      overlayPath         = zioSparkFolders.itFolder / s"${name}Overlay.scala"
+      overlaySpecificPath = zioSparkFolders.itFolderVersioned / s"${name}OverlaySpecific.scala"
       maybeOverlaySource         <- optionalSourceFromFile(overlayPath)
       maybeOverlaySpecificSource <- optionalSourceFromFile(overlaySpecificPath)
       overlayFunctions =
         maybeOverlaySource
-          .map(src => functionsFromSource(src, filterOverlay = true, module.hierarchy, name, environment.scalaVersion))
+          .map(src => methodsFromSource(src, filterOverlay = true, module.hierarchy, name, scalaVersion))
           .getOrElse(Seq.empty)
       overlaySpecificFunctions =
         maybeOverlaySpecificSource
-          .map(src => functionsFromSource(src, filterOverlay = true, module.hierarchy, name, environment.scalaVersion))
+          .map(src => methodsFromSource(src, filterOverlay = true, module.hierarchy, name, scalaVersion))
           .getOrElse(Seq.empty)
     } yield overlayFunctions ++ overlaySpecificFunctions
 
@@ -64,12 +68,17 @@ case class SparkPlan(module: Module, template: Template) extends Plan {
       .filterNot(_.anyParameters.map(_.signature).exists(_.contains("java")))  // Java specific implementation
       .filterNot(_.anyParameters.map(_.signature).exists(_.contains("Array"))) // Java specific implementation
 
-  def generateSparkGroupedMethods: ZIO[Console & Environment, CodegenError, Map[MethodType, Seq[Method]]] =
+  def getSparkMethods: ZIO[Console & Classpath & ScalaBinaryVersion, CodegenError, Seq[Method]] =
     for {
-      environment <- ZIO.service[Environment]
-      sparkSource <- sourceFromClasspath(s"${module.path}/$name.scala", module.name, environment.classpath)
-      allFunctions      = functionsFromSource(sparkSource, filterOverlay = false, module.hierarchy, name, environment.scalaVersion)
-      filteredFunctions = filterSparkFunctions(allFunctions)
+      classpath    <- ZIO.service[Classpath]
+      scalaVersion <- ZIO.service[ScalaBinaryVersion]
+      sparkSource  <- sourceFromClasspath(s"${module.path}/$name.scala", module.name, classpath)
+    } yield methodsFromSource(sparkSource, filterOverlay = false, module.hierarchy, name, scalaVersion)
+
+  def generateSparkGroupedMethods: ZIO[Environment, CodegenError, Map[MethodType, Seq[Method]]] =
+    for {
+      sparkMethods <- getSparkMethods
+      filteredFunctions = filterSparkFunctions(sparkMethods)
     } yield filteredFunctions
       .sortBy(_.name)
       .groupBy(template.getMethodType)
@@ -89,7 +98,7 @@ case class SparkPlan(module: Module, template: Template) extends Plan {
 
             val allMethods =
               methods
-                .map(_.toCode(methodType))
+                .map(_.toCode(methodType, self))
                 .distinct
                 .mkString(sep)
 
@@ -103,14 +112,14 @@ case class SparkPlan(module: Module, template: Template) extends Plan {
           .mkString("\n\n  // ===============\n\n")
     } yield "  // Generated functions coming from spark" <<< code
 
-  override def generateCode: ZIO[Console & Environment, CodegenError, String] =
+  override def generateCode: ZIO[Environment, CodegenError, String] =
     for {
-      environment <- ZIO.service[Environment]
-      sparkCode   <- generateSparkCode
-      overlayCode <- generateOverlayCode
-      maybeImports     = template.imports(environment)
-      maybeAnnotations = template.annotations(environment)
-      maybeImplicits   = template.implicits(environment).map("  // scalafix:off" <<< _ >>> "  // scalafix:on")
+      scalaVersion <- ZIO.service[ScalaBinaryVersion]
+      sparkCode    <- generateSparkCode
+      overlayCode  <- generateOverlayCode
+      maybeImports     = template.imports(scalaVersion)
+      maybeAnnotations = template.annotations(scalaVersion)
+      maybeImplicits   = template.implicits(scalaVersion).map("  // scalafix:off" <<< _ >>> "  // scalafix:on")
       definition       = template.definition
       helpers          = template.helpers
       code =
@@ -129,17 +138,15 @@ case class SparkPlan(module: Module, template: Template) extends Plan {
            |$sparkCode
            |}
            |""".stripMargin
-    } yield postProcess(code)
+    } yield code
 
-  final def postProcess(code: String): String = code.replace("this.type", s"$name${template.typeParameter}")
-
-  override def generatePath: URIO[Environment, Path] =
+  override def generatePath: URIO[ZIOSparkFolders, Path] =
     for {
-      environment <- ZIO.service[Environment]
-      file = environment.mainFolderVersioned / module.zioPath / s"$name.scala"
+      zioSparkFolders <- ZIO.service[ZIOSparkFolders]
+      file = zioSparkFolders.mainFolderVersioned / module.zioPath / s"$name.scala"
     } yield file.toPath
 
-  override def preValidation: ZIO[Console & Environment, CodegenError, Unit] =
+  override def preValidation: ZIO[Environment, CodegenError, Unit] =
     for {
       groupedSourceMethods <- generateSparkGroupedMethods
       overlayMethods       <- generateOverlayMethods
@@ -149,7 +156,7 @@ case class SparkPlan(module: Module, template: Template) extends Plan {
       missingMethods               = sourceMethodNamesToImplement -- overlayMethodNames
     } yield if (missingMethods.isEmpty) ZIO.unit else ZIO.fail(UnimplementedMethodsError(missingMethods))
 
-  override def postValidation(code: String): ZIO[Console & Environment, CodegenError, Unit] =
+  override def postValidation(code: String): ZIO[Environment, CodegenError, Unit] =
     if ("\n//(.*?)\n".r.findFirstIn(code).isEmpty) ZIO.unit else ZIO.fail(NotIndentedError)
 
 }

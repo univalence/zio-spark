@@ -1,6 +1,7 @@
 package zio.spark.codegen.generation
 
-import zio.{Console, ZIO}
+import zio.ZIO
+import zio.spark.codegen.generation.Environment.Environment
 import zio.spark.codegen.generation.Error.CodegenError
 import zio.spark.codegen.generation.plan.Plan
 
@@ -9,5 +10,5 @@ import zio.spark.codegen.generation.plan.Plan
  * a particular file.
  */
 case class Generator(plans: Seq[Plan]) {
-  def generate: ZIO[Console & Environment, CodegenError, Seq[Output]] = ZIO.foreachPar(plans)(_.generate)
+  def generate: ZIO[Environment, CodegenError, Seq[Output]] = ZIO.foreachPar(plans)(_.generate)
 }

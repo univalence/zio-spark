@@ -1,13 +1,15 @@
-package zio.spark.codegen.generation.template
+package zio.spark.codegen.generation.template.instance
 
-import zio.spark.codegen.generation.{Environment, MethodType}
+import zio.spark.codegen.ScalaBinaryVersion
+import zio.spark.codegen.generation.MethodType
+import zio.spark.codegen.generation.template.{Helper, Template}
 import zio.spark.codegen.generation.template.Helper.*
 import zio.spark.codegen.structure.Method
 
 case object DataFrameStatFunctionsTemplate extends Template.Default {
   override def name: String = "DataFrameStatFunctions"
 
-  override def imports(environment: Environment): Option[String] =
+  override def imports(scalaVersion: ScalaBinaryVersion): Option[String] =
     Some {
       """import org.apache.spark.sql.{
         |  Column,

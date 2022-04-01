@@ -1,29 +1,34 @@
-package zio.spark.codegen
+package zio.spark.codegen.structure
 
-import zio.ZIO
-import zio.spark.codegen.GenerationPlan.{DatasetPlan, KeyValueGroupedDatasetPlan, RDDPlan}
-import zio.spark.codegen.Helpers.{findMethod, planLayer}
-import zio.test.*
+import zio.{URIO, ZIO}
+import zio.spark.codegen.Helpers.{findMethodDefault, planLayer}
+import zio.spark.codegen.generation.plan.Plan.{datasetPlan, keyValueGroupedDatasetPlan, rddPlan}
+import zio.spark.codegen.generation.plan.SparkPlan
+import zio.test.{assertNever, assertTrue, DefaultRunnableSpec, Spec, TestEnvironment, TestFailure, TestResult, TestSuccess, ZSpec}
 
 object MethodSpec extends DefaultRunnableSpec {
   def genTest2(name: String, arity: Int = -1, args: List[String] = Nil)(
       expectedCode: String
-  ): ZSpec[GenerationPlan, Nothing] =
+  ): ZSpec[TestEnvironment & SparkPlan, Nothing] =
     test(name) {
-      ZIO.serviceWith[GenerationPlan][TestResult] { plan =>
-        findMethod(name, plan, arity, args) match {
+      val res: URIO[TestEnvironment & SparkPlan, TestResult] =
+        for {
+          plan        <- ZIO.service[SparkPlan]
+          maybeMethod <- findMethodDefault(name, arity, args).orDieWith(e => new Throwable(e.forHuman))
+        } yield maybeMethod match {
           case Some(m) =>
-            val generatedCode = m.toCode(MethodType.getMethodType(m, plan.planType))
+            val generatedCode = m.toCode(plan.template.getMethodType(m), plan)
             assertTrue(generatedCode.contains(expectedCode))
           case None => assertNever(s"can't find $name")
         }
-      }
+
+      res
     }
 
-  val rddMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
+  val rddMethods: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         expectedCode: String
-    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
+    ): ZSpec[TestEnvironment & SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
 
     suite("Check method generations for RDD")(
       checkGen("min")("min(implicit ord: Ordering[T], trace: ZTraceElement): Task[T]"),
@@ -40,30 +45,30 @@ object MethodSpec extends DefaultRunnableSpec {
         "saveAsTextFile(path: => String, codec: => Class[_ <: CompressionCodec])(implicit trace: ZTraceElement): Task[Unit]"
       )
     )
-  }.provide(planLayer(RDDPlan))
+  }.provideSomeLayer[TestEnvironment](planLayer(rddPlan))
 
-  val datasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
+  val datasetMethods: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         expectedCode: String
-    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
+    ): ZSpec[TestEnvironment & SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
 
     suite("Check method generations for Dataset")(
       checkGen("filter", 1, List("conditionExpr"))("filter(conditionExpr: String): TryAnalysis[Dataset[T]]"),
       checkGen("orderBy", arity = 1)("_.orderBy(sortExprs: _*)"),
-      checkGen("explode", arity = 2)("explode[A <: Product : TypeTag](input: Column*)(f: Row => TraversableOnce[A])"),
+      checkGen("explode", arity = 2)("explode[A <: Product : TypeTag](input: Column*)(f: Row => IterableOnce[A])"),
       checkGen("dropDuplicates", arity = 1)("dropDuplicates(colNames: Seq[String]): TryAnalysis[Dataset[T]]")
     )
-  }.provide(planLayer(DatasetPlan))
+  }.provideSomeLayer[TestEnvironment](planLayer(datasetPlan))
 
-  val keyValueGroupedDatasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
+  val keyValueGroupedDatasetMethods: Spec[TestEnvironment, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         genCodeFragment: String
-    ): ZSpec[GenerationPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)
+    ): ZSpec[TestEnvironment & SparkPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)
 
     suite("Check method generations for Dataset")(
       checkGen("cogroup")("other.underlying")
     )
-  }.provide(planLayer(KeyValueGroupedDatasetPlan))
+  }.provideSomeLayer[TestEnvironment](planLayer(keyValueGroupedDatasetPlan))
 
   override def spec: ZSpec[TestEnvironment, Any] = rddMethods + datasetMethods + keyValueGroupedDatasetMethods
 

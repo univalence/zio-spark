@@ -1,8 +1,9 @@
-package zio.spark.codegen.generation.template
+package zio.spark.codegen.generation.template.instance
 
 import zio.spark.codegen.ScalaBinaryVersion
-import zio.spark.codegen.generation.{Environment, MethodType}
-import zio.spark.codegen.generation.MethodType.*
+import zio.spark.codegen.generation.MethodType
+import zio.spark.codegen.generation.MethodType.{Ignored, Transformation}
+import zio.spark.codegen.generation.template.{Helper, Template}
 import zio.spark.codegen.generation.template.Helper.*
 import zio.spark.codegen.structure.Method
 
@@ -11,7 +12,7 @@ case object DatasetTemplate extends Template.Default {
 
   override def typeParameters: List[String] = List("T")
 
-  override def imports(environment: Environment): Option[String] =
+  override def imports(scalaVersion: ScalaBinaryVersion): Option[String] =
     Some {
       val baseImports: String =
         """import org.apache.spark.sql.{
@@ -34,7 +35,7 @@ case object DatasetTemplate extends Template.Default {
           |import scala.reflect.runtime.universe.TypeTag
           |""".stripMargin
 
-      environment.scalaVersion match {
+      scalaVersion match {
         case ScalaBinaryVersion.V2_13 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.ExplainMode
@@ -50,7 +51,7 @@ case object DatasetTemplate extends Template.Default {
       }
     }
 
-  override def implicits(environment: Environment): Option[String] =
+  override def implicits(scalaVersion: ScalaBinaryVersion): Option[String] =
     Some {
       s"""private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
          |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] =

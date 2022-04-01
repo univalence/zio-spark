@@ -2,6 +2,7 @@ package zio.spark.codegen.structure
 
 import zio.spark.codegen.ScalaBinaryVersion
 import zio.spark.codegen.generation.MethodType
+import zio.spark.codegen.generation.plan.SparkPlan
 import zio.spark.codegen.structure.Helpers.cleanType
 
 import scala.meta.*
@@ -37,7 +38,7 @@ case class Method(
     s"""$comment
        |$df""".stripMargin
 
-  def toCode(methodType: MethodType): String =
+  def toCode(methodType: MethodType, plan: SparkPlan): String =
     methodType match {
       case MethodType.Ignored | MethodType.ToImplement | MethodType.ToHandle => s"[[$fullName]]"
       case _ =>
@@ -70,7 +71,7 @@ case class Method(
             case _                                     => "get"
           }
 
-        val cleanReturnType = cleanType(returnType)
+        val cleanReturnType = cleanType(returnType, plan)
 
         val trueReturnType =
           methodType match {
