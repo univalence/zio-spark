@@ -1,7 +1,8 @@
-package zio.spark.internal.codegen
+package zio.spark.codegen.generation
 
-import zio.spark.internal.codegen.GenerationPlan.*
-import zio.spark.internal.codegen.structure.Method
+import zio.spark.codegen.generation.template.Template
+import zio.spark.codegen.generation.template.instance.{DatasetTemplate, RDDTemplate}
+import zio.spark.codegen.structure.Method
 
 sealed trait MethodType {
   def withAnalysis: MethodType =
@@ -17,6 +18,7 @@ object MethodType {
   case object Ignored                    extends MethodType // Methods will not be available in zio-spark
   case object ToHandle                   extends MethodType // Methods are not handler by zio-spark for now
   case object ToImplement                extends MethodType // Methods need to be implemented manually in "it"
+  case object Unexpected                 extends MethodType // Methods without assigned type
   case object Transformation             extends MethodType // T => T
   case object TransformationWithAnalysis extends MethodType // T => TryAnalysis[T]
   case object Get                        extends MethodType // T => U
@@ -39,20 +41,21 @@ object MethodType {
       case MethodType.ToHandle                   => 8
       case MethodType.ToImplement                => 9
       case MethodType.Ignored                    => 10
+      case MethodType.Unexpected                 => 11
     }
 
   implicit val orderingMethodType: Ordering[MethodType] = Ordering.by(methodTypeOrdering)
 
   def returnDataset(returnType: String): Boolean = returnType == "DataFrame" || returnType.startsWith("Dataset")
 
-  def isTransformation(planType: PlanType, returnType: String): Boolean =
-    planType match {
-      case _ if returnType == "this.type"                       => true
-      case DatasetPlan                                          => returnDataset(returnType)
-      case RDDPlan                                              => returnType.startsWith("RDD[")
-      case plan if plan.name == returnType                      => true
-      case plan if returnType.startsWith(s"${plan.className}[") => true
-      case _                                                    => false
+  def isTransformation(template: Template, returnType: String): Boolean =
+    template match {
+      case _ if returnType == "this.type"                   => true
+      case DatasetTemplate                                  => returnDataset(returnType)
+      case RDDTemplate                                      => returnType.startsWith("RDD[")
+      case _ if template.name == returnType                 => true
+      case _ if returnType.startsWith(s"${template.name}[") => true
+      case _                                                => false
     }
 
   def isDriverAction(method: Method): Boolean = {
@@ -177,55 +180,40 @@ object MethodType {
     )
 
   /**
-   * Use a best effort first attempt to guess the method type of a
-   * method according to its plan type. Because there is some edge
-   * cases, we have to specify the type later on.
-   */
-  def getBaseMethodType(method: Method, planType: PlanType): MethodType = {
-    val isATransformation = isTransformation(planType, method.returnType)
-
-    method match {
-      case m if isIgnoredMethod(m)          => Ignored
-      case m if methodsToImplement(m.name)  => ToImplement
-      case m if methodsToHandle(m.name)     => ToHandle
-      case m if isDriverAction(m)           => DriverAction
-      case _ if isATransformation           => Transformation
-      case m if methodsGet(m.name)          => Get
-      case m if isDistributedComputation(m) => DistributedComputation
-      case m if returnDataset(m.returnType) => Unpack
-      case _                                => ToHandle
-    }
-  }
-
-  /**
    * Check if one element of ''elements'' is contains inside
    * ''candidates''.
    */
   def oneOfContains(elements: Seq[String], candidates: Set[String]): Boolean =
     elements.exists(element => candidates.exists(candidate => element.contains(candidate)))
 
-  /** Get the method type of a given method and its plan type. */
-  def getMethodType(method: Method, planType: PlanType): MethodType = {
-    val baseMethodType = getBaseMethodType(method, planType)
+  /**
+   * Use a best effort first attempt to guess the method type of a
+   * method according to its plan type. Because there is some edge
+   * cases, we have to specify the type later on.
+   */
+  def defaultMethodType(method: Method, template: Template): MethodType = {
+    val isATransformation = isTransformation(template, method.returnType)
 
-    val datasetWithAnalysis        = Set("apply", "col", "colRegex", "withColumn")
-    val dataframeStatWithAnalysis  = Set("bloomFilter", "corr", "countMinSketch", "cov")
+    val baseMethodType =
+      method match {
+        case m if isIgnoredMethod(m)          => Ignored
+        case m if methodsToImplement(m.name)  => ToImplement
+        case m if methodsToHandle(m.name)     => ToHandle
+        case m if isDriverAction(m)           => DriverAction
+        case _ if isATransformation           => Transformation
+        case m if methodsGet(m.name)          => Get
+        case m if isDistributedComputation(m) => DistributedComputation
+        case m if returnDataset(m.returnType) => Unpack
+        case _                                => Unexpected
+      }
+
     val parameterProvokingAnalysis = Set("expr", "condition", "col", "valueMap")
+    val shouldUseTryAnalysis       = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
 
-    val shouldUseTryAnalysis = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
-
-    planType match {
-      case RelationalGroupedDatasetPlan if method.name == "as"                  => GetWithAnalysis
-      case KeyValueGroupedDatasetPlan if method.name == "count"                 => Unpack
-      case RelationalGroupedDatasetPlan if method.name == "count"               => Unpack
-      case RelationalGroupedDatasetPlan if Set("min", "max")(method.name)       => UnpackWithAnalysis
-      case DatasetPlan if method.name == "apply"                                => Ignored
-      case DatasetPlan if method.name == "drop"                                 => baseMethodType
-      case DatasetPlan if datasetWithAnalysis(method.name)                      => baseMethodType.withAnalysis
-      case DataFrameStatFunctionsPlan if dataframeStatWithAnalysis(method.name) => baseMethodType.withAnalysis
-      case _ if shouldUseTryAnalysis                                            => baseMethodType.withAnalysis
-      case _ if method.anyParameters.isEmpty && method.name == "as"             => baseMethodType.withAnalysis
-      case _                                                                    => baseMethodType
+    method match {
+      case _ if shouldUseTryAnalysis                                => baseMethodType.withAnalysis
+      case _ if method.anyParameters.isEmpty && method.name == "as" => baseMethodType.withAnalysis
+      case _                                                        => baseMethodType
     }
   }
 }

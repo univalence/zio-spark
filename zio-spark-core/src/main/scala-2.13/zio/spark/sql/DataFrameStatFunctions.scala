@@ -51,10 +51,7 @@ final case class DataFrameStatFunctions(underlying: UnderlyingDataFrameStatFunct
    */
   def getWithAnalysis[U](f: UnderlyingDataFrameStatFunctions => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
-  // Handmade functions specific to zio-spark
-
   // Generated functions coming from spark
-
   /**
    * Builds a Bloom filter over a specified column.
    *
@@ -429,5 +426,4 @@ final case class DataFrameStatFunctions(underlying: UnderlyingDataFrameStatFunct
    */
   def sampleBy[T](col: Column, fractions: Map[T, Double], seed: Long): TryAnalysis[DataFrame] =
     unpackWithAnalysis(_.sampleBy[T](col, fractions, seed))
-
 }

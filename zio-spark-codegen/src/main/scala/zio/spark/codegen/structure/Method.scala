@@ -1,13 +1,20 @@
-package zio.spark.internal.codegen.structure
+package zio.spark.codegen.structure
 
-import zio.spark.internal.codegen.{MethodType, ScalaBinaryVersion}
-import zio.spark.internal.codegen.GenerationPlan.PlanType
-import zio.spark.internal.codegen.structure.TypeUtils.*
+import zio.spark.codegen.ScalaBinaryVersion
+import zio.spark.codegen.generation.MethodType
+import zio.spark.codegen.generation.plan.SparkPlan
+import zio.spark.codegen.structure.Helpers.cleanType
 
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
 
-case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType, scalaVersion: ScalaBinaryVersion) {
+case class Method(
+    df:           Defn.Def,
+    comments:     AssociatedComments,
+    hierarchy:    String,
+    className:    String,
+    scalaVersion: ScalaBinaryVersion
+) {
   self =>
 
   val calls: List[ParameterGroup]    = df.paramss.map(pg => ParameterGroup.fromScalaMeta(pg, scalaVersion))
@@ -15,7 +22,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
 
   val name: String                   = df.name.value
   val returnType: String             = df.decltpe.get.toString()
-  val fullName: String               = s"${planType.pkg}.$name"
+  val fullName: String               = s"$hierarchy.$className.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
 
   val comment: String =
@@ -31,7 +38,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
     s"""$comment
        |$df""".stripMargin
 
-  def toCode(methodType: MethodType): String =
+  def toCode(methodType: MethodType, plan: SparkPlan): String =
     methodType match {
       case MethodType.Ignored | MethodType.ToImplement | MethodType.ToHandle => s"[[$fullName]]"
       case _ =>
@@ -42,7 +49,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
           }
 
         val parameters = {
-          val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = effectful, planType.className)).mkString("")
+          val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = effectful, className)).mkString("")
 
           calls match {
             case list if effectful && !list.exists(_.hasImplicit) => s"$sparkParameters(implicit trace: ZTraceElement)"
@@ -50,7 +57,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
           }
         }
 
-        val arguments = calls.map(_.toCode(isArgs = true, effectful = false, planType.className)).mkString("")
+        val arguments = calls.map(_.toCode(isArgs = true, effectful = false, className)).mkString("")
 
         val transformation =
           methodType match {
@@ -64,7 +71,7 @@ case class Method(df: Defn.Def, comments: AssociatedComments, planType: PlanType
             case _                                     => "get"
           }
 
-        val cleanReturnType = cleanType(returnType, planType.pkg)
+        val cleanReturnType = cleanType(returnType, plan)
 
         val trueReturnType =
           methodType match {
@@ -108,7 +115,8 @@ object Method {
   def fromScalaMeta(
       df: Defn.Def,
       comments: AssociatedComments,
-      planType: PlanType,
+      hierarchy: String,
+      className: String,
       scalaVersion: ScalaBinaryVersion
-  ): Method = Method(df, comments, planType, scalaVersion)
+  ): Method = Method(df, comments, hierarchy, className, scalaVersion)
 }

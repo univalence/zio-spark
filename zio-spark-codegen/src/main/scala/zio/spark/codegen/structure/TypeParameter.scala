@@ -1,4 +1,4 @@
-package zio.spark.internal.codegen.structure
+package zio.spark.codegen.structure
 
 import scala.meta.*
 

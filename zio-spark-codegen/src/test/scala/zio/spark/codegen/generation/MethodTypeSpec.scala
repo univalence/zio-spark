@@ -1,26 +1,28 @@
-package zio.spark.internal.codegen
+package zio.spark.codegen.generation
 
-import zio.*
-import zio.spark.internal.codegen.GenerationPlan.*
-import zio.spark.internal.codegen.Helpers.{findMethod, planLayer}
-import zio.spark.internal.codegen.MethodType.*
-import zio.test.*
+import zio.{URIO, ZIO}
+import zio.spark.codegen.Helpers.{findMethodDefault, planLayer}
+import zio.spark.codegen.generation.MethodType.*
+import zio.spark.codegen.generation.plan.Plan.*
+import zio.spark.codegen.generation.plan.SparkPlan
+import zio.test.{assertNever, assertTrue, DefaultRunnableSpec, Spec, TestFailure, TestResult, TestSuccess, ZSpec}
 
 object MethodTypeSpec extends DefaultRunnableSpec {
   def testMethodTypeFor(name: String, arity: Int = -1, args: List[String] = Nil)(
       expected: MethodType
-  ): ZSpec[GenerationPlan, Nothing] = {
+  ): ZSpec[SparkPlan, Nothing] = {
     val outputName = if (args.isEmpty) name else s"$name(${args.mkString(", ")})"
 
     test(s"The function '$outputName' should be a $expected") {
       val maybeMethodEffect =
         for {
-          generationPlan <- ZIO.service[GenerationPlan]
-          method         <- ZIO.fromOption(findMethod(name, generationPlan, arity, args))
-          methodType = getMethodType(method, generationPlan.planType)
+          plan        <- ZIO.service[SparkPlan]
+          maybeMethod <- findMethodDefault(name, arity, args)
+          method      <- ZIO.fromOption(maybeMethod)
+          methodType = plan.template.getMethodType(method)
         } yield methodType
 
-      val res: URIO[GenerationPlan, TestResult] =
+      val res: URIO[SparkPlan, TestResult] =
         maybeMethodEffect.fold(
           failure = _ => assertNever(s"can't find '$outputName'.'"),
           success = methodType => assertTrue(methodType == expected)
@@ -34,7 +36,7 @@ object MethodTypeSpec extends DefaultRunnableSpec {
     suite("Check method types for RDD")(
       testMethodTypeFor("withResources")(Transformation),
       testMethodTypeFor("countApproxDistinct")(DistributedComputation)
-    ).provideLayer(planLayer(RDDPlan))
+    ).provide(planLayer(rddPlan))
 
   val datasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for Dataset")(
@@ -43,32 +45,32 @@ object MethodTypeSpec extends DefaultRunnableSpec {
       testMethodTypeFor("withColumn")(TransformationWithAnalysis),
       testMethodTypeFor("drop")(Transformation),
       testMethodTypeFor("persist")(DriverAction)
-    ).provideLayer(planLayer(DatasetPlan))
+    ).provide(planLayer(datasetPlan))
 
   val relationalGroupedDatasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for RelationalGroupedDataset")(
       testMethodTypeFor("as")(GetWithAnalysis),
       testMethodTypeFor("count")(Unpack)
-    ).provideLayer(planLayer(RelationalGroupedDatasetPlan))
+    ).provide(planLayer(relationalGroupedDatasetPlan))
 
   val dataFrameStatFunctionsMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for DataFrameStatFunctions")(
       testMethodTypeFor("countMinSketch")(GetWithAnalysis)
-    ).provideLayer(planLayer(DataFrameStatFunctionsPlan))
+    ).provide(planLayer(dataFrameStatFunctionsPlan))
 
   val dataFrameNaFunctionsMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for DataFrameNaFunctions")(
       testMethodTypeFor("drop", arity = 1, args = List("cols"))(UnpackWithAnalysis)
-    ).provideLayer(planLayer(DataFrameNaFunctionsPlan))
+    ).provide(planLayer(dataFrameNaFunctionsPlan))
 
   val keyValueGroupedDatasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =
     suite("Check method types for KeyValueGroupedDataset")(
       testMethodTypeFor("count")(Unpack),
       testMethodTypeFor("keyAs")(Transformation),
       testMethodTypeFor("mapValues")(Transformation)
-    ).provideLayer(planLayer(KeyValueGroupedDatasetPlan))
+    ).provide(planLayer(keyValueGroupedDatasetPlan))
 
-  override def spec: ZSpec[TestEnvironment, Any] = {
+  override def spec: ZSpec[Any, Any] = {
     val specs =
       Seq(
         rddMethodTypes,

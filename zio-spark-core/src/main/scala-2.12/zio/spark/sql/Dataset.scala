@@ -30,8 +30,7 @@ import scala.reflect.runtime.universe.TypeTag
 
 final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // scalafix:off
-  implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U] = Dataset(x)
-
+  implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U]                        = Dataset(x)
   implicit private def iteratorConversion[U](iterator: java.util.Iterator[U]): Iterator[U] = iterator.asScala
   implicit private def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
     DataFrameNaFunctions(x)
@@ -62,7 +61,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
   // Handmade functions specific to zio-spark
-
   /**
    * Prints the plans (logical and physical) with a format specified by
    * a given explain mode.
@@ -223,7 +221,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   def write: DataFrameWriter[T] = DataFrameWriter(self)
 
   // Generated functions coming from spark
-
   /**
    * Returns all column names as an array.
    *
@@ -2080,5 +2077,4 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // [[org.apache.spark.sql.Dataset.takeAsList]]
   // [[org.apache.spark.sql.Dataset.toJavaRDD]]
   // [[org.apache.spark.sql.Dataset.toString]]
-
 }

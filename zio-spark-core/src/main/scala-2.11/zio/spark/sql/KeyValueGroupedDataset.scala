@@ -36,10 +36,7 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
       f: UnderlyingKeyValueGroupedDataset[K, V] => UnderlyingKeyValueGroupedDataset[KNew, VNew]
   ): KeyValueGroupedDataset[KNew, VNew] = KeyValueGroupedDataset(f(underlying))
 
-  // Handmade functions specific to zio-spark
-
   // Generated functions coming from spark
-
   /**
    * Returns a new [[KeyValueGroupedDataset]] where the type of the key
    * has been mapped to the specified type. The mapping of key columns
@@ -299,5 +296,4 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
   // [[org.apache.spark.sql.KeyValueGroupedDataset.mapValues]]
   // [[org.apache.spark.sql.KeyValueGroupedDataset.reduceGroups]]
   // [[org.apache.spark.sql.KeyValueGroupedDataset.toString]]
-
 }

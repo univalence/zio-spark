@@ -61,10 +61,7 @@ final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupe
    */
   def getWithAnalysis[U](f: UnderlyingRelationalGroupedDataset => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
-  // Handmade functions specific to zio-spark
-
   // Generated functions coming from spark
-
   /**
    * Returns a `KeyValueGroupedDataset` where the data is grouped by the
    * grouping expressions of current `RelationalGroupedDataset`.
@@ -311,5 +308,4 @@ final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupe
   // Ignored methods
   //
   // [[org.apache.spark.sql.RelationalGroupedDataset.toString]]
-
 }

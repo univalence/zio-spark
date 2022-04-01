@@ -1,6 +1,6 @@
-package zio.spark.internal.codegen.structure
+package zio.spark.codegen.structure
 
-import zio.spark.internal.codegen.ScalaBinaryVersion
+import zio.spark.codegen.ScalaBinaryVersion
 
 import scala.meta.*
 

@@ -1,5 +1,4 @@
 import org.apache.spark.sql.execution.ExplainMode
-
 import zio._
 import zio.spark.sql._
 

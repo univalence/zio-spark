@@ -1,7 +1,7 @@
-package zio.spark.internal.codegen.structure
+package zio.spark.codegen.structure
 
-import zio.spark.internal.codegen.ScalaBinaryVersion
-import zio.spark.internal.codegen.structure.Parameter.Modifier
+import zio.spark.codegen.ScalaBinaryVersion
+import zio.spark.codegen.structure.Parameter.Modifier
 
 import scala.meta.*
 
@@ -52,4 +52,5 @@ object Parameter {
   }
 
   def fromScalaMeta(param: Term.Param, scalaVersion: ScalaBinaryVersion): Parameter = Parameter(param, scalaVersion)
+
 }
