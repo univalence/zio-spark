@@ -7,8 +7,13 @@
 
 package zio.spark.sql
 
+import org.apache.spark.sql.{
+  Dataset => UnderlyingDataset,
+  Encoder,
+  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
+  TypedColumn
+}
 import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout, OutputMode}
-import org.apache.spark.sql.{Encoder, TypedColumn, Dataset => UnderlyingDataset, KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset}
 
 final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGroupedDataset[K, V]) { self =>
 

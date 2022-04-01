@@ -7,7 +7,11 @@
 
 package zio.spark.sql
 
-import org.apache.spark.sql.{Column, DataFrameStatFunctions => UnderlyingDataFrameStatFunctions, Dataset => UnderlyingDataset}
+import org.apache.spark.sql.{
+  Column,
+  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
+  Dataset => UnderlyingDataset
+}
 import org.apache.spark.util.sketch.{BloomFilter, CountMinSketch}
 
 final case class DataFrameStatFunctions(underlying: UnderlyingDataFrameStatFunctions) { self =>

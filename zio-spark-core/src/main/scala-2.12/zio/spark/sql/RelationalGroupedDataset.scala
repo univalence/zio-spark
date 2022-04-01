@@ -7,7 +7,13 @@
 
 package zio.spark.sql
 
-import org.apache.spark.sql.{Column, Encoder, Dataset => UnderlyingDataset, KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset, RelationalGroupedDataset => UnderlyingRelationalGroupedDataset}
+import org.apache.spark.sql.{
+  Column,
+  Dataset => UnderlyingDataset,
+  Encoder,
+  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
+  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset
+}
 
 final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupedDataset) { self =>
   // scalafix:off
