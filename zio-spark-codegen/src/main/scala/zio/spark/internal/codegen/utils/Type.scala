@@ -1,6 +1,6 @@
-package zio.spark.internal.codegen.structure
+package zio.spark.internal.codegen.utils
 
-object TypeUtils {
+object Type {
   def cleanPrefixPackage(type_ : String): String = {
     import scala.meta.*
 
@@ -16,10 +16,5 @@ object TypeUtils {
     res.toString()
   }
 
-  def cleanType(type_ : String, path: String): String =
-    cleanPrefixPackage(type_).replaceAll(",\\b", ", ") match {
-      case "this.type" if path.contains("RDD")     => "RDD[T]"
-      case "this.type" if path.contains("Dataset") => "Dataset[T]"
-      case s                                       => s
-    }
+  def cleanType(type_ : String): String = cleanPrefixPackage(type_).replaceAll(",\\b", ", ")
 }

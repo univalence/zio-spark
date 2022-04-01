@@ -21,8 +21,6 @@ final case class DataFrameNaFunctions(underlying: UnderlyingDataFrameNaFunctions
   def unpackWithAnalysis[U](f: UnderlyingDataFrameNaFunctions => UnderlyingDataset[U]): TryAnalysis[Dataset[U]] =
     TryAnalysis(unpack(f))
 
-  // Handmade functions specific to zio-spark
-
   // Generated functions coming from spark
 
   /**
@@ -223,5 +221,4 @@ final case class DataFrameNaFunctions(underlying: UnderlyingDataFrameNaFunctions
    */
   def replace[T](cols: Seq[String], replacement: Map[T, T]): TryAnalysis[DataFrame] =
     unpackWithAnalysis(_.replace[T](cols, replacement))
-
 }

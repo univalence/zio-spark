@@ -10,8 +10,7 @@ package zio.spark.rdd
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.spark.{Dependency, Partition, Partitioner, TaskContext}
 import org.apache.spark.partial.{BoundedDouble, PartialResult}
-import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD}
-import org.apache.spark.rdd.RDDBarrier
+import org.apache.spark.rdd.{PartitionCoalescer, RDD => UnderlyingRDD, RDDBarrier}
 import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.storage.StorageLevel
 
@@ -23,12 +22,9 @@ import scala.reflect._
 
 @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs", "scalafix:DisableSyntax.null"))
 final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
-  // scalafix:off
-  implicit private def lift[U](x: UnderlyingRDD[U]): RDD[U] = RDD(x)
-
+  implicit private def lift[U](x: UnderlyingRDD[U]): RDD[U]                              = RDD(x)
   implicit private def arrayToSeq2[U](x: UnderlyingRDD[Array[U]]): UnderlyingRDD[Seq[U]] = x.map(_.toIndexedSeq)
   @inline private def noOrdering[U]: Ordering[U]                                         = null
-  // scalafix:on
 
   /** Applies an action to the underlying RDD. */
   def action[U](f: UnderlyingRDD[T] => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))
@@ -38,8 +34,6 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
 
   /** Applies an action to the underlying RDD. */
   def get[U](f: UnderlyingRDD[T] => U): U = f(underlying)
-
-  // Handmade functions specific to zio-spark
 
   // Generated functions coming from spark
 
@@ -931,5 +925,4 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
   // [[org.apache.spark.rdd.RDD.setName]]
   // [[org.apache.spark.rdd.RDD.toJavaRDD]]
   // [[org.apache.spark.rdd.RDD.toString]]
-
 }

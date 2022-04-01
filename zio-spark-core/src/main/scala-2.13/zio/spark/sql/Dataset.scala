@@ -29,15 +29,12 @@ import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.TypeTag
 
 final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
-  // scalafix:off
-  implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U] = Dataset(x)
-
+  implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U]                        = Dataset(x)
   implicit private def iteratorConversion[U](iterator: java.util.Iterator[U]): Iterator[U] = iterator.asScala
   implicit private def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
     DataFrameNaFunctions(x)
   implicit private def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
     DataFrameStatFunctions(x)
-  // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
   def action[U](f: UnderlyingDataset[T] => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))
@@ -2080,5 +2077,4 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // [[org.apache.spark.sql.Dataset.takeAsList]]
   // [[org.apache.spark.sql.Dataset.toJavaRDD]]
   // [[org.apache.spark.sql.Dataset.toString]]
-
 }
