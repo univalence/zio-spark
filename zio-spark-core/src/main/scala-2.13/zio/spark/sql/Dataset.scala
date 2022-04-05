@@ -151,7 +151,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -159,21 +159,21 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20)
+  def show(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20, truncate)
+  def show(truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = {
+  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)

@@ -33,19 +33,19 @@ case object DatasetTemplate extends Template.Default {
           |import zio.spark.rdd._
           |
           |import scala.reflect.runtime.universe.TypeTag
+          |
+          |import java.io.IOException
           |""".stripMargin
 
       scalaVersion match {
         case ScalaBinaryVersion.V2_13 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.ExplainMode
-             |import scala.jdk.CollectionConverters._
-             |import java.io.IOException""".stripMargin
+             |import scala.jdk.CollectionConverters._""".stripMargin
         case ScalaBinaryVersion.V2_12 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.ExplainMode
-             |import scala.collection.JavaConverters._
-             |import java.io.IOException""".stripMargin
+             |import scala.collection.JavaConverters._""".stripMargin
         case ScalaBinaryVersion.V2_11 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.command.ExplainCommand

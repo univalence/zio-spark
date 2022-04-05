@@ -9,6 +9,8 @@ import zio._
 import zio.spark.rdd._
 import zio.spark.sql._
 
+import java.io.IOException
+
 /** Handmade functions for Dataset shared for all Scala versions. */
 class DatasetOverlay[T](self: Dataset[T]) {
   import self._
@@ -28,7 +30,7 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -36,21 +38,21 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20)
+  def show(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20, truncate)
+  def show(truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = {
+  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
