@@ -16,6 +16,8 @@ object Plan {
   val dataFrameStatFunctionsPlan: SparkPlan   = SparkPlan(sqlModule, DataFrameStatFunctionsTemplate)
   val relationalGroupedDatasetPlan: SparkPlan = SparkPlan(sqlModule, RelationalGroupedDatasetTemplate)
   val keyValueGroupedDatasetPlan: SparkPlan   = SparkPlan(sqlModule, KeyValueGroupedDatasetTemplate)
+
+  val sparkSessionPlan: ZIOSparkPlan = ZIOSparkPlan("SparkSession", "zio.spark.sql")
 }
 
 /**

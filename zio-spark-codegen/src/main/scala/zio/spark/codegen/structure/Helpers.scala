@@ -1,12 +1,14 @@
 package zio.spark.codegen.structure
+
 import zio.spark.codegen.ScalaBinaryVersion
 import zio.spark.codegen.generation.plan.SparkPlan
 
 import scala.meta.*
+import scala.meta.contrib.AssociatedComments
+import scala.meta.tokens.Token.{KwDef, LF}
 
 object Helpers {
   def cleanPrefixPackage(type_ : String): String = {
-
     val res =
       type_
         .parse[Type]
@@ -60,5 +62,61 @@ object Helpers {
 
     val scalametaMethods = collectFunctionsFromTemplate(template)
     scalametaMethods.map(m => Method.fromScalaMeta(m, template.comments, hierarchy, className, scalaVersion))
+  }
+
+  def getComments(source: Source): Map[String, String] = {
+    val comments = AssociatedComments(source)
+    val mapping =
+      source.stats.collect { case df: Defn.Def =>
+        df.name.toString() -> comments.leading(df).mkString("  ", "\n  ", "")
+      }
+    mapping.toMap
+  }
+
+  def populateComments(stats: List[Tree], comments: Map[String, String]): String =
+    stats.map {
+      case df: Defn.Def =>
+        comments.get(df.name.toString) match {
+          case None          => "\n" + df
+          case Some(comment) => "\n" + comment + df
+        }
+      case tree: Tree => populateComments(tree.children, comments)
+      case stat       => stat.toString()
+    } mkString ""
+
+  /**
+   * Merge a specific source into a base source.
+   *
+   * For each object and class it should add the specific source
+   * function into the base source classes.
+   *
+   * It merges imports.
+   */
+  def mergeSources(base: Source, specific: Source): String = {
+    val stats =
+      base.stats.map {
+        case clazz: Defn.Class => // Merge specific class functions into base class
+          val specificFunctions =
+            specific.collect {
+              case specificClazz: Defn.Class if s"${specificClazz.name}" == s"${clazz.name}Specific" =>
+                specificClazz.templ.stats
+            }.flatten
+
+          clazz.copy(templ = clazz.templ.copy(stats = clazz.templ.stats ++ specificFunctions))
+
+        case clazz: Defn.Object => // Merge specific class functions into base class
+          val specificFunctions =
+            specific.collect {
+              case specificClazz: Defn.Object if s"${specificClazz.name}" == s"${clazz.name}Specific" =>
+                specificClazz.templ.stats
+            }.flatten
+
+          clazz.copy(templ = clazz.templ.copy(stats = clazz.templ.stats ++ specificFunctions))
+        case s => s
+      }
+
+    val comments = getComments(base) ++ getComments(specific)
+
+    populateComments(stats, comments)
   }
 }
