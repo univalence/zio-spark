@@ -8,7 +8,7 @@ import zio.test._
 object RelationalGroupedDatasetSpec {
   final case class AggregatePerson(status: String, age: Double)
 
-  def relationalGroupedDatasetAggregationSpec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] = {
+  def relationalGroupedDatasetAggregationSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] = {
     final case class Test(
         aggregation: String,
         f:           String => RelationalGroupedDataset => DataFrame,

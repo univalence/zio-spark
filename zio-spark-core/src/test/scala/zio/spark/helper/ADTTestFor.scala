@@ -5,7 +5,7 @@ import zio.test.Assertion._
 
 final case class Conftest[T](text: String, input: T, output: String)
 
-abstract class ADTTestFor[T](name: String, conftests: List[Conftest[T]]) extends DefaultRunnableSpec {
+abstract class ADTTestFor[T](name: String, conftests: List[Conftest[T]]) extends ZIOSpecDefault {
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
     suite(s"$name ADT spec")({
       val tests =

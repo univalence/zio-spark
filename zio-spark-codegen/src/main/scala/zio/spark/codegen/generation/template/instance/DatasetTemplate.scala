@@ -33,6 +33,8 @@ case object DatasetTemplate extends Template.Default {
           |import zio.spark.rdd._
           |
           |import scala.reflect.runtime.universe.TypeTag
+          |
+          |import java.io.IOException
           |""".stripMargin
 
       scalaVersion match {

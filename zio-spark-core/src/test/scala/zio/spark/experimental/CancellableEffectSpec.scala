@@ -4,19 +4,19 @@ import org.apache.spark.SparkContextCompatibility.removeSparkListener
 import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
-import zio.{durationInt, durationLong, Chunk, Clock, UIO, ZIO, ZRef}
+import zio.{durationInt, durationLong, Chunk, Clock, Ref, UIO, ZIO}
 import zio.spark.ZioSparkTestSpec
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
-import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
+import zio.test.{assertTrue, TestEnvironment, ZIOSpecDefault, ZSpec}
 import zio.test.TestAspect.{mac, timeout}
 
-object CancellableEffectSpec extends DefaultRunnableSpec {
+object CancellableEffectSpec extends ZIOSpecDefault {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
 
   def listenSparkEvents[R, E, A](zio: ZIO[R, E, A]): ZIO[R with SparkSession, E, (Seq[SparkListenerEvent], A)] =
     for {
-      events  <- ZRef.make[Chunk[SparkListenerEvent]](Chunk.empty)
+      events  <- Ref.make[Chunk[SparkListenerEvent]](Chunk.empty)
       runtime <- ZIO.runtime[R with SparkSession]
       sc      <- fromSpark(_.sparkContext).orDie
       listener <-
@@ -33,7 +33,7 @@ object CancellableEffectSpec extends DefaultRunnableSpec {
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 
-  def waitBlocking(seconds: Long): UIO[Long] = UIO.unit.delay(seconds.seconds).provide(Clock.live).as(seconds)
+  def waitBlocking(seconds: Long): UIO[Long] = UIO.unit.delay(seconds.seconds).as(seconds)
 
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))

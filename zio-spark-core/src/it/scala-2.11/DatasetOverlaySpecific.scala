@@ -1,5 +1,9 @@
+import org.apache.spark.sql.execution.command.ExplainCommand
+
 import zio._
 import zio.spark.sql._
+
+import java.io.IOException
 
 /** Handmade functions for Dataset shared for one Scala version. */
 class DatasetOverlaySpecific[T](self: Dataset[T]) {
@@ -21,7 +25,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain(extended: Boolean)(implicit trace: ZTraceElement): RIO[SparkSession with Console, Unit] = {
+  def explain(extended: Boolean)(implicit trace: ZTraceElement): SIO[Unit] = {
     val queryExecution = underlying.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
@@ -37,7 +41,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain(implicit trace: ZTraceElement): SRIO[Console, Unit] = explain(extended = false)
+  def explain(implicit trace: ZTraceElement): SIO[Unit] = explain(extended = false)
 
   /**
    * Prints the schema to the console in a nice tree format.
@@ -45,6 +49,6 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def printSchema(implicit trace: ZTraceElement): RIO[Console, Unit] = Console.printLine(schema.treeString)
+  def printSchema(implicit trace: ZTraceElement): IO[IOException, Unit] = Console.printLine(schema.treeString)
   // template:off
 }

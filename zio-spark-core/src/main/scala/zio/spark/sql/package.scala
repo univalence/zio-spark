@@ -7,8 +7,8 @@ import zio._
 package object sql {
   type DataFrame = Dataset[Row]
 
-  type SIO[A]     = RIO[SparkSession, A]
-  type SRIO[R, A] = RIO[R with SparkSession, A]
+  type SIO[A]     = ZIO[SparkSession, Throwable, A]
+  type SRIO[R, A] = ZIO[R with SparkSession, Throwable, A]
 
   /** Wrap an effecful spark job into zio-spark. */
   def fromSpark[Out](f: UnderlyingSparkSession => Out)(implicit trace: ZTraceElement): SIO[Out] =

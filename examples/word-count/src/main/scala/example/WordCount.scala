@@ -24,7 +24,7 @@ object WordCount extends ZIOAppDefault {
 
   def output(transformedDs: RDD[(String, Int)]): Task[Seq[(String, Int)]] = transformedDs.collect
 
-  val job: ZIO[SparkSession with Console, Throwable, Unit] =
+  val job: ZIO[SparkSession, Throwable, Unit] =
     for {
       words <- read.map(transform).flatMap(output)
       mostUsedWord = words.sortBy(_._2).reverse.headOption
@@ -37,5 +37,5 @@ object WordCount extends ZIOAppDefault {
 
   private val session = SparkSession.builder.master(localAllNodes).appName("app").asLayer
 
-  override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
+  override def run: ZIO[ZIOAppArgs, Any, Any] = job.provide(session)
 }

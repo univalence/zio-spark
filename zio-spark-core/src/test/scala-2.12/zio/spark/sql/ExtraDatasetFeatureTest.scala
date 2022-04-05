@@ -12,9 +12,9 @@ import zio.spark.sql.implicits._
 object ExtraDatasetFeatureTest {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
-  def spec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
+  def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
 
-  def dataFrameActionsSpec: Spec[TestConsole with SparkSession, TestFailure[Any], TestSuccess] =
+  def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
     suite("ExtraDatatasetFeature Actions")(
       test("ExtraDatatasetFeature should implement summary correctly") {
         val process: DataFrame => DataFrame    = _.summary(Statistics.Count, Statistics.Max)

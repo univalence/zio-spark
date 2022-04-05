@@ -25,7 +25,7 @@ object UsingOlderSparkVersion extends ZIOAppDefault {
 
   val pipeline: Pipeline[Row, Person, Option[Person]] = experimental.Pipeline(read, transform, output)
 
-  val job: ZIO[SparkSession with Console, Throwable, Unit] =
+  val job: ZIO[SparkSession, Throwable, Unit] =
     for {
       maybePeople <- pipeline.run
       _ <-
@@ -37,5 +37,5 @@ object UsingOlderSparkVersion extends ZIOAppDefault {
 
   private val session = SparkSession.builder.master(localAllNodes).appName("app").asLayer
 
-  override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
+  override def run: ZIO[ZIOAppArgs, Any, Any] = job.provide(session)
 }

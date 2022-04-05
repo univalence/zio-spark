@@ -18,7 +18,7 @@ object SparkCodeMigration extends ZIOAppDefault {
       landInCircle.count()
     }
 
-  val job: RIO[Console with SparkSession, Unit] =
+  val job: RIO[SparkSession, Unit] =
     for {
       count <- computePiJob
       _     <- Console.printLine(s"Pi is roughly ${4.0 * count / NUM_SAMPLES}")
@@ -26,5 +26,5 @@ object SparkCodeMigration extends ZIOAppDefault {
 
   private val session = SparkSession.builder.master(localAllNodes).appName("app").asLayer
 
-  override def run: ZIO[ZEnv with ZIOAppArgs, Any, Any] = job.provideCustomLayer(session)
+  override def run: ZIO[ZIOAppArgs, Any, Any] = job.provide(session)
 }

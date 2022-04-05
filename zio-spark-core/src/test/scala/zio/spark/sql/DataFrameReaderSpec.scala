@@ -5,7 +5,7 @@ import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.TestAspect._
 
-object DataFrameReaderSpec extends DefaultRunnableSpec {
+object DataFrameReaderSpec extends ZIOSpecDefault {
   val reader: DataFrameReader = SparkSession.read
 
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =

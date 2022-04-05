@@ -71,7 +71,7 @@ class SmartCircuitTap[-E1, +E2](
     state.get flatMap { s =>
       val tooMuchError: Boolean = s.decayingErrorRatio.ratio > errBound
       if (tooMuchError) {
-        zio.ZRef.UnifiedSyntax(state).update(_.incRejected) *> ZIO.fail(rejected)
+        state.update(_.incRejected) *> ZIO.fail(rejected)
       } else {
         run(effect)
       }

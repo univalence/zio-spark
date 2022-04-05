@@ -28,6 +28,8 @@ import zio.spark.rdd._
 import scala.collection.JavaConverters._
 import scala.reflect.runtime.universe.TypeTag
 
+import java.io.IOException
+
 final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // scalafix:off
   implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U]                        = Dataset(x)
@@ -76,7 +78,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String)(implicit trace: ZTraceElement): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String)(implicit trace: ZTraceElement): SIO[Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -85,7 +87,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SRIO[Console, Unit] =
+  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SIO[Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlying.queryExecution.explainString(mode))
@@ -124,7 +126,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def printSchema(implicit trace: ZTraceElement): RIO[Console, Unit] = printSchema(Int.MaxValue)
+  def printSchema(implicit trace: ZTraceElement): IO[IOException, Unit] = printSchema(Int.MaxValue)
 
   /**
    * Prints the schema up to the given level to the console in a nice
@@ -133,7 +135,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def printSchema(level: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] =
+  def printSchema(level: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] =
     Console.printLine(schema.treeString(level))
 
   /**
@@ -149,7 +151,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -157,21 +159,21 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20)
+  def show(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = show(20, truncate)
+  def show(truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): RIO[Console, Unit] = {
+  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)

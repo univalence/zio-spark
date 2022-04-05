@@ -89,7 +89,7 @@ addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageRe
 // -- Lib versions
 lazy val libVersion =
   new {
-    val zio        = "2.0.0-RC3"
+    val zio        = "2.0.0-RC4"
     val zioPrelude = "1.0.0-RC10"
   }
 
@@ -140,8 +140,12 @@ lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-
 lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
 
 lazy val examples =
-  (project in file("examples"))
-    .aggregate(exampleSimpleApp, exampleSparkCodeMigration, exampleUsingOlderSparkVersion, exampleWordCount)
+  (project in file("examples")).aggregate(
+    exampleSimpleApp,
+    exampleSparkCodeMigration,
+    exampleUsingOlderSparkVersion,
+    exampleWordCount
+  )
 
 /** Generates required libraries for spark. */
 def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
