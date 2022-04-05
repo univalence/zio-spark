@@ -1,3 +1,5 @@
+import org.apache.spark.sql.execution.command.ExplainCommand
+
 import zio._
 import zio.spark.sql._
 
@@ -21,7 +23,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain(extended: Boolean)(implicit trace: ZTraceElement): RIO[SparkSession with Console, Unit] = {
+  def explain(extended: Boolean)(implicit trace: ZTraceElement): ZIO[SparkSession, Throwable, Unit] = {
     val queryExecution = underlying.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 

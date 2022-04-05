@@ -6,9 +6,9 @@ import zio.spark.experimental.MapWithEffect.RDDOps
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
-import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
+import zio.test.{assertTrue, TestEnvironment, ZIOSpecDefault, ZSpec}
 
-object MapWithEffectSpec extends DefaultRunnableSpec {
+object MapWithEffectSpec extends ZIOSpecDefault {
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("smoke")(
       test("basic smoke test") {

@@ -12,7 +12,7 @@ import scala.reflect._
  */
 abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStructure: ClassTag](
     allowedNewMethods: Seq[String]
-) extends DefaultRunnableSpec {
+) extends ZIOSpecDefault {
 
   // scalafix:off
   lazy val sparkStructurePath: String    = classTag[SparkStructure].runtimeClass.getName

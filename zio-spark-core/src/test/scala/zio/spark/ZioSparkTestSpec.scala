@@ -17,7 +17,7 @@ import zio.spark.sql.{
 import zio.test._
 
 /** Runs all spark specific tests in the same spark session. */
-object ZioSparkTestSpec extends DefaultRunnableSpec {
+object ZioSparkTestSpec extends ZIOSpecDefault {
   Logger.getLogger("org").setLevel(Level.OFF)
 
   val session: ZLayer[Any, Nothing, SparkSession] =
@@ -32,7 +32,7 @@ object ZioSparkTestSpec extends DefaultRunnableSpec {
   type SparkTestSpec        = Spec[SparkTestEnvironment, TestFailure[Any], TestSuccess]
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {
-    val specs =
+    val specs: Seq[Spec[SparkSession with SparkTestEnvironment, TestFailure[Any], TestSuccess]] =
       Seq(
         DatasetSpec.datasetActionsSpec,
         DatasetSpec.datasetTransformationsSpec,

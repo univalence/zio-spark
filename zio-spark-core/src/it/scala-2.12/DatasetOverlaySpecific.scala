@@ -2,6 +2,8 @@ import org.apache.spark.sql.execution.ExplainMode
 import zio._
 import zio.spark.sql._
 
+import java.io.IOException
+
 /** Handmade functions for Dataset shared for one Scala version. */
 class DatasetOverlaySpecific[T](self: Dataset[T]) {
   import self._
@@ -50,7 +52,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String)(implicit trace: ZTraceElement): SRIO[Console, Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String)(implicit trace: ZTraceElement): SIO[Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -59,7 +61,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SRIO[Console, Unit] =
+  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SIO[Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlying.queryExecution.explainString(mode))
@@ -72,7 +74,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def printSchema(implicit trace: ZTraceElement): RIO[Console, Unit] = printSchema(Int.MaxValue)
+  def printSchema(implicit trace: ZTraceElement): IO[IOException, Unit] = printSchema(Int.MaxValue)
 
   /**
    * Prints the schema up to the given level to the console in a nice
@@ -81,7 +83,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def printSchema(level: Int)(implicit trace: ZTraceElement): RIO[Console, Unit] =
+  def printSchema(level: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] =
     Console.printLine(schema.treeString(level))
 
   // template:off

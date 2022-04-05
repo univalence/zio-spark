@@ -1,6 +1,6 @@
 package zio.spark.experimental
 
-import zio.{IO, ZEnv, ZTraceElement}
+import zio.{IO, ZTraceElement}
 import zio.spark.experimental.NewType._
 import zio.spark.rdd.RDD
 
@@ -28,7 +28,7 @@ object MapWithEffect {
       rdd.mapPartitions { it: Iterator[T] =>
         type EE = Option[E]
 
-        val runtime: zio.Runtime[ZEnv] = zio.Runtime.default
+        val runtime: zio.Runtime[Any] = zio.Runtime.default
 
         val createCircuit: CircuitTap[EE, EE] =
           runtime.unsafeRun(CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale))

@@ -5,9 +5,9 @@ import zio.spark.codegen.Helpers.{findMethodDefault, planLayer}
 import zio.spark.codegen.generation.MethodType.*
 import zio.spark.codegen.generation.plan.Plan.*
 import zio.spark.codegen.generation.plan.SparkPlan
-import zio.test.{assertNever, assertTrue, DefaultRunnableSpec, Spec, TestFailure, TestResult, TestSuccess, ZSpec}
+import zio.test.{assertNever, assertTrue, Spec, TestFailure, TestResult, TestSuccess, ZIOSpecDefault, ZSpec}
 
-object MethodTypeSpec extends DefaultRunnableSpec {
+object MethodTypeSpec extends ZIOSpecDefault {
   def testMethodTypeFor(name: String, arity: Int = -1, args: List[String] = Nil)(
       expected: MethodType
   ): ZSpec[SparkPlan, Nothing] = {

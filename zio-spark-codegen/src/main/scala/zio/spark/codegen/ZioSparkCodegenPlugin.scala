@@ -6,7 +6,12 @@ import sbt.Keys.*
 
 import zio.{Console, ULayer, URLayer, ZIO, ZLayer}
 import zio.spark.codegen.generation.{Generator, Logger, Output}
-import zio.spark.codegen.generation.Environment.{ScalafmtFormatter, ScalafmtFormatterLive, ZIOSparkFolders, ZIOSparkFoldersLive}
+import zio.spark.codegen.generation.Environment.{
+  ScalafmtFormatter,
+  ScalafmtFormatterLive,
+  ZIOSparkFolders,
+  ZIOSparkFoldersLive
+}
 import zio.spark.codegen.generation.plan.Plan
 import zio.spark.codegen.generation.plan.Plan.*
 

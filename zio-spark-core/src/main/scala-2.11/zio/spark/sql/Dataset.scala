@@ -68,7 +68,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def explain(extended: Boolean)(implicit trace: ZTraceElement): RIO[SparkSession with Console, Unit] = {
+  def explain(extended: Boolean)(implicit trace: ZTraceElement): ZIO[SparkSession, Throwable, Unit] = {
     val queryExecution = underlying.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 

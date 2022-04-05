@@ -1,9 +1,9 @@
 package zio.spark.codegen.generation
 
 import zio.spark.codegen.generation.template.Helper
-import zio.test.{assertTrue, DefaultRunnableSpec, TestEnvironment, ZSpec}
+import zio.test.{assertTrue, TestEnvironment, ZIOSpecDefault, ZSpec}
 
-object HelperSpec extends DefaultRunnableSpec {
+object HelperSpec extends ZIOSpecDefault {
   override def spec: ZSpec[TestEnvironment, Any] =
     suite("check helper generation") {
       test("helper's action should not use attemptBlocking but attempt") {

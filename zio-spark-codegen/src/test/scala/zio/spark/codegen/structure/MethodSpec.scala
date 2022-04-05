@@ -4,9 +4,9 @@ import zio.{URIO, ZIO}
 import zio.spark.codegen.Helpers.{findMethodDefault, planLayer}
 import zio.spark.codegen.generation.plan.Plan.{datasetPlan, keyValueGroupedDatasetPlan, rddPlan}
 import zio.spark.codegen.generation.plan.SparkPlan
-import zio.test.{assertNever, assertTrue, DefaultRunnableSpec, Spec, TestFailure, TestResult, TestSuccess, ZSpec}
+import zio.test.{assertNever, assertTrue, Spec, TestFailure, TestResult, TestSuccess, ZIOSpecDefault, ZSpec}
 
-object MethodSpec extends DefaultRunnableSpec {
+object MethodSpec extends ZIOSpecDefault {
   def genTest2(name: String, arity: Int = -1, args: List[String] = Nil)(
       expectedCode: String
   ): ZSpec[SparkPlan, Nothing] =

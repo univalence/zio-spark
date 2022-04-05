@@ -2,7 +2,7 @@ package zio.spark.sql
 
 import zio.test._
 
-object TryAnalysisSpec extends DefaultRunnableSpec {
+object TryAnalysisSpec extends ZIOSpecDefault {
   val tryAnalysis: TryAnalysis[Int] = TryAnalysis(10)
 
   override def spec: ZSpec[TestEnvironment, Any] =
