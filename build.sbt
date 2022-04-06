@@ -139,12 +139,22 @@ lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-m
 lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
 lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
 
+lazy val exampleZIOEcosystem =
+  (project in file("examples/zio-ecosystem"))
+    .configure(example)
+    .dependsOn(
+      exampleSimpleApp,
+      exampleSparkCodeMigration,
+      exampleWordCount
+    )
+
 lazy val examples =
   (project in file("examples")).aggregate(
     exampleSimpleApp,
     exampleSparkCodeMigration,
     exampleUsingOlderSparkVersion,
-    exampleWordCount
+    exampleWordCount,
+    exampleZIOEcosystem
   )
 
 /** Generates required libraries for spark. */

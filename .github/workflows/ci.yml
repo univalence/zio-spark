@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [ "SimpleApp", "SparkCodeMigration", "UsingOlderSparkVersion", "WordCount" ]
+        example: [ "SimpleApp", "SparkCodeMigration", "UsingOlderSparkVersion", "WordCount", "ZIOEcosystem" ]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v2.4.0
