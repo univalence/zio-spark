@@ -4,7 +4,7 @@ import org.apache.spark.SparkContextCompatibility.removeSparkListener
 import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
-import zio.{durationInt, durationLong, Chunk, Clock, Ref, UIO, ZIO}
+import zio.{durationInt, durationLong, Chunk, Ref, UIO, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
 import zio.test._
@@ -28,7 +28,6 @@ object CancellableEffectSpec {
         UIO
           .succeed(removeSparkListener(sc, listener))
           .delay(1.seconds)
-          .provideSomeLayer(Clock.live) // wait a bit the last events to be published
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 
