@@ -3,7 +3,7 @@ package zio.spark
 import org.apache.log4j.{Level, Logger}
 
 import zio._
-import zio.spark.experimental.PipelineSpec
+import zio.spark.experimental.{CancellableEffectSpec, PipelineSpec}
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsSpec, RDDSpec}
 import zio.spark.sql.{
@@ -24,15 +24,14 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
     SparkSession.builder
       .master(localAllNodes)
       .appName("zio-spark")
-      .getOrCreate
-      .toLayer
+      .asLayer
       .orDie
 
   type SparkTestEnvironment = TestEnvironment with SparkSession
-  type SparkTestSpec        = Spec[SparkTestEnvironment, TestFailure[Throwable], TestSuccess]
+  type SparkTestSpec        = Spec[SparkTestEnvironment, TestFailure[Any], TestSuccess]
 
   def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {
-    val specs: Seq[Spec[SparkSession with SparkTestEnvironment, TestFailure[Any], TestSuccess]] =
+    val specs: Seq[Spec[SparkTestEnvironment, TestFailure[Any], TestSuccess]] =
       Seq(
         DatasetSpec.datasetActionsSpec,
         DatasetSpec.datasetTransformationsSpec,
@@ -49,7 +48,8 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
         RDDSpec.rddTransformationsSpec,
         PairRDDFunctionsSpec.spec,
         PipelineSpec.pipelineSpec,
-        RelationalGroupedDatasetSpec.relationalGroupedDatasetAggregationSpec
+        RelationalGroupedDatasetSpec.relationalGroupedDatasetAggregationSpec,
+        CancellableEffectSpec.spec
       )
 
     suite("Spark tests")(specs: _*).provideCustomLayerShared(session)

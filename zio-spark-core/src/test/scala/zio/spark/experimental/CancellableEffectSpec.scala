@@ -5,13 +5,12 @@ import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
 import zio.{durationInt, durationLong, Chunk, Clock, Ref, UIO, ZIO}
-import zio.spark.ZioSparkTestSpec
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
-import zio.test.{assertTrue, TestEnvironment, ZIOSpecDefault, ZSpec}
-import zio.test.TestAspect.{mac, timeout}
+import zio.test._
+import zio.test.TestAspect.{mac, timeout, withLiveClock}
 
-object CancellableEffectSpec extends ZIOSpecDefault {
+object CancellableEffectSpec {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
 
   def listenSparkEvents[R, E, A](zio: ZIO[R, E, A]): ZIO[R with SparkSession, E, (Seq[SparkListenerEvent], A)] =
@@ -38,12 +37,12 @@ object CancellableEffectSpec extends ZIOSpecDefault {
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
 
-  override def spec: ZSpec[TestEnvironment, Any] =
-    suite("cancellable")(
-      test("jobGroup") {
+  def spec: Spec[Annotations with Live with SparkSession, TestFailure[Throwable], TestSuccess] =
+    suite("Test cancellable spark jobs")(
+      test("Cancellable jobs should have a specific group Id") {
         CancellableEffect.makeItCancellable(getJobGroup).map(x => assertTrue(x.startsWith("cancellable-group")))
       },
-      test("smoke") {
+      test("Spark job should be cancelable") {
         val job: SIO[Long] =
           CancellableEffect
             .makeItCancellable(Seq(1, 2, 3).toRDD flatMap (_.map(_ => Thread.sleep(100000L)).count))
@@ -59,6 +58,6 @@ object CancellableEffectSpec extends ZIOSpecDefault {
             }
           )
         }
-      } @@ timeout(45.seconds) @@ mac
-    ).provideCustomLayerShared(ZioSparkTestSpec.session)
+      } @@ timeout(45.seconds) @@ mac @@ withLiveClock
+    )
 }

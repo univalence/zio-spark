@@ -9,8 +9,8 @@ object CircuitTapSpec extends ZIOSpecDefault {
   import zio.test._
 
   override def spec: Spec[Any, TestFailure[Throwable], TestSuccess] =
-    suite("tap")(
-      test("smoking") {
+    suite("Test circuit tap")(
+      test("Smoking test") {
         val percent = Ratio(0.05)
 
         for {

@@ -2,11 +2,12 @@ package zio.spark.sql
 
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
+import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.test._
 import zio.test.TestAspect._
 
 object DataFrameReaderSpec extends ZIOSpecDefault {
-  val reader: DataFrameReader = SparkSession.read
+  val reader: DataFrameReader[WithoutSchema] = SparkSession.read
 
   def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
     dataFrameReaderOptionsSpec + dataFrameReaderOptionDefinitionsSpec
@@ -40,13 +41,19 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
           df     <- SparkSession.read.parquet(s"$resourcesPath/data.parquet")
           output <- df.count
         } yield assertTrue(output == 4)
+      },
+      test("DataFrameReader can read a Parquet file") {
+        for {
+          df     <- SparkSession.read.parquet(s"$resourcesPath/data.parquet")
+          output <- df.write.orc(s"$resourcesPath/data.orc")
+        } yield assertTrue(output == output)
       }
     )
 
   def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] = {
     final case class ReaderTest(
         testName:      String,
-        endo:          DataFrameReader => DataFrameReader,
+        endo:          DataFrameReader[WithoutSchema] => DataFrameReader[WithoutSchema],
         expectedKey:   String,
         expectedValue: String
     ) {
