@@ -21,7 +21,7 @@ object ZIOEcosystem extends ZIOAppDefault {
     ZLayer.scoped {
       for {
         _ <- ZIO.logInfo("Opening Spark Session...")
-        builder = SparkSession.builder.master(localAllNodes).appName("zio-environment")
+        builder = SparkSession.builder.master(localAllNodes).appName("zio-ecosystem")
         session <-
           ZIO.acquireRelease(builder.getOrCreate) { ss =>
             for {
@@ -44,19 +44,19 @@ object ZIOEcosystem extends ZIOAppDefault {
   }
 
   case object SimpleApp extends Example {
-    val name = "simple-app"
+    val name: String = "simple-app"
   }
   case object WordCount extends Example {
-    val name = "word-count"
+    val name: String = "word-count"
   }
   case object SparkCodeMigration extends Example {
-    val name = "spark-code-migration"
+    val name: String = "spark-code-migration"
   }
   case object All extends Example {
-    val name = "all"
+    val name: String = "all"
   }
 
-  case class RunSubcommand(example: Example)
+  final case class RunSubcommand(example: Example)
 
   val runSubcommandArgs: Args[Example] =
     Args.enumeration(
@@ -95,7 +95,7 @@ object ZIOEcosystem extends ZIOAppDefault {
           case All => ZIO.collectAllParDiscard(List(simpleAppExample, wordCountExample, sparkCodeMigrationExample))
         }
       after <- clock.currentTime(TimeUnit.MICROSECONDS)
-      duration = (after - before).toFloat / 1_000_000f
+      duration = (after - before).toFloat / 1000000f
       _ <- ZIO.logInfo(s"Example(s) correctly finished, it took $duration seconds!")
     } yield ()
 
