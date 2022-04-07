@@ -33,14 +33,14 @@ final case class DataFrameReader[State <: SchemaState] private (
    *
    * See [[UnderlyingDataFrameReader.csv]] for more information.
    */
-  def csv(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = csv(Seq(path): _*)(trace)
+  def csv(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = csv(Seq(path): _*)
 
   /**
    * Loads a dataframe from CSV files.
    *
    * See [[UnderlyingDataFrameReader.csv]] for more information.
    */
-  def csv(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.csv(paths: _*))(trace)
+  def csv(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.csv(paths: _*))
 
   /**
    * Loads a dataframe from Dataset[String].
@@ -48,21 +48,21 @@ final case class DataFrameReader[State <: SchemaState] private (
    * See [[UnderlyingDataFrameReader.csv]] for more information.
    */
   def csv(csvDataset: Dataset[String])(implicit trace: ZTraceElement): SIO[DataFrame] =
-    loadUsing(_.csv(csvDataset.underlying))(trace)
+    loadUsing(_.csv(csvDataset.underlying))
 
   /**
    * Loads a dataframe from a JSON file.
    *
    * See [[UnderlyingDataFrameReader.json]] for more information.
    */
-  def json(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = json(Seq(path): _*)(trace)
+  def json(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = json(Seq(path): _*)
 
   /**
    * Loads a dataframe from JSON files.
    *
    * See [[UnderlyingDataFrameReader.json]] for more information.
    */
-  def json(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.json(paths: _*))(trace)
+  def json(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.json(paths: _*))
 
   /**
    * Loads a dataframe from a Dataset[String].
@@ -70,7 +70,7 @@ final case class DataFrameReader[State <: SchemaState] private (
    * See [[UnderlyingDataFrameReader.json]] for more information.
    */
   def json(jsonDataset: Dataset[String])(implicit trace: ZTraceElement): SIO[DataFrame] =
-    loadUsing(_.json(jsonDataset.underlying))(trace)
+    loadUsing(_.json(jsonDataset.underlying))
 
   /**
    * Loads a dataframe from a PARQUET file.
@@ -98,7 +98,7 @@ final case class DataFrameReader[State <: SchemaState] private (
    *
    * See [[UnderlyingDataFrameReader.orc]] for more information.
    */
-  def orc(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.orc(paths: _*))(trace)
+  def orc(paths: String*)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.orc(paths: _*))
 
   /**
    * Loads a dataframe from a text file.
@@ -120,7 +120,7 @@ final case class DataFrameReader[State <: SchemaState] private (
    * See [[UnderlyingDataFrameReader.textFile]] for more information.
    */
   def text(path: String*)(implicit trace: ZTraceElement, ev: State =:= WithoutSchema): SIO[DataFrame] =
-    loadUsing(_.text(path: _*))(trace)
+    loadUsing(_.text(path: _*))
 
   /**
    * Loads a dataset[String] from a text file.
@@ -148,7 +148,7 @@ final case class DataFrameReader[State <: SchemaState] private (
    * See [[UnderlyingDataFrameReader.table]] for more information.
    */
   def table(tableName: String)(implicit trace: ZTraceElement, ev: State =:= WithoutSchema): SIO[DataFrame] =
-    loadUsing(_.table(tableName))(trace)
+    loadUsing(_.table(tableName))
 
   /**
    * Construct a `DataFrame` representing the database table accessible
@@ -195,7 +195,7 @@ final case class DataFrameReader[State <: SchemaState] private (
   /** Loads a dataframe using one of the dataframe loader. */
   private def loadUsing[T](f: UnderlyingDataFrameReader => UnderlyingDataset[T])(implicit
       trace: ZTraceElement
-  ): SIO[Dataset[T]] = fromSpark(ss => Dataset(f(construct(ss))))(trace)
+  ): SIO[Dataset[T]] = fromSpark(ss => Dataset(f(construct(ss))))
 
   /**
    * Replace the data schema of the DataFrameReader.

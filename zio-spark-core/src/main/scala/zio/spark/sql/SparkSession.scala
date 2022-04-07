@@ -39,7 +39,7 @@ object SparkSession extends Accessible[SparkSession] {
   def builder: Builder = Builder(UnderlyingSparkSession.builder(), Map.empty)
 
   def attempt[Out](f: UnderlyingSparkSession => Out)(implicit trace: ZTraceElement): SIO[Out] =
-    ZIO.serviceWithZIO[SparkSession](ss => ZIO.attempt(f(ss.underlyingSparkSession))(trace))
+    ZIO.serviceWithZIO[SparkSession](ss => ZIO.attempt(f(ss.underlyingSparkSession)))
 
   final case class Builder(
       builder:      UnderlyingSparkSession.Builder,
