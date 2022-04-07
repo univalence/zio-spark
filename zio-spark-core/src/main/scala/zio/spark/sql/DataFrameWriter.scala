@@ -32,6 +32,16 @@ final case class DataFrameWriter[T] private (
   def json(path: String)(implicit trace: ZTraceElement): Task[Unit] = saveUsing(_.json(path))
 
   /**
+   * Saves the content of the DataFrame as the specified table.
+   *
+   * See [[UnderlyingDataFrameWriter.saveAsTable]] for more information.
+   */
+  def saveAsTable(path: String)(implicit trace: ZTraceElement): Task[Unit] = saveUsing(_.saveAsTable(path))
+
+  /** Alias for [[saveAsTable]]. */
+  def table(path: String)(implicit trace: ZTraceElement): Task[Unit] = saveAsTable(path)
+
+  /**
    * Saves the DataFrame using the CSV format.
    *
    * See [[UnderlyingDataFrameWriter.csv]] for more information.

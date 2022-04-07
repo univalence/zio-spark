@@ -1,8 +1,10 @@
 package zio.spark.sql
 
+import zio.{durationInt, ZIO}
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.spark.sql.DataFrameReader.WithoutSchema
+import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.TestAspect._
 
@@ -42,11 +44,17 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
           output <- df.count
         } yield assertTrue(output == 4)
       },
-      test("DataFrameReader can read a Parquet file") {
+      test("DataFrameReader can read a Orc file") {
         for {
-          df     <- SparkSession.read.parquet(s"$resourcesPath/data.parquet")
-          output <- df.write.orc(s"$resourcesPath/data.orc")
-        } yield assertTrue(output == output)
+          df     <- SparkSession.read.orc(s"$resourcesPath/data.orc")
+          output <- df.count
+        } yield assertTrue(output == 4)
+      },
+      test("DataFrameReader can read a Text file") {
+        for {
+          df     <- SparkSession.read.textFile(s"$resourcesPath/data.txt")
+          output <- df.flatMap(_.split(" ")).count
+        } yield assertTrue(output == 4)
       }
     )
 
