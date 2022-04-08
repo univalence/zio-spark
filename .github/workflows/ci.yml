@@ -47,11 +47,12 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: npm
+          cache-dependency-path: website/package-lock.json
       - name: Install dependencies
-        working-directory: ./website
+        working-directory: website
         run: npm ci
       - name: Build documentation
-        working-directory: ./website
+        working-directory: website
         run: npm build
 
   test:
