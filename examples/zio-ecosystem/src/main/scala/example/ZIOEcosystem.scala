@@ -29,7 +29,14 @@ object ZIOEcosystem extends ZIOAppDefault {
     }
 
   sealed abstract class Example {
-    def name: String = this.getClass.getName.replaceAll("(\\p{Lu}+\\p{Lo}*)", "-$1").replaceAll("^-", "").toLowerCase
+    final def name: String =
+      this match {
+        case Example.SimpleApp          => "simple-app"
+        case Example.WordCount          => "word-count"
+        case Example.SparkCodeMigration => "spark-code-migration"
+        case Example.All                => "all"
+      }
+
   }
 
   object Example {
@@ -99,9 +106,7 @@ object ZIOEcosystem extends ZIOAppDefault {
   override def run: URIO[ZIOAppArgs with Scope, Unit] =
     for {
       args <- ZIOAppArgs.getArgs
-      _    <- Console.printLine(args).when(args.nonEmpty).ignore
-      _    <- app.run(List("example", "all")).provide(session).orDie
-      // We comment this line for the example, we don't use arguments directly.
-      // _    <- app.run(args.toList).provide(session).orDie
+      _    <- Console.printLine("no args supplied, running all examples (`example all`)").when(args.isEmpty).ignore
+      _    <- app.run(if (args.isEmpty) List("example", "all") else args.toList).provide(session).orDie
     } yield ()
 }
