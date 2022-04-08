@@ -13,6 +13,7 @@ import org.apache.spark.sql.{
   DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
   Dataset => UnderlyingDataset,
   Encoder,
+  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
   RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
   Row,
   Sniffer,
@@ -34,10 +35,16 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // scalafix:off
   implicit private def lift[U](x: UnderlyingDataset[U]): Dataset[U]                        = Dataset(x)
   implicit private def iteratorConversion[U](iterator: java.util.Iterator[U]): Iterator[U] = iterator.asScala
-  implicit private def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
+  implicit private def liftDataFrameNaFunctions(x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
     DataFrameNaFunctions(x)
-  implicit private def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
+  implicit private def liftDataFrameStatFunctions(x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
     DataFrameStatFunctions(x)
+  implicit private def liftRelationalGroupedDataset[U](
+      x: UnderlyingRelationalGroupedDataset
+  ): RelationalGroupedDataset = RelationalGroupedDataset(x)
+  implicit private def liftKeyValueGroupedDataset[K, V](
+      x: UnderlyingKeyValueGroupedDataset[K, V]
+  ): KeyValueGroupedDataset[K, V] = KeyValueGroupedDataset(x)
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
@@ -196,6 +203,16 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    */
   def columns: Seq[String] = get(_.columns.toSeq)
 
+  /**
+   * :: Experimental :: (Scala-specific) Returns a
+   * [[KeyValueGroupedDataset]] where the data is grouped by the given
+   * key `func`.
+   *
+   * @group typedrel
+   * @since 2.0.0
+   */
+  def groupByKey[K: Encoder](func: T => K): KeyValueGroupedDataset[K, T] = get(_.groupByKey[K](func))
+
   // scalastyle:on println
   /**
    * Returns a [[DataFrameNaFunctions]] for working with missing data.
@@ -251,6 +268,100 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @since 2.3.0
    */
   def colRegex(colName: String): TryAnalysis[Column] = getWithAnalysis(_.colRegex(colName))
+
+  /**
+   * Create a multi-dimensional cube for the current Dataset using the
+   * specified columns, so we can run aggregation on them. See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions.
+   *
+   * {{{
+   *   // Compute the average for all numeric columns cubed by department and group.
+   *   ds.cube($"department", $"group").avg()
+   *
+   *   // Compute the max age and average salary, cubed by department and gender.
+   *   ds.cube($"department", $"gender").agg(Map(
+   *     "salary" -> "avg",
+   *     "age" -> "max"
+   *   ))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def cube(cols: Column*): TryAnalysis[RelationalGroupedDataset] = getWithAnalysis(_.cube(cols: _*))
+
+  /**
+   * Create a multi-dimensional cube for the current Dataset using the
+   * specified columns, so we can run aggregation on them. See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions.
+   *
+   * This is a variant of cube that can only group by existing columns
+   * using column names (i.e. cannot construct expressions).
+   *
+   * {{{
+   *   // Compute the average for all numeric columns cubed by department and group.
+   *   ds.cube("department", "group").avg()
+   *
+   *   // Compute the max age and average salary, cubed by department and gender.
+   *   ds.cube($"department", $"gender").agg(Map(
+   *     "salary" -> "avg",
+   *     "age" -> "max"
+   *   ))
+   * }}}
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def cube(col1: String, cols: String*): TryAnalysis[RelationalGroupedDataset] = getWithAnalysis(_.cube(col1, cols: _*))
+
+  /**
+   * Create a multi-dimensional rollup for the current Dataset using the
+   * specified columns, so we can run aggregation on them. See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions.
+   *
+   * {{{
+   *   // Compute the average for all numeric columns rolluped by department and group.
+   *   ds.rollup($"department", $"group").avg()
+   *
+   *   // Compute the max age and average salary, rolluped by department and gender.
+   *   ds.rollup($"department", $"gender").agg(Map(
+   *     "salary" -> "avg",
+   *     "age" -> "max"
+   *   ))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def rollup(cols: Column*): TryAnalysis[RelationalGroupedDataset] = getWithAnalysis(_.rollup(cols: _*))
+
+  /**
+   * Create a multi-dimensional rollup for the current Dataset using the
+   * specified columns, so we can run aggregation on them. See
+   * [[RelationalGroupedDataset]] for all the available aggregate
+   * functions.
+   *
+   * This is a variant of rollup that can only group by existing columns
+   * using column names (i.e. cannot construct expressions).
+   *
+   * {{{
+   *   // Compute the average for all numeric columns rolluped by department and group.
+   *   ds.rollup("department", "group").avg()
+   *
+   *   // Compute the max age and average salary, rolluped by department and gender.
+   *   ds.rollup($"department", $"gender").agg(Map(
+   *     "salary" -> "avg",
+   *     "age" -> "max"
+   *   ))
+   * }}}
+   *
+   * @group untypedrel
+   * @since 2.0.0
+   */
+  def rollup(col1: String, cols: String*): TryAnalysis[RelationalGroupedDataset] =
+    getWithAnalysis(_.rollup(col1, cols: _*))
 
   // ===============
 
@@ -1864,9 +1975,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
 
   // Methods that need to be implemented
   //
-  // [[org.apache.spark.sql.Dataset.cube]]
-  // [[org.apache.spark.sql.Dataset.groupByKey]]
-  // [[org.apache.spark.sql.Dataset.rollup]]
   // [[org.apache.spark.sql.Dataset.writeStream]]
 
   // ===============
