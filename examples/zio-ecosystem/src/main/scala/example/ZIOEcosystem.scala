@@ -99,6 +99,7 @@ object ZIOEcosystem extends ZIOAppDefault {
   override def run: URIO[ZIOAppArgs with Scope, Unit] =
     for {
       args <- ZIOAppArgs.getArgs
+      _    <- Console.printLine(args).when(args.nonEmpty).ignore
       _    <- app.run(List("example", "all")).provide(session).orDie
       // We comment this line for the example, we don't use arguments directly.
       // _    <- app.run(args.toList).provide(session).orDie
