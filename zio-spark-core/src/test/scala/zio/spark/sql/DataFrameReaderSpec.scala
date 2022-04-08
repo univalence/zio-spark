@@ -1,10 +1,13 @@
 package zio.spark.sql
 
+import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.implicits._
 import zio.test._
+import zio.test.Assertion.{isLeft, isRight}
 import zio.test.TestAspect._
 
 object DataFrameReaderSpec extends ZIOSpecDefault {
@@ -54,6 +57,29 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
           df     <- SparkSession.read.textFile(s"$resourcesPath/data.txt")
           output <- df.flatMap(_.split(" ")).count
         } yield assertTrue(output == 4)
+      },
+      test("DataFrameReader can have a schema by default") {
+        val schema =
+          StructType(
+            Seq(
+              StructField("firstName", StringType, nullable = false),
+              StructField("age", IntegerType, nullable      = false)
+            )
+          )
+
+        for {
+          df <- SparkSession.read.option("multiline", "true").schema(schema).json(s"$resourcesPath/data.json")
+        } yield assertTrue(df.columns == Seq("firstName", "age"))
+      },
+      test("DataFrameReader can use a schemaString") {
+        val schema      = "firstName STRING, age STRING"
+        val maybeReader = SparkSession.read.option("multiline", "true").schema(schema)
+        assert(maybeReader)(isRight)
+      },
+      test("DataFrameReader handle errors with schemaString") {
+        val schema      = "NOT A SCHEMA"
+        val maybeReader = SparkSession.read.option("multiline", "true").schema(schema)
+        assert(maybeReader)(isLeft)
       }
     )
 
