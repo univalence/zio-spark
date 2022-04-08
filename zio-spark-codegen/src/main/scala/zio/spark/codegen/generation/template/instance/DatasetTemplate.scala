@@ -21,6 +21,7 @@ case object DatasetTemplate extends Template.Default {
           |  DataFrameNaFunctions => UnderlyingDataFrameNaFunctions,
           |  DataFrameStatFunctions => UnderlyingDataFrameStatFunctions,
           |  RelationalGroupedDataset => UnderlyingRelationalGroupedDataset,
+          |  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
           |  Encoder,
           |  Row,
           |  TypedColumn,
@@ -55,13 +56,18 @@ case object DatasetTemplate extends Template.Default {
 
   override def implicits(scalaVersion: ScalaBinaryVersion): Option[String] =
     Some {
-      s"""private implicit def lift[U](x:Underlying$name[U]):$name[U] = $name(x)
+      s"""private implicit def lift[U](x:Underlying$name[U]):$name[U] = 
+         |  $name(x)
          |private implicit def iteratorConversion[U](iterator: java.util.Iterator[U]):Iterator[U] =
          |  iterator.asScala
-         |private implicit def liftDataFrameNaFunctions[U](x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
+         |private implicit def liftDataFrameNaFunctions(x: UnderlyingDataFrameNaFunctions): DataFrameNaFunctions =
          |  DataFrameNaFunctions(x)
-         |private implicit def liftDataFrameStatFunctions[U](x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
-         |  DataFrameStatFunctions(x)""".stripMargin
+         |private implicit def liftDataFrameStatFunctions(x: UnderlyingDataFrameStatFunctions): DataFrameStatFunctions =
+         |  DataFrameStatFunctions(x)
+         |private implicit def liftRelationalGroupedDataset[U](x: UnderlyingRelationalGroupedDataset): RelationalGroupedDataset =
+         |  RelationalGroupedDataset(x)
+         |private implicit def liftKeyValueGroupedDataset[K, V](x: UnderlyingKeyValueGroupedDataset[K, V]): KeyValueGroupedDataset[K, V] =
+         |  KeyValueGroupedDataset(x)""".stripMargin
     }
 
   override def helpers: Helper = action && transformations && gets

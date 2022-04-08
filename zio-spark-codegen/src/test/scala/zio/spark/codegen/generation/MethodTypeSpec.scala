@@ -44,7 +44,8 @@ object MethodTypeSpec extends ZIOSpecDefault {
       testMethodTypeFor("as", arity = 0)(TransformationWithAnalysis),
       testMethodTypeFor("withColumn")(TransformationWithAnalysis),
       testMethodTypeFor("drop")(Transformation),
-      testMethodTypeFor("persist")(DriverAction)
+      testMethodTypeFor("persist")(DriverAction),
+      testMethodTypeFor("cube")(GetWithAnalysis)
     ).provide(planLayer(datasetPlan))
 
   val relationalGroupedDatasetMethodTypes: Spec[Any, TestFailure[Nothing], TestSuccess] =

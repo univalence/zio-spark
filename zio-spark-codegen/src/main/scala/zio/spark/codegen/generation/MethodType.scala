@@ -151,9 +151,6 @@ object MethodType {
       "context",      // TODO: SparkContext should be wrapped
       "sparkContext", // TODO: SparkContext should be wrapped
       "randomSplit",  // It should be implemented using Random layer
-      "rollup",       // TODO: RelationalGroupedDataset should be added to zio-spark
-      "cube",         // TODO: RelationalGroupedDataset should be added to zio-spark
-      "groupByKey",   // TODO: KeyValueGroupedDataset should be added to zio-spark
       "writeTo",      // TODO: DataFrameWriterV2 should be added to zio-spark
       "writeStream"   // TODO: DataStreamWriter should be added to zio-spark
     )
@@ -176,7 +173,10 @@ object MethodType {
       "bloomFilter",
       "corr",
       "countMinSketch",
-      "cov"
+      "cov",
+      "rollup",
+      "cube",
+      "groupByKey"
     )
 
   /**
@@ -208,7 +208,7 @@ object MethodType {
       }
 
     val parameterProvokingAnalysis = Set("expr", "condition", "col", "valueMap")
-    val shouldUseTryAnalysis       = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
+    val shouldUseTryAnalysis = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
 
     method match {
       case _ if shouldUseTryAnalysis                                => baseMethodType.withAnalysis
