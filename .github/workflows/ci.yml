@@ -38,6 +38,23 @@ jobs:
       - name: Run example
         run: sbt "project example${{ matrix.example }}" run
 
+  documentation:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2.4.0
+      - uses: actions/setup-node@v3
+        with:
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Install dependencies
+        working-directory: website
+        run: npm ci
+      - name: Build documentation
+        working-directory: website
+        run: npm run build
+
   test:
     runs-on: ubuntu-20.04
     timeout-minutes: 60

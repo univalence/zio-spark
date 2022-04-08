@@ -2,7 +2,24 @@ pull_request_rules:
   - name: Automatic merge for scala steward 🐱
     conditions:
       - author=scala-steward
-      - "check-success=ci/circleci: build"
+      - check-success~=test
+      - check-success~=check
+      - check-success~=example
+      - check-success~=documentation
+      - title~=^chore[^\s]+ bump [^\s]+ from ([\d]+)\..+ to \1\.
+    actions:
+      merge:
+        method: squash
+      label:
+        add: [dependency upgrade]
+  - name: Automatic merge for dependabot 🤖
+    conditions:
+      - author~=^dependabot(|-preview)\[bot\]$
+      - check-success~=test
+      - check-success~=check
+      - check-success~=example
+      - check-success~=documentation
+      - title~=^chore[^\s]+ bump [^\s]+ from ([\d]+)\..+ to \1\.
     actions:
       merge:
         method: squash
