@@ -79,6 +79,11 @@ object DataFrameWriterSpec {
           write     = path => _.write.parquet(path)
         ) @@ scala211(os(!_.isMac)),
         writerTest(
+          extension = "orc",
+          readAgain = path => SparkSession.read.orc(path),
+          write     = path => _.write.orc(path)
+        ),
+        writerTest(
           extension = "json",
           readAgain = path => SparkSession.read.json(path),
           write     = path => _.write.json(path)

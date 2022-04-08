@@ -4,6 +4,7 @@ import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
 import zio.spark.parameter._
+import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.SparkSession.Conf
 
 final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
@@ -28,7 +29,7 @@ object SparkSession extends Accessible[SparkSession] {
   }
 
   /** Creates the DataFrameReader. */
-  def read: DataFrameReader = DataFrameReader(Map.empty)
+  def read: DataFrameReader[WithoutSchema] = DataFrameReader(Map.empty, None)
 
   /**
    * Creates a [[SparkSession.Builder]].
@@ -38,7 +39,7 @@ object SparkSession extends Accessible[SparkSession] {
   def builder: Builder = Builder(UnderlyingSparkSession.builder(), Map.empty)
 
   def attempt[Out](f: UnderlyingSparkSession => Out)(implicit trace: ZTraceElement): SIO[Out] =
-    ZIO.serviceWithZIO[SparkSession](ss => ZIO.attempt(f(ss.underlyingSparkSession))(trace))
+    ZIO.serviceWithZIO[SparkSession](ss => ZIO.attempt(f(ss.underlyingSparkSession)))
 
   final case class Builder(
       builder:      UnderlyingSparkSession.Builder,
