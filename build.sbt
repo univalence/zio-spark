@@ -87,11 +87,8 @@ addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
 
 // -- Lib versions
-lazy val libVersion =
-  new {
-    val zio        = "2.0.0-RC4+30-d9a3fd01-SNAPSHOT"
-    val zioPrelude = "1.0.0-RC10"
-  }
+lazy val zio        = "2.0.0-RC5"
+lazy val zioPrelude = "1.0.0-RC10"
 
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.15"
@@ -110,7 +107,13 @@ lazy val core =
       crossScalaVersions := supportedScalaVersions,
       scalaVersion       := scala213,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
-      libraryDependencies ++= generateLibraryDependencies(scalaMajorVersion.value),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"     % zio % Test,
+        "dev.zio" %% "zio-test-sbt" % zio % Test,
+        "dev.zio" %% "zio"          % zio,
+        "dev.zio" %% "zio-streams"  % zio,
+        "dev.zio" %% "zio-prelude"  % zioPrelude
+      ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       scalacOptions ~= fatalWarningsAsProperties,
       Defaults.itSettings
@@ -168,19 +171,6 @@ def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
   )
 }
 
-/** Generates required libraries for a particular project. */
-def generateLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
-  val sparkLibraries = generateSparkLibraryDependencies(scalaMinor)
-
-  sparkLibraries ++ Seq(
-    "dev.zio" %% "zio-test"     % libVersion.zio % Test,
-    "dev.zio" %% "zio-test-sbt" % libVersion.zio % Test,
-    "dev.zio" %% "zio"          % libVersion.zio,
-    "dev.zio" %% "zio-streams"  % libVersion.zio,
-    "dev.zio" %% "zio-prelude"  % libVersion.zioPrelude
-  )
-}
-
 /**
  * Returns the correct spark version depending of the current scala
  * minor.
@@ -221,5 +211,4 @@ def addVersionPadding(baseVersion: String): String = {
       counter.replaceFirstIn(baseVersion, s"+$snapshotNumber-")
     case None => baseVersion
   }
-
 }
