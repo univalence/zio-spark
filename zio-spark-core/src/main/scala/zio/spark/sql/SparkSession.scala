@@ -28,8 +28,11 @@ object SparkSession extends Accessible[SparkSession] {
     def getAll: UIO[Map[String, String]]
   }
 
-  /** Creates the DataFrameReader. */
+  /** Creates a DataFrameReader. */
   def read: DataFrameReader[WithoutSchema] = DataFrameReader(Map.empty, None)
+
+  /** Creates a DataStreamReader. */
+  def readStream: DataStreamReader = DataStreamReader(Map.empty, None)
 
   /**
    * Creates a [[SparkSession.Builder]].

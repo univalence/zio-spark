@@ -1,6 +1,5 @@
 package zio.spark.sql
 
-import org.apache.spark.annotation.Evolving
 import org.apache.spark.sql.ForeachWriter
 import org.apache.spark.sql.streaming.{
   DataStreamWriter => UnderlyingDataStreamWriter,
@@ -9,7 +8,7 @@ import org.apache.spark.sql.streaming.{
   Trigger
 }
 
-import zio.Task
+import zio.{Duration, Task}
 
 import java.util.concurrent.TimeoutException
 
@@ -20,8 +19,7 @@ final case class DataStreamWriter[T] private (
     outputMode:          OutputMode,
     trigger:             Trigger,
     partitioningColumns: Option[Seq[String]],
-    foreachWriter:       Option[ForeachWriter[T]],
-    foreachBatchWrite:   Option[(Dataset[T], Long) => Unit]
+    foreachWriter:       Option[ForeachWriter[T]]
 ) { self =>
   implicit private class UnderlyingDataStreamWriterAddons(writer: UnderlyingDataStreamWriter[T]) {
     def maybeUse[U](
@@ -42,7 +40,6 @@ final case class DataStreamWriter[T] private (
       .trigger(trigger)
       .maybeUse(partitioningColumns, _.partitionBy)
       .maybeUse(foreachWriter, _.foreach)
-      .maybeUse(foreachBatchWrite, _.foreach)
 
   /** Adds multiple options to the DataFrameWriter. */
   def options(options: Map[String, String]): DataStreamWriter[T] = this.copy(options = this.options ++ options)
@@ -124,6 +121,21 @@ final case class DataStreamWriter[T] private (
   def trigger(trigger: Trigger): DataStreamWriter[T] = copy(trigger = trigger)
 
   /**
+   * A ZIO-Spark specific function to describe the streaming trigger.
+   *
+   * Scala Example, using ZIO duration ops:
+   * {{{
+   *   df.writeStream.every(5.seconds)
+   * }}}
+   */
+  def every(duration: Duration): DataStreamWriter[T] = trigger(Trigger.ProcessingTime(duration.toMillis))
+
+  /**
+   * A ZIO-Spark specific function to run the streaming job only once.
+   */
+  def once: DataStreamWriter[T] = trigger(Trigger.Once())
+
+  /**
    * Specifies the name of the [[StreamingQuery]] that can be started
    * with `start()`. This name must be unique among all the currently
    * active queries in the associated SQLContext.
@@ -131,13 +143,6 @@ final case class DataStreamWriter[T] private (
    * @since 2.0.0
    */
   def queryName(queryName: String): DataStreamWriter[T] = addOption("queryName", queryName)
-
-  /**
-   * Specifies the underlying output data source.
-   *
-   * @since 2.0.0
-   */
-  def format(source: String): DataStreamWriter[T] = copy(source = Some(source))
 
   /**
    * Partitions the output by the given columns on the file system. If
@@ -189,27 +194,13 @@ final case class DataStreamWriter[T] private (
   def start: Task[StreamingQuery] = Task.attempt(construct.start())
 
   /**
-   * Starts the execution of the streaming query, which will continually
-   * output results to the given table as new data arrives. The returned
-   * [[StreamingQuery]] object can be used to interact with the stream.
-   *
-   * For v1 table, partitioning columns provided by `partitionBy` will
-   * be respected no matter the table exists or not. A new table will be
-   * created if the table not exists.
-   *
-   * For v2 table, `partitionBy` will be ignored if the table already
-   * exists. `partitionBy` will be respected only if the v2 table does
-   * not exist. Besides, the v2 table created by this API lacks some
-   * functionalities (e.g., customized properties, options, and serde
-   * info). If you need them, please create the v2 table manually before
-   * the execution to avoid creating a table with incomplete
-   * information.
-   *
-   * @since 3.1.0
+   * Sets the output of the streaming query to be processed using the
+   * provided writer object. object. See
+   * [[org.apache.spark.sql.ForeachWriter]] for more details on the
+   * lifecycle and semantics.
+   * @since 2.0.0
    */
-  @Evolving
-  @throws[TimeoutException]
-  def toTable(tableName: String): Task[StreamingQuery] = Task.attempt(construct.toTable(tableName))
+  def foreach(writer: ForeachWriter[T]): DataStreamWriter[T] = copy(foreachWriter = Option(writer))
 }
 
 object DataStreamWriter {
@@ -221,7 +212,6 @@ object DataStreamWriter {
       outputMode          = OutputMode.Append(),
       trigger             = Trigger.ProcessingTime(0L),
       partitioningColumns = None,
-      foreachWriter       = None,
-      foreachBatchWrite   = None
+      foreachWriter       = None
     )
 }
