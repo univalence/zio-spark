@@ -35,7 +35,7 @@ val schema =
     Seq(
       StructField("name", StringType, nullable  = false),
       StructField("age", IntegerType, nullable = false),
-      StructField("phone", StringType, nullable = true),
+      StructField("phone", StringType, nullable = true)
     )
   )
   
