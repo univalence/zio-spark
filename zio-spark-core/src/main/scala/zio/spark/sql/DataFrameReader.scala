@@ -10,6 +10,7 @@ import org.apache.spark.sql.types.StructType
 
 import zio.ZTraceElement
 import zio.spark.sql.DataFrameReader.SchemaState
+import zio.spark.sql.SchemaFromCaseClass.ToStructSchema
 
 import java.util.Properties
 
@@ -227,6 +228,20 @@ final case class DataFrameReader[State <: SchemaState] private (
   def schema(schemaString: String): Either[ParseException, DataFrameReader[WithSchema]] =
     try Right(schema(StructType.fromDDL(schemaString)))
     catch { case e: ParseException => Left(e) }
+
+  /**
+   * ZIO-Spark specifics function to generate the schema from a case
+   * class.
+   *
+   * E.g.:
+   * {{{
+   *   import zio.spark._
+   *
+   *   case class Person(name: String, age: Int)
+   *   val ds: Dataset[Person] = SparkSession.read.schema[Person].csv("./path.csv").as[Person].getOrThrow
+   * }}}
+   */
+  def schema[T](implicit T: ToStructSchema[T]): DataFrameReader[WithSchema] = schema(T.toSchema)
 
   /** Adds multiple options to the DataFrameReader. */
   def options(options: Map[String, String]): DataFrameReader[State] = copy(options = this.options ++ options)
