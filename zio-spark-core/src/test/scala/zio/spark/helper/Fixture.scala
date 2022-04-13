@@ -8,7 +8,12 @@ import zio.spark.sql.implicits._
 object Fixture {
   final case class Person(name: String, age: Int)
 
-  def readCsv(path: String): SIO[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(path)
+  def readCsv(path: String): SIO[DataFrame] =
+    SparkSession.read
+      .schema[Person]
+      .withHeader
+      .withDelimiter(";")
+      .csv(path)
 
   val resourcesPath: String = "zio-spark-core/src/test/resources"
 
