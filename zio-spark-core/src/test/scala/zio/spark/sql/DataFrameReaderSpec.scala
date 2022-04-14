@@ -75,7 +75,7 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
         final case class Schema(firstName: String, age: Int)
 
         for {
-          df <- SparkSession.read.option("multiline", "true").schema[Schema].json(s"$resourcesPath/data.json")
+          df <- SparkSession.read.option("multiline", "true").schema[Schema].json(s"$resourcesPath/data-json")
         } yield assertTrue(df.columns == Seq("firstName", "age"))
       },
       test("DataFrameReader can use a schemaString") {
