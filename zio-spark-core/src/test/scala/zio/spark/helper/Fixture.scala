@@ -14,7 +14,7 @@ object Fixture {
 
   val targetsPath: String = "zio-spark-core/target/test"
 
-  val read: SIO[DataFrame] = readCsv(s"$resourcesPath/data.csv")
+  val read: SIO[DataFrame] = readCsv(s"$resourcesPath/data-csv")
 
   val readEmpty: SIO[DataFrame] = readCsv(s"$resourcesPath/empty.csv")
 
