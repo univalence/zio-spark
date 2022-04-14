@@ -17,7 +17,7 @@ object SimpleApp extends ZIOAppDefault {
 
   val filePath: String = "examples/simple-app/src/main/resources/data.csv"
 
-  def read: SIO[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(filePath)
+  def read: SIO[DataFrame] = SparkSession.read.schema[Person].withHeader.withDelimiter(";").csv(filePath)
 
   def transform(inputDs: DataFrame): Dataset[Person] = inputDs.as[Person]
 

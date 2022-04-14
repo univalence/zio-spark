@@ -113,20 +113,13 @@ lazy val core =
         "dev.zio" %% "zio"          % zio,
         "dev.zio" %% "zio-streams"  % zio,
         "dev.zio" %% "zio-prelude"  % zioPrelude
-      ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value),
+      ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value)
+        ++ generateMagnoliaDependency(scalaMajorVersion.value),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       scalacOptions ~= fatalWarningsAsProperties,
       Defaults.itSettings
     )
     .enablePlugins(ZioSparkCodegenPlugin)
-
-val exampleNames =
-  Seq(
-    "simple-app",
-    "spark-code-migration",
-    "using-older-spark-version",
-    "word-count"
-  )
 
 def example(project: Project): Project =
   project
@@ -142,7 +135,6 @@ lazy val exampleSimpleApp              = (project in file("examples/simple-app")
 lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
 lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
 lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
-
 lazy val exampleZIOEcosystem =
   (project in file("examples/zio-ecosystem"))
     .configure(example)
@@ -160,6 +152,14 @@ lazy val examples =
     exampleWordCount,
     exampleZIOEcosystem
   )
+
+/** Generates required libraries for magnolia. */
+def generateMagnoliaDependency(scalaMinor: Long): Seq[ModuleID] =
+  scalaMinor match {
+    case 11      => Seq("me.lyh" %% "magnolia" % "0.12.1.0-b575bf3")
+    case 12 | 13 => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.2")
+    case _       => throw new Exception("It should be unreachable.")
+  }
 
 /** Generates required libraries for spark. */
 def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
