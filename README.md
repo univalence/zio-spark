@@ -54,12 +54,10 @@ You can find the latest version on
 
 ### Spark Version
 
-zio-spark is built against spark 2.4.x and scala 2.12. Spark is provided, you should your Spark version (as you would
-usually).
+ZIO-Spark is compatible with Scala 2.11, 2.12 and 2.13. Spark is provided, you must add your own Spark version in 
+build.sbt (as you would usually). 
 
-```scala
-libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.7" % Provided
-```
+We advise you to use the latest version of Spark for your scala version.
 
 ## Why ?
 

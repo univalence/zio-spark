@@ -18,8 +18,6 @@ libraryDependencies += "io.univalence" %% "zio-spark" % "0.5.0"
 
 Spark version is provided. It means that you have to provide your own Spark version (as you would usually).
 
-zio-spark is available for Scala 2.11, Scala 2.12 and Scala 2.13.
-
 ## Examples
 
 To start with zio-spark, we advise you to look at the 
