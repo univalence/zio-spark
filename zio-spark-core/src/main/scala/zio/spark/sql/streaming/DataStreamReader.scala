@@ -1,4 +1,4 @@
-package zio.spark.sql
+package zio.spark.sql.streaming
 
 import org.apache.spark.sql.{Dataset => UnderlyingDataset, SparkSession => UnderlyingSparkSession}
 import org.apache.spark.sql.catalyst.parser.ParseException
@@ -6,6 +6,8 @@ import org.apache.spark.sql.streaming.{DataStreamReader => UnderlyingDataStreamR
 import org.apache.spark.sql.types.StructType
 
 import zio.ZTraceElement
+import zio.spark.sql.{fromSpark, DataFrame, Dataset, SIO}
+import zio.spark.sql.SchemaFromCaseClass.ToStructSchema
 
 final case class DataStreamReader private (
     options:             Map[String, String],
@@ -111,6 +113,20 @@ final case class DataStreamReader private (
   def schema(schemaString: String): Either[ParseException, DataStreamReader] =
     try Right(schema(StructType.fromDDL(schemaString)))
     catch { case e: ParseException => Left(e) }
+
+  /**
+   * ZIO-Spark specifics function to generate the schema from a case
+   * class.
+   *
+   * E.g.:
+   * {{{
+   *   import zio.spark._
+   *
+   *   case class Person(name: String, age: Int)
+   *   val ds: Dataset[Person] = SparkSession.read.schema[Person].csv("./path.csv").as[Person].getOrThrow
+   * }}}
+   */
+  def schema[T](implicit T: ToStructSchema[T]): DataStreamReader = schema(T.toSchema)
 
   /** Adds multiple options to the DataFrameReader. */
   def options(options: Map[String, String]): DataStreamReader = copy(options = this.options ++ options)

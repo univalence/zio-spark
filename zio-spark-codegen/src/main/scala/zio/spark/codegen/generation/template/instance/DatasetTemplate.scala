@@ -27,6 +27,7 @@ case object DatasetTemplate extends Template.Default {
           |  TypedColumn,
           |  Sniffer
           |}
+          |import zio.spark.sql.streaming.DataStreamWriter
           |import org.apache.spark.sql.types.StructType
           |import org.apache.spark.storage.StorageLevel
           |

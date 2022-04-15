@@ -1,13 +1,14 @@
-package zio.spark.sql
+package zio.spark.sql.streaming
 
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
-import zio.spark.helper.Fixture._
+import zio.spark.helper.Fixture.resourcesPath
+import zio.spark.sql.SparkSession
 import zio.spark.sql.implicits._
-import zio.test._
+import zio.test.{assert, assertTrue, Annotations, Live, Spec, TestFailure, TestSuccess, ZIOSpecDefault, ZSpec}
 import zio.test.Assertion.{isLeft, isRight}
-import zio.test.TestAspect._
+import zio.test.TestAspect.{ignore, scala211}
 
 object DataStreamReaderSpec extends ZIOSpecDefault {
   val reader: DataStreamReader = SparkSession.readStream

@@ -1,4 +1,4 @@
-package zio.spark.sql
+package zio.spark.sql.streaming
 
 import org.apache.spark.sql.ForeachWriter
 import org.apache.spark.sql.streaming.{
@@ -8,7 +8,8 @@ import org.apache.spark.sql.streaming.{
   Trigger
 }
 
-import zio.{Duration, Task}
+import zio.{Duration, Task, ZIO}
+import zio.spark.sql.Dataset
 
 import java.util.concurrent.TimeoutException
 
@@ -61,6 +62,13 @@ final case class DataStreamWriter[T] private (
 
   /** Adds an option to the DataFrameWriter. */
   def option(key: String, value: Double): DataStreamWriter[T] = addOption(key, value)
+
+  /**
+   * Change the source (sink) of the stream.
+   *
+   * @since 2.0.0
+   */
+  def format(source: String): DataStreamWriter[T] = copy(source = Some(source))
 
   /**
    * Specifies how data of a streaming DataFrame/Dataset is written to a
@@ -125,10 +133,10 @@ final case class DataStreamWriter[T] private (
    *
    * Scala Example, using ZIO duration ops:
    * {{{
-   *   df.writeStream.every(5.seconds)
+   *   df.writeStream.triggerEvery(5.seconds)
    * }}}
    */
-  def every(duration: Duration): DataStreamWriter[T] = trigger(Trigger.ProcessingTime(duration.toMillis))
+  def triggerEvery(duration: Duration): DataStreamWriter[T] = trigger(Trigger.ProcessingTime(duration.toMillis))
 
   /**
    * A ZIO-Spark specific function to run the streaming job only once.
@@ -192,6 +200,21 @@ final case class DataStreamWriter[T] private (
    */
   @throws[TimeoutException]
   def start: Task[StreamingQuery] = Task.attempt(construct.start())
+
+  /**
+   * Generate a stream with only the available current input. Generally
+   * used for testing purpose.
+   */
+  def test: Task[Unit] = start.map(_.processAllAvailable())
+
+  /**
+   * Generate the stream as a stoppable blocking task handled by ZIO.
+   */
+  def run: Task[Unit] =
+    for {
+      query <- start
+      _     <- Task.attempt(query.awaitTermination()).onInterrupt(ZIO.succeed(query.stop()))
+    } yield ()
 
   /**
    * Sets the output of the streaming query to be processed using the

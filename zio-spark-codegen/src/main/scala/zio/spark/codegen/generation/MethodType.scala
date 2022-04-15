@@ -142,8 +142,9 @@ object MethodType {
       "show",        // It should be implemented using Console layer
       "printSchema", // It should be implemented using Console layer
       "transform",   // Too specific for codegen
-      "write",       // TODO: DataFrameWriter should be added to zio-spark
-      "groupBy"      // TODO: RelationalGroupedDataset should be added to zio-spark
+      "write",       // Too specific for codegen
+      "writeStream", // Too specific for codegen
+      "groupBy"      // Too specific for codegen
     )
 
   val methodsToHandle =
@@ -151,8 +152,7 @@ object MethodType {
       "context",      // TODO: SparkContext should be wrapped
       "sparkContext", // TODO: SparkContext should be wrapped
       "randomSplit",  // It should be implemented using Random layer
-      "writeTo",      // TODO: DataFrameWriterV2 should be added to zio-spark
-      "writeStream"   // TODO: DataStreamWriter should be added to zio-spark
+      "writeTo"       // TODO: DataFrameWriterV2 should be added to zio-spark
     )
 
   val methodsGet =

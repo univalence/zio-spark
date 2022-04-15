@@ -6,6 +6,7 @@ import zio._
 import zio.spark.parameter._
 import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.SparkSession.Conf
+import zio.spark.sql.streaming.DataStreamReader
 
 final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
     extends ExtraSparkSessionFeature(underlyingSparkSession) {
