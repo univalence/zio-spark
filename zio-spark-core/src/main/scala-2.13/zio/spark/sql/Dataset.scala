@@ -25,6 +25,7 @@ import org.apache.spark.storage.StorageLevel
 
 import zio._
 import zio.spark.rdd._
+import zio.spark.sql.streaming.DataStreamWriter
 
 import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.TypeTag
@@ -226,8 +227,11 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)
 
-  /** Create a DataFrameWrite from this dataset. */
+  /** Create a DataFrameWriter from this dataset. */
   def write: DataFrameWriter[T] = DataFrameWriter(self)
+
+  /** Create a DataStreamWriter from this dataset. */
+  def writeStream: DataStreamWriter[T] = DataStreamWriter(self)
 
   // Generated functions coming from spark
   /**
@@ -2154,7 +2158,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
 
   // Methods that need to be implemented
   //
-  // [[org.apache.spark.sql.Dataset.writeStream]]
   // [[org.apache.spark.sql.Dataset.writeTo]]
 
   // ===============
@@ -2167,6 +2170,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // [[org.apache.spark.sql.Dataset.show]]
   // [[org.apache.spark.sql.Dataset.transform]]
   // [[org.apache.spark.sql.Dataset.write]]
+  // [[org.apache.spark.sql.Dataset.writeStream]]
 
   // ===============
 

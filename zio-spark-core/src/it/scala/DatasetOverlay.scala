@@ -8,6 +8,7 @@ import org.apache.spark.sql.{
 import zio._
 import zio.spark.rdd._
 import zio.spark.sql._
+import zio.spark.sql.streaming.DataStreamWriter
 
 import java.io.IOException
 
@@ -95,8 +96,11 @@ class DatasetOverlay[T](self: Dataset[T]) {
    */
   def transform[U](t: Dataset[T] => Dataset[U]): Dataset[U] = t(self)
 
-  /** Create a DataFrameWrite from this dataset. */
+  /** Create a DataFrameWriter from this dataset. */
   def write: DataFrameWriter[T] = DataFrameWriter(self)
+
+  /** Create a DataStreamWriter from this dataset. */
+  def writeStream: DataStreamWriter[T] = DataStreamWriter(self)
 
   // template:off
 }

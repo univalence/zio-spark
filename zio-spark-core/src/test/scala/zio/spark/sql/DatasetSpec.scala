@@ -316,7 +316,7 @@ object DatasetSpec {
                 .option("inferSchema", value = true)
                 .option("header", value = true)
                 .option("delimiter", ";")
-                .csv(s"$resourcesPath/data.csv")
+                .csv(s"$resourcesPath/data-csv")
 
             val processedDf = inputDf.limit(2)
 

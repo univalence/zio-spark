@@ -10,7 +10,6 @@ final case class DataFrameWriter[T] private (
     options:             Map[String, String],
     partitioningColumns: Seq[String]
 ) {
-
   private def construct: UnderlyingDataFrameWriter[T] = {
     val base = ds.underlying.write.options(options).mode(mode)
 
