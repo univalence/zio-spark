@@ -1,5 +1,7 @@
 package zio.spark
 
+import org.apache.spark.sql.streaming.OutputMode
+
 /** The parameter package provides helpers to configure a Spark job. */
 package object parameter {
 
@@ -62,4 +64,8 @@ package object parameter {
   val spark: List[Master.MasterNodeConfiguration] => Master =
     (urls: List[Master.MasterNodeConfiguration]) => Master.Spark(urls)
   val mesos: Master.MasterNodeConfiguration => Master = (url: Master.MasterNodeConfiguration) => Master.Mesos(url)
+
+  val complete: OutputMode = OutputMode.Complete()
+  val append: OutputMode   = OutputMode.Append()
+  val update: OutputMode   = OutputMode.Update()
 }

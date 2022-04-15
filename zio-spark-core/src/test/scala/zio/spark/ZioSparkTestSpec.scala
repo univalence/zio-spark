@@ -14,7 +14,7 @@ import zio.spark.sql.{
   RelationalGroupedDatasetSpec,
   SparkSession
 }
-import zio.spark.sql.streaming.StreamingSpec
+import zio.spark.sql.streaming.{DataStreamWriterSpec, StreamingSpec}
 import zio.test._
 
 /** Runs all spark specific tests in the same spark session. */
@@ -51,7 +51,8 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
         PipelineSpec.pipelineSpec,
         RelationalGroupedDatasetSpec.relationalGroupedDatasetAggregationSpec,
         CancellableEffectSpec.spec,
-        StreamingSpec.streamingSpec
+        StreamingSpec.streamingSpec,
+        DataStreamWriterSpec.dataStreamReaderConfigurationsSpec
       )
 
     suite("Spark tests")(specs: _*).provideCustomLayerShared(session)

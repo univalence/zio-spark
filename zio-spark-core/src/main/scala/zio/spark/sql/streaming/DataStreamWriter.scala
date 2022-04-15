@@ -87,32 +87,6 @@ final case class DataStreamWriter[T] private (
   def outputMode(outputMode: OutputMode): DataStreamWriter[T] = copy(outputMode = outputMode)
 
   /**
-   * Specifies how data of a streaming DataFrame/Dataset is written to a
-   * streaming sink. <ul> <li> `append`: only the new rows in the
-   * streaming DataFrame/Dataset will be written to the sink.</li> <li>
-   * `complete`: all the rows in the streaming DataFrame/Dataset will be
-   * written to the sink every time there are some updates.</li> <li>
-   * `update`: only the rows that were updated in the streaming
-   * DataFrame/Dataset will be written to the sink every time there are
-   * some updates. If the query doesn't contain aggregations, it will be
-   * equivalent to `append` mode.</li> </ul>
-   *
-   * @since 2.0.0
-   */
-  def outputMode(outputMode: String): Either[IllegalArgumentException, DataStreamWriter[T]] =
-    outputMode.toLowerCase match {
-      case "append"   => Right(self.outputMode(OutputMode.Append()))
-      case "complete" => Right(self.outputMode(OutputMode.Complete()))
-      case "update"   => Right(self.outputMode(OutputMode.Update()))
-      case _ =>
-        Left(
-          new IllegalArgumentException(
-            s"Unknown output mode $outputMode. Accepted output modes are 'append', 'complete', 'update'"
-          )
-        )
-    }
-
-  /**
    * Set the trigger for the stream query. The default value is
    * `ProcessingTime(0)` and it will run the query as fast as possible.
    *

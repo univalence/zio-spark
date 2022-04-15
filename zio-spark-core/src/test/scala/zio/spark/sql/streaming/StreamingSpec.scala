@@ -1,10 +1,9 @@
 package zio.spark.sql.streaming
 
-import org.apache.spark.sql.streaming.OutputMode
-
 import zio.spark.helper.Fixture.{resourcesPath, Person}
+import zio.spark.parameter.append
 import zio.spark.sql._
-import zio.spark.sql.{SIO, SparkSession}
+import zio.spark.sql.implicits._
 import zio.test._
 
 object StreamingSpec {
@@ -21,7 +20,7 @@ object StreamingSpec {
         _ <-
           df.writeStream
             .format("memory")
-            .outputMode(OutputMode.Append())
+            .outputMode(append)
             .queryName(tableName)
             .test
         memoryDf <- SparkSession.read.table(tableName)
@@ -46,6 +45,20 @@ object StreamingSpec {
       testStreamingPipeline(
         name          = "orc",
         readingEffect = _.orc(s"$resourcesPath/data-orc")
-      )
+      ),
+      test(s"Streaming using once trigger is the same as test") {
+        for {
+          df <- SparkSession.readStream.textFile(s"$resourcesPath/data-txt")
+          _ <-
+            df.flatMap(_.split(" "))
+              .writeStream
+              .format("memory")
+              .queryName("testTxt")
+              .once
+              .run
+          memoryDf <- SparkSession.read.table("testTxt")
+          res      <- memoryDf.count
+        } yield assertTrue(res == 4)
+      }
     )
 }
