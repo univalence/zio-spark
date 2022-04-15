@@ -103,7 +103,7 @@ final case class DataStreamWriter[T] private (
   def trigger(trigger: Trigger): DataStreamWriter[T] = copy(trigger = trigger)
 
   /**
-   * A ZIO-Spark specific function to describe the streaming trigger.
+   * A ZIO-Spark specific function to describe a micro batch stream.
    *
    * Scala Example, using ZIO duration ops:
    * {{{
@@ -111,6 +111,18 @@ final case class DataStreamWriter[T] private (
    * }}}
    */
   def triggerEvery(duration: Duration): DataStreamWriter[T] = trigger(Trigger.ProcessingTime(duration.toMillis))
+
+  /**
+   * A ZIO-Spark specific function to describe a continuously stream
+   * with checkpoint.
+   *
+   * Scala Example, using ZIO duration ops:
+   * {{{
+   *   df.writeStream.continuouslyWithCheckpointEvery(5.seconds)
+   * }}}
+   */
+  def continuouslyWithCheckpointEvery(duration: Duration): DataStreamWriter[T] =
+    trigger(Trigger.Continuous(duration.toMillis))
 
   /**
    * A ZIO-Spark specific function to run the streaming job only once.

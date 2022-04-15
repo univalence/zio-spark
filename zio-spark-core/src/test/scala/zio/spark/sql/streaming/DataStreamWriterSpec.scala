@@ -33,11 +33,17 @@ object DataStreamWriterSpec {
           writerWithOptions = writer.options(options)
         } yield assertTrue(writerWithOptions.options == options)
       },
-      test("DataStreamWriter should apply trigger correctly") {
+      test("DataStreamWriter should apply processing trigger correctly") {
         for {
           writer <- writerEffect
           writerWithOptions = writer.triggerEvery(1.seconds)
-        } yield assertTrue(writerWithOptions.trigger.toString == "ProcessingTimeTrigger(1000)")
+        } yield assertTrue(writerWithOptions.trigger.toString.contains("1000"))
+      },
+      test("DataStreamWriter should apply continuous trigger correctly") {
+        for {
+          writer <- writerEffect
+          writerWithOptions = writer.continuouslyWithCheckpointEvery(1.seconds)
+        } yield assertTrue(writerWithOptions.trigger.toString.contains("1000"))
       },
       test("DataStreamWriter should apply partitionColumns correctly") {
         for {
