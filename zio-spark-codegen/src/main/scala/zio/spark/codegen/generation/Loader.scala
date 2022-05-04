@@ -34,7 +34,7 @@ object Loader {
       case Some(path) =>
         Task
           .attempt(new JarFile(new File(path)))
-          .tap(jar => Logger.info(s"Found  $moduleName in ${jar.getName}"))
+          .tap(jar => Logger.info(s"Found $moduleName in ${jar.getName}"))
           .orDie
     }
   }
