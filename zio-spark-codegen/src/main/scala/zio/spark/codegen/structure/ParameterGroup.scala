@@ -19,7 +19,7 @@ case class ParameterGroup(underlying: Seq[Term.Param], scalaVersion: ScalaBinary
           val parameterCodes    = parameters.map(_.toCode(isArgs, callByName = effectful && !hasImplicit, className))
           val parametersUnified = parameterCodes.mkString(", ")
           (hasImplicit, effectful) match {
-            case (true, true)  => s"(implicit $parametersUnified, trace: ZTraceElement)"
+            case (true, true)  => s"(implicit $parametersUnified, trace: Trace)"
             case (true, false) => s"(implicit $parametersUnified)"
             case _             => s"($parametersUnified)"
           }

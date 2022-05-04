@@ -167,7 +167,7 @@ final case class DataStreamWriter[T] private (
    *
    * @since 2.0.0
    */
-  def start(path: String): Task[StreamingQuery] = Task.attempt(construct.start(path))
+  def start(path: String): Task[StreamingQuery] = ZIO.attempt(construct.start(path))
 
   /**
    * Starts the execution of the streaming query, which will continually
@@ -185,7 +185,7 @@ final case class DataStreamWriter[T] private (
    * @since 2.0.0
    */
   @throws[TimeoutException]
-  def start: Task[StreamingQuery] = Task.attempt(construct.start())
+  def start: Task[StreamingQuery] = ZIO.attempt(construct.start())
 
   /**
    * Generate a stream with only the available current input. Generally
@@ -199,7 +199,7 @@ final case class DataStreamWriter[T] private (
   def run: Task[Unit] =
     for {
       query <- start
-      _     <- Task.attempt(query.awaitTermination()).onInterrupt(ZIO.succeed(query.stop()))
+      _     <- ZIO.attempt(query.awaitTermination()).onInterrupt(ZIO.succeed(query.stop()))
     } yield ()
 
   /**

@@ -3,7 +3,7 @@ package zio.spark.experimental
 import org.apache.spark.SparkContext
 import org.apache.spark.annotation.Experimental
 
-import zio.{UIO, ZIO, ZTraceElement}
+import zio.{Trace, ZIO}
 import zio.internal.ExecutionMetrics
 import zio.spark.sql.{SparkSession, SRIO}
 
@@ -47,16 +47,16 @@ object CancellableEffect {
    * @return
    */
   @Experimental
-  def makeItCancellable[R, T](job: SRIO[R, T])(implicit trace: ZTraceElement): SRIO[R, T] =
+  def makeItCancellable[R, T](job: SRIO[R, T])(implicit trace: Trace): SRIO[R, T] =
     for {
-      groupName <- UIO.succeed("cancellable-group-" + Random.alphanumeric.take(6).mkString) // FIND A SEQ GEN ?
+      groupName <- ZIO.succeed("cancellable-group-" + Random.alphanumeric.take(6).mkString) // FIND A SEQ GEN ?
       sc        <- zio.spark.sql.fromSpark(_.sparkContext)
       runtime   <- ZIO.runtime[SparkSession]
       x <-
         job
-          .onExecutor(new setGroupNameExecutor(runtime.runtimeConfig.executor, sc, groupName))
+          .onExecutor(new setGroupNameExecutor(runtime.executor, sc, groupName))
           .disconnect
-          .onInterrupt(UIO.succeed(sc.cancelJobGroup(groupName)))
+          .onInterrupt(ZIO.succeed(sc.cancelJobGroup(groupName)))
     } yield x
 
 }

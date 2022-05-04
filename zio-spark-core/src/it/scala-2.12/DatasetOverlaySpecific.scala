@@ -11,23 +11,23 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
   // template:on
 
   /** Alias for [[tail]]. */
-  def last(implicit trace: ZTraceElement): Task[T] = tail
+  def last(implicit trace: Trace): Task[T] = tail
 
   /**
    * Takes the last element of a dataset or throws an exception.
    *
    * See [[Dataset.tail]] for more information.
    */
-  def tail(implicit trace: ZTraceElement): Task[T] = self.tail(1).map(_.head)
+  def tail(implicit trace: Trace): Task[T] = self.tail(1).map(_.head)
 
   /** Alias for [[tailOption]]. */
-  def lastOption(implicit trace: ZTraceElement): Task[Option[T]] = tailOption
+  def lastOption(implicit trace: Trace): Task[Option[T]] = tailOption
 
   /** Takes the last element of a dataset or None. */
-  def tailOption(implicit trace: ZTraceElement): Task[Option[T]] = self.tail(1).map(_.headOption)
+  def tailOption(implicit trace: Trace): Task[Option[T]] = self.tail(1).map(_.headOption)
 
   /** Alias for [[tail]]. */
-  def takeRight(n: Int)(implicit trace: ZTraceElement): Task[Seq[T]] = self.tail(n)
+  def takeRight(n: Int)(implicit trace: Trace): Task[Seq[T]] = self.tail(n)
 
   /**
    * Computes specified statistics for numeric and string columns.
@@ -52,7 +52,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String)(implicit trace: ZTraceElement): SIO[Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String)(implicit trace: Trace): SIO[Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -61,7 +61,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SIO[Unit] =
+  def explain(mode: ExplainMode)(implicit trace: Trace): SIO[Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlying.queryExecution.explainString(mode))
@@ -74,7 +74,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def printSchema(implicit trace: ZTraceElement): IO[IOException, Unit] = printSchema(Int.MaxValue)
+  def printSchema(implicit trace: Trace): IO[IOException, Unit] = printSchema(Int.MaxValue)
 
   /**
    * Prints the schema up to the given level to the console in a nice
@@ -83,7 +83,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 3.0.0
    */
-  def printSchema(level: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] =
+  def printSchema(level: Int)(implicit trace: Trace): IO[IOException, Unit] =
     Console.printLine(schema.treeString(level))
 
   // template:off

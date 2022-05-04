@@ -18,7 +18,7 @@ object DatasetSpec {
   import zio.spark.sql.implicits._
 
   implicit class SparkTestOps[O](effect: SIO[O]) {
-    def check(f: O => Assert): SIO[Assert] = effect.map(f).orDie
+    def check(f: O => TestResult): SIO[TestResult] = effect.map(f).orDie
   }
 
   def datasetActionsSpec: SparkTestSpec =
@@ -244,7 +244,7 @@ object DatasetSpec {
       } @@ scala211(ignore)
     )
 
-  def sqlSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def sqlSpec: Spec[SparkSession, Any] =
     suite("SQL Tests")(
       test("We can use sql in zio-spark") {
         val job =

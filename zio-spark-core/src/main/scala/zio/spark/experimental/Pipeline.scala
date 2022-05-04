@@ -33,7 +33,7 @@ final case class Pipeline[Source, Output, Result](
    * Runs the pipeline computation as a ZIO effect. You must provide a
    * [[SparkSession]] layer to actually run the effect.
    */
-  def run(implicit trace: ZTraceElement): SIO[Result] = load.map(transform).flatMap(action)
+  def run(implicit trace: Trace): SIO[Result] = load.map(transform).flatMap(action)
 }
 
 object Pipeline {

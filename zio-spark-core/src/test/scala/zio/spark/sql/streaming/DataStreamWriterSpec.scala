@@ -13,7 +13,7 @@ object DataStreamWriterSpec {
       endo: DataStreamWriter[Int] => DataStreamWriter[Int],
       expectedKey: String,
       expectedValue: String
-  ): ZSpec[SparkSession, Throwable] =
+  ): Spec[SparkSession, Throwable] =
     test(s"DataStreamReader can add the option ($testName)") {
       val options = Map(expectedKey -> expectedValue)
 
@@ -23,7 +23,7 @@ object DataStreamWriterSpec {
       } yield assertTrue(writerWithOptions.options == options)
     }
 
-  def dataStreamReaderConfigurationsSpec: Spec[SparkSession with Live, TestFailure[Any], TestSuccess] =
+  def dataStreamReaderConfigurationsSpec: Spec[SparkSession with Live, Any] =
     suite("DataStreamWriter Configurations")(
       test("DataStreamWriter should apply options correctly") {
         val options = Map("a" -> "x", "b" -> "y")

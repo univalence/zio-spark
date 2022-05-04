@@ -4,10 +4,10 @@ import org.apache.spark.sql.types._
 
 import zio.Scope
 import zio.spark.sql.SchemaFromCaseClass.schemaFrom
-import zio.test.{assertTrue, TestEnvironment, ZIOSpecDefault, ZSpec}
+import zio.test._
 
 object SchemaFromCaseClassSpec extends ZIOSpecDefault {
-  override def spec: ZSpec[TestEnvironment with Scope, Any] =
+  override def spec: Spec[TestEnvironment with Scope, Any] =
     suite("Convert case class into schema")(
       test("Case class with one string") {
         final case class Test(foo: String)

@@ -5,10 +5,9 @@ import zio.test._
 import zio.test.Assertion._
 
 object SparkSessionSpec extends ZIOSpecDefault {
-  def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
-    sparkSessionOptionsSpec + sparkSessionDefinitionsSpec
+  def spec: Spec[Annotations with Live, TestFailure[Any]] = sparkSessionOptionsSpec + sparkSessionDefinitionsSpec
 
-  def sparkSessionOptionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
+  def sparkSessionOptionsSpec: Spec[Annotations with Live, TestFailure[Any]] =
     suite("SparkSession Builder Options")(
       test("SparkSession Builder should apply options correctly") {
         val configs                 = Map("a" -> "x", "b" -> "y")
@@ -23,7 +22,7 @@ object SparkSessionSpec extends ZIOSpecDefault {
       }
     )
 
-  def sparkSessionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
+  def sparkSessionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any]] =
     suite("DataFrameReader Option Definitions")({
       final case class Conftest(
           text:        String,

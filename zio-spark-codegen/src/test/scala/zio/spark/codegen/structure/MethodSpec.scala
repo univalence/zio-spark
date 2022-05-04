@@ -4,7 +4,7 @@ import zio.{URIO, ZIO}
 import zio.spark.codegen.Helpers.{findMethodDefault, planLayer}
 import zio.spark.codegen.generation.plan.Plan.{datasetPlan, keyValueGroupedDatasetPlan, rddPlan}
 import zio.spark.codegen.generation.plan.SparkPlan
-import zio.test.{assertNever, assertTrue, Spec, TestFailure, TestResult, TestSuccess, ZIOSpecDefault, ZSpec}
+import zio.test.{assertNever, assertTrue, Spec, TestFailure, TestResult, TestSuccess, ZIOSpecDefault}
 
 object MethodSpec extends ZIOSpecDefault {
   def genTest2(name: String, arity: Int = -1, args: List[String] = Nil)(
@@ -31,18 +31,18 @@ object MethodSpec extends ZIOSpecDefault {
     ): ZSpec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
 
     suite("Check method generations for RDD")(
-      checkGen("min")("min(implicit ord: Ordering[T], trace: ZTraceElement): Task[T]"),
-      checkGen("collect", 0)("collect(implicit trace: ZTraceElement): Task[Seq[T]]"),
-      checkGen("saveAsObjectFile")("saveAsObjectFile(path: => String)(implicit trace: ZTraceElement): Task[Unit]"),
+      checkGen("min")("min(implicit ord: Ordering[T], trace: Trace): Task[T]"),
+      checkGen("collect", 0)("collect(implicit trace: Trace): Task[Seq[T]]"),
+      checkGen("saveAsObjectFile")("saveAsObjectFile(path: => String)(implicit trace: Trace): Task[Unit]"),
       checkGen("countByValue")("Task[Map[T, Long]]"),
       checkGen("map")("map[U: ClassTag](f: T => U): RDD[U]"),
-      checkGen("cache")("cache(implicit trace: ZTraceElement): Task[RDD[T]]"),
-      checkGen("dependencies")("dependencies(implicit trace: ZTraceElement): Task[Seq[Dependency[_]]]"),
+      checkGen("cache")("cache(implicit trace: Trace): Task[RDD[T]]"),
+      checkGen("dependencies")("dependencies(implicit trace: Trace): Task[Seq[Dependency[_]]]"),
       checkGen("zipWithIndex")("zipWithIndex: RDD[(T, Long)]"),
       checkGen("countByValueApprox")("Task[PartialResult[Map[T, BoundedDouble]]]"),
       checkGen("distinct", 2)("distinct(numPartitions: Int)(implicit ord: Ordering[T] = noOrdering): RDD[T]"),
       checkGen("saveAsTextFile", 2)(
-        "saveAsTextFile(path: => String, codec: => Class[_ <: CompressionCodec])(implicit trace: ZTraceElement): Task[Unit]"
+        "saveAsTextFile(path: => String, codec: => Class[_ <: CompressionCodec])(implicit trace: Trace): Task[Unit]"
       )
     )
   }.provide(planLayer(rddPlan))

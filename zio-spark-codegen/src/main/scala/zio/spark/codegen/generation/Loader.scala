@@ -50,7 +50,7 @@ object Loader {
   ): ZIO[Logger, CodegenError, meta.Source] =
     ZIO.scoped {
       for {
-        jar <- ZIO.acquireRelease(findSourceJar(moduleName, classpath))(x => Task.attempt(x.close()).ignore)
+        jar <- ZIO.acquireRelease(findSourceJar(moduleName, classpath))(x => ZIO.attempt(x.close()).ignore)
         source <-
           Task
             .attempt {
@@ -82,10 +82,10 @@ object Loader {
   def optionalSourceFromFile(file: File): IO[CodegenError, Option[meta.Source]] =
     sourceFromFile(file).foldZIO(
       failure = {
-        case FileReadingError(_, _) => UIO.succeed(None)
+        case FileReadingError(_, _) => ZIO.succeed(None)
         case e                      => ZIO.fail(e)
       },
-      success = source => UIO.succeed(Some(source))
+      success = source => ZIO.succeed(Some(source))
     )
 
 }

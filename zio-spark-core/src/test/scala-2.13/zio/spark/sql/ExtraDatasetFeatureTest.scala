@@ -12,9 +12,9 @@ object ExtraDatasetFeatureTest {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
 
-  def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
+  def spec: Spec[SparkSession, Any] = dataFrameActionsSpec
 
-  def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def dataFrameActionsSpec: Spec[SparkSession, Any] =
     suite("ExtraDatatasetFeature Actions")(
       test("ExtraDatatasetFeature should implement tail(n)/takeRight(n) correctly") {
         val process: DataFrame => Dataset[String]       = _.as[Person].map(_.name)

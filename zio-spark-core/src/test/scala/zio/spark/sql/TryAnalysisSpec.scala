@@ -5,7 +5,7 @@ import zio.test._
 object TryAnalysisSpec extends ZIOSpecDefault {
   val tryAnalysis: TryAnalysis[Int] = TryAnalysis(10)
 
-  override def spec: ZSpec[TestEnvironment, Any] =
+  override def spec: Spec[TestEnvironment, Any] =
     suite("TryAnalysis test")(
       test("TryAnalysis can be converted to Either") {
         assertTrue(tryAnalysis.toEither == Right(10))

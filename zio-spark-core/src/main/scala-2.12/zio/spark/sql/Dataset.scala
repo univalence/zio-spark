@@ -49,7 +49,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // scalafix:on
 
   /** Applies an action to the underlying Dataset. */
-  def action[U](f: UnderlyingDataset[T] => U)(implicit trace: ZTraceElement): Task[U] = ZIO.attempt(get(f))
+  def action[U](f: UnderlyingDataset[T] => U)(implicit trace: Trace): Task[U] = ZIO.attempt(get(f))
 
   /** Applies a transformation to the underlying Dataset. */
   def transformation[TNew](f: UnderlyingDataset[T] => UnderlyingDataset[TNew]): Dataset[TNew] = Dataset(f(underlying))
@@ -86,7 +86,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: String)(implicit trace: ZTraceElement): SIO[Unit] = explain(ExplainMode.fromString(mode))
+  def explain(mode: String)(implicit trace: Trace): SIO[Unit] = explain(ExplainMode.fromString(mode))
 
   /**
    * Prints the plans (logical and physical) with a format specified by
@@ -95,7 +95,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def explain(mode: ExplainMode)(implicit trace: ZTraceElement): SIO[Unit] =
+  def explain(mode: ExplainMode)(implicit trace: Trace): SIO[Unit] =
     for {
       ss   <- ZIO.service[SparkSession]
       plan <- ss.withActive(underlying.queryExecution.explainString(mode))
@@ -103,7 +103,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
     } yield ()
 
   /** Alias for [[headOption]]. */
-  def firstOption(implicit trace: ZTraceElement): Task[Option[T]] = headOption
+  def firstOption(implicit trace: Trace): Task[Option[T]] = headOption
 
   // template:on
   /** Transforms the Dataset into a RelationalGroupedDataset. */
@@ -119,14 +119,14 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   def groupBy(cols: Column*): RelationalGroupedDataset = group(_.groupBy(cols: _*))
 
   /** Takes the first element of a dataset or None. */
-  def headOption(implicit trace: ZTraceElement): Task[Option[T]] = head(1).map(_.headOption)
+  def headOption(implicit trace: Trace): Task[Option[T]] = head(1).map(_.headOption)
 
   // template:on
   /** Alias for [[tail]]. */
-  def last(implicit trace: ZTraceElement): Task[T] = tail
+  def last(implicit trace: Trace): Task[T] = tail
 
   /** Alias for [[tailOption]]. */
-  def lastOption(implicit trace: ZTraceElement): Task[Option[T]] = tailOption
+  def lastOption(implicit trace: Trace): Task[Option[T]] = tailOption
 
   /**
    * Prints the schema to the console in a nice tree format.
@@ -134,7 +134,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def printSchema(implicit trace: ZTraceElement): IO[IOException, Unit] = printSchema(Int.MaxValue)
+  def printSchema(implicit trace: Trace): IO[IOException, Unit] = printSchema(Int.MaxValue)
 
   /**
    * Prints the schema up to the given level to the console in a nice
@@ -143,7 +143,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 3.0.0
    */
-  def printSchema(level: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] =
+  def printSchema(level: Int)(implicit trace: Trace): IO[IOException, Unit] =
     Console.printLine(schema.treeString(level))
 
   /**
@@ -159,7 +159,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int)(implicit trace: Trace): IO[IOException, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -167,21 +167,21 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20)
+  def show(implicit trace: Trace): IO[IOException, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20, truncate)
+  def show(truncate: Boolean)(implicit trace: Trace): IO[IOException, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = {
+  def show(numRows: Int, truncate: Boolean)(implicit trace: Trace): IO[IOException, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
@@ -200,13 +200,13 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[Dataset.tail]] for more information.
    */
-  def tail(implicit trace: ZTraceElement): Task[T] = self.tail(1).map(_.head)
+  def tail(implicit trace: Trace): Task[T] = self.tail(1).map(_.head)
 
   /** Takes the last element of a dataset or None. */
-  def tailOption(implicit trace: ZTraceElement): Task[Option[T]] = self.tail(1).map(_.headOption)
+  def tailOption(implicit trace: Trace): Task[Option[T]] = self.tail(1).map(_.headOption)
 
   /** Alias for [[tail]]. */
-  def takeRight(n: Int)(implicit trace: ZTraceElement): Task[Seq[T]] = self.tail(n)
+  def takeRight(n: Int)(implicit trace: Trace): Task[Seq[T]] = self.tail(n)
 
   /**
    * Chains custom transformations.
@@ -221,8 +221,8 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking(implicit trace: ZTraceElement): UIO[Dataset[T]] =
-    UIO.succeed(transformation(_.unpersist(blocking = true)))
+  def unpersistBlocking(implicit trace: Trace): UIO[Dataset[T]] =
+    ZIO.succeed(transformation(_.unpersist(blocking = true)))
 
   /** Alias for [[filter]]. */
   def where(f: T => Boolean): Dataset[T] = filter(f)
@@ -415,21 +415,21 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def collect(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.collect().toSeq)
+  def collect(implicit trace: Trace): Task[Seq[T]] = action(_.collect().toSeq)
 
   /**
    * Returns the number of rows in the Dataset.
    * @group action
    * @since 1.6.0
    */
-  def count(implicit trace: ZTraceElement): Task[Long] = action(_.count())
+  def count(implicit trace: Trace): Task[Long] = action(_.count())
 
   /**
    * Returns the first row. Alias for head().
    * @group action
    * @since 1.6.0
    */
-  def first(implicit trace: ZTraceElement): Task[T] = action(_.first())
+  def first(implicit trace: Trace): Task[T] = action(_.first())
 
   /**
    * Applies a function `f` to all rows.
@@ -437,7 +437,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def foreach(f: T => Unit)(implicit trace: ZTraceElement): Task[Unit] = action(_.foreach(f))
+  def foreach(f: T => Unit)(implicit trace: Trace): Task[Unit] = action(_.foreach(f))
 
   /**
    * Applies a function `f` to each partition of this Dataset.
@@ -445,8 +445,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def foreachPartition(f: Iterator[T] => Unit)(implicit trace: ZTraceElement): Task[Unit] =
-    action(_.foreachPartition(f))
+  def foreachPartition(f: Iterator[T] => Unit)(implicit trace: Trace): Task[Unit] = action(_.foreachPartition(f))
 
   /**
    * Returns the first `n` rows.
@@ -459,14 +458,14 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def head(n: => Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.head(n).toSeq)
+  def head(n: => Int)(implicit trace: Trace): Task[Seq[T]] = action(_.head(n).toSeq)
 
   /**
    * Returns the first row.
    * @group action
    * @since 1.6.0
    */
-  def head(implicit trace: ZTraceElement): Task[T] = action(_.head())
+  def head(implicit trace: Trace): Task[T] = action(_.head())
 
   /**
    * Returns true if the `Dataset` is empty.
@@ -474,7 +473,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.4.0
    */
-  def isEmpty(implicit trace: ZTraceElement): Task[Boolean] = action(_.isEmpty)
+  def isEmpty(implicit trace: Trace): Task[Boolean] = action(_.isEmpty)
 
   /**
    * (Scala-specific) Reduces the elements of this Dataset using the
@@ -484,7 +483,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def reduce(func: (T, T) => T)(implicit trace: ZTraceElement): Task[T] = action(_.reduce(func))
+  def reduce(func: (T, T) => T)(implicit trace: Trace): Task[T] = action(_.reduce(func))
 
   /**
    * Returns the last `n` rows in the Dataset.
@@ -496,7 +495,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 3.0.0
    */
-  def tail(n: => Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.tail(n).toSeq)
+  def tail(n: => Int)(implicit trace: Trace): Task[Seq[T]] = action(_.tail(n).toSeq)
 
   /**
    * Returns the first `n` rows in the Dataset.
@@ -508,7 +507,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 1.6.0
    */
-  def take(n: => Int)(implicit trace: ZTraceElement): Task[Seq[T]] = action(_.take(n).toSeq)
+  def take(n: => Int)(implicit trace: Trace): Task[Seq[T]] = action(_.take(n).toSeq)
 
   /**
    * Returns an iterator that contains all rows in this Dataset.
@@ -525,7 +524,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group action
    * @since 2.0.0
    */
-  def toLocalIterator(implicit trace: ZTraceElement): Task[Iterator[T]] = action(_.toLocalIterator())
+  def toLocalIterator(implicit trace: Trace): Task[Iterator[T]] = action(_.toLocalIterator())
 
   // ===============
 
@@ -536,7 +535,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def cache(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.cache())
+  def cache(implicit trace: Trace): Task[Dataset[T]] = action(_.cache())
 
   /**
    * Eagerly checkpoint a Dataset and return the new Dataset.
@@ -548,7 +547,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.1.0
    */
-  def checkpoint(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.checkpoint())
+  def checkpoint(implicit trace: Trace): Task[Dataset[T]] = action(_.checkpoint())
 
   /**
    * Returns a checkpointed version of this Dataset. Checkpointing can
@@ -560,7 +559,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.1.0
    */
-  def checkpoint(eager: => Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.checkpoint(eager))
+  def checkpoint(eager: => Boolean)(implicit trace: Trace): Task[Dataset[T]] = action(_.checkpoint(eager))
 
   /**
    * Creates a global temporary view using the given name. The lifetime
@@ -579,7 +578,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.1.0
    */
-  def createGlobalTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
+  def createGlobalTempView(viewName: => String)(implicit trace: Trace): Task[Unit] =
     action(_.createGlobalTempView(viewName))
 
   /**
@@ -597,7 +596,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.2.0
    */
-  def createOrReplaceGlobalTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
+  def createOrReplaceGlobalTempView(viewName: => String)(implicit trace: Trace): Task[Unit] =
     action(_.createOrReplaceGlobalTempView(viewName))
 
   /**
@@ -608,7 +607,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.0.0
    */
-  def createOrReplaceTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
+  def createOrReplaceTempView(viewName: => String)(implicit trace: Trace): Task[Unit] =
     action(_.createOrReplaceTempView(viewName))
 
   /**
@@ -628,8 +627,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.0.0
    */
-  def createTempView(viewName: => String)(implicit trace: ZTraceElement): Task[Unit] =
-    action(_.createTempView(viewName))
+  def createTempView(viewName: => String)(implicit trace: Trace): Task[Unit] = action(_.createTempView(viewName))
 
   /**
    * Returns all column names and their data types as an array.
@@ -637,7 +635,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def dtypes(implicit trace: ZTraceElement): Task[Seq[(String, String)]] = action(_.dtypes.toSeq)
+  def dtypes(implicit trace: Trace): Task[Seq[(String, String)]] = action(_.dtypes.toSeq)
 
   /**
    * Returns a best-effort snapshot of the files that compose this
@@ -649,7 +647,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.0.0
    */
-  def inputFiles(implicit trace: ZTraceElement): Task[Seq[String]] = action(_.inputFiles.toSeq)
+  def inputFiles(implicit trace: Trace): Task[Seq[String]] = action(_.inputFiles.toSeq)
 
   /**
    * Returns true if the `collect` and `take` methods can be run locally
@@ -658,7 +656,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def isLocal(implicit trace: ZTraceElement): Task[Boolean] = action(_.isLocal)
+  def isLocal(implicit trace: Trace): Task[Boolean] = action(_.isLocal)
 
   /**
    * Returns true if this Dataset contains one or more sources that
@@ -671,7 +669,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group streaming
    * @since 2.0.0
    */
-  def isStreaming(implicit trace: ZTraceElement): Task[Boolean] = action(_.isStreaming)
+  def isStreaming(implicit trace: Trace): Task[Boolean] = action(_.isStreaming)
 
   /**
    * Eagerly locally checkpoints a Dataset and return the new Dataset.
@@ -684,7 +682,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.3.0
    */
-  def localCheckpoint(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.localCheckpoint())
+  def localCheckpoint(implicit trace: Trace): Task[Dataset[T]] = action(_.localCheckpoint())
 
   /**
    * Locally checkpoints a Dataset and return the new Dataset.
@@ -697,8 +695,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.3.0
    */
-  def localCheckpoint(eager: => Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] =
-    action(_.localCheckpoint(eager))
+  def localCheckpoint(eager: => Boolean)(implicit trace: Trace): Task[Dataset[T]] = action(_.localCheckpoint(eager))
 
   /**
    * Persist this Dataset with the default storage level
@@ -707,7 +704,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def persist(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.persist())
+  def persist(implicit trace: Trace): Task[Dataset[T]] = action(_.persist())
 
   /**
    * Persist this Dataset with the given storage level.
@@ -719,7 +716,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def persist(newLevel: => StorageLevel)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.persist(newLevel))
+  def persist(newLevel: => StorageLevel)(implicit trace: Trace): Task[Dataset[T]] = action(_.persist(newLevel))
 
   /**
    * Registers this Dataset as a temporary table using the given name.
@@ -730,7 +727,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   @deprecated("Use createOrReplaceTempView(viewName) instead.", "2.0.0")
-  def registerTempTable(tableName: => String)(implicit trace: ZTraceElement): Task[Unit] =
+  def registerTempTable(tableName: => String)(implicit trace: Trace): Task[Unit] =
     action(_.registerTempTable(tableName))
 
   /**
@@ -740,7 +737,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 2.1.0
    */
-  def storageLevel(implicit trace: ZTraceElement): Task[StorageLevel] = action(_.storageLevel)
+  def storageLevel(implicit trace: Trace): Task[StorageLevel] = action(_.storageLevel)
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
@@ -753,7 +750,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def unpersist(blocking: => Boolean)(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.unpersist(blocking))
+  def unpersist(blocking: => Boolean)(implicit trace: Trace): Task[Dataset[T]] = action(_.unpersist(blocking))
 
   /**
    * Mark the Dataset as non-persistent, and remove all blocks for it
@@ -763,7 +760,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @group basic
    * @since 1.6.0
    */
-  def unpersist(implicit trace: ZTraceElement): Task[Dataset[T]] = action(_.unpersist())
+  def unpersist(implicit trace: Trace): Task[Dataset[T]] = action(_.unpersist())
 
   // ===============
 

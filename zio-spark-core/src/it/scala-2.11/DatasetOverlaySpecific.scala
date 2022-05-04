@@ -25,7 +25,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain(extended: Boolean)(implicit trace: ZTraceElement): SIO[Unit] = {
+  def explain(extended: Boolean)(implicit trace: Trace): SIO[Unit] = {
     val queryExecution = underlying.queryExecution
     val explain        = ExplainCommand(queryExecution.logical, extended = extended)
 
@@ -41,7 +41,7 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def explain(implicit trace: ZTraceElement): SIO[Unit] = explain(extended = false)
+  def explain(implicit trace: Trace): SIO[Unit] = explain(extended = false)
 
   /**
    * Prints the schema to the console in a nice tree format.
@@ -49,6 +49,6 @@ class DatasetOverlaySpecific[T](self: Dataset[T]) {
    * @group basic
    * @since 1.6.0
    */
-  def printSchema(implicit trace: ZTraceElement): IO[IOException, Unit] = Console.printLine(schema.treeString)
+  def printSchema(implicit trace: Trace): IO[IOException, Unit] = Console.printLine(schema.treeString)
   // template:off
 }

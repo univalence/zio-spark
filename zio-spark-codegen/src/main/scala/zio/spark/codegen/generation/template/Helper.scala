@@ -18,7 +18,7 @@ object Helper {
     // 2. It's necessary for "makeItCancellable" to work
     val tParam = stringifyTypeParameters(typeParameters)
     s"""/** Applies an action to the underlying $name. */
-       |def action[U](f: Underlying$name$tParam => U)(implicit trace: ZTraceElement): Task[U] = 
+       |def action[U](f: Underlying$name$tParam => U)(implicit trace: Trace): Task[U] =
        |  ZIO.attempt(get(f))""".stripMargin
   }
 
