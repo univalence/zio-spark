@@ -35,8 +35,8 @@ trait Plan {
       path     <- generatePath
     } yield scalafmt.format(code, path)
 
-  def preValidation: ZIO[Environment, CodegenError, Unit]                = UIO.unit
-  def postValidation(code: String): ZIO[Environment, CodegenError, Unit] = UIO.unit
+  def preValidation: ZIO[Environment, CodegenError, Unit]                = ZIO.unit
+  def postValidation(code: String): ZIO[Environment, CodegenError, Unit] = ZIO.unit
 
   def generate: ZIO[Environment, CodegenError, Output] =
     for {

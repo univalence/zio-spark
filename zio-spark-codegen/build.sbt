@@ -11,9 +11,9 @@ lazy val plugin =
     .settings(
       name := "zio-spark-codegen",
       libraryDependencies ++= Seq(
-        "dev.zio"          %% "zio"              % "2.0.0-RC3",
-        "dev.zio"          %% "zio-test"         % "2.0.0-RC3" % Test,
-        "dev.zio"          %% "zio-test-sbt"     % "2.0.0-RC3" % Test,
+        "dev.zio"          %% "zio"              % "2.0.0-RC6",
+        "dev.zio"          %% "zio-test"         % "2.0.0-RC6" % Test,
+        "dev.zio"          %% "zio-test-sbt"     % "2.0.0-RC6" % Test,
         "org.scalameta"    %% "scalafmt-dynamic" % "3.4.3", // equals to sbt-scalafmt's scalfmt-dynamic version
         "org.scalameta"    %% "scalameta"        % "4.5.1",
         "org.apache.spark" %% "spark-core"       % "3.2.1" withSources (), // For tests only
