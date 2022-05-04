@@ -9,7 +9,7 @@ import zio.test.{assertNever, assertTrue, Spec, TestFailure, TestResult, TestSuc
 object MethodSpec extends ZIOSpecDefault {
   def genTest2(name: String, arity: Int = -1, args: List[String] = Nil)(
       expectedCode: String
-  ): ZSpec[SparkPlan, Nothing] =
+  ): Spec[SparkPlan, Nothing] =
     test(name) {
       val res: URIO[SparkPlan, TestResult] =
         for {
@@ -28,7 +28,7 @@ object MethodSpec extends ZIOSpecDefault {
   val rddMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         expectedCode: String
-    ): ZSpec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
+    ): Spec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
 
     suite("Check method generations for RDD")(
       checkGen("min")("min(implicit ord: Ordering[T], trace: Trace): Task[T]"),
@@ -50,7 +50,7 @@ object MethodSpec extends ZIOSpecDefault {
   val datasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         expectedCode: String
-    ): ZSpec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
+    ): Spec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
 
     suite("Check method generations for Dataset")(
       checkGen("filter", 1, List("conditionExpr"))("filter(conditionExpr: String): TryAnalysis[Dataset[T]]"),
@@ -63,13 +63,13 @@ object MethodSpec extends ZIOSpecDefault {
   val keyValueGroupedDatasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         genCodeFragment: String
-    ): ZSpec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)
+    ): Spec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)
 
     suite("Check method generations for Dataset")(
       checkGen("cogroup")("other.underlying")
     )
   }.provide(planLayer(keyValueGroupedDatasetPlan))
 
-  override def spec: ZSpec[Any, Any] = rddMethods + datasetMethods + keyValueGroupedDatasetMethods
+  override def spec: Spec[Any, Any] = rddMethods + datasetMethods + keyValueGroupedDatasetMethods
 
 }

@@ -10,7 +10,7 @@ import zio.test.{assertNever, assertTrue, Spec, TestFailure, TestResult, TestSuc
 object MethodTypeSpec extends ZIOSpecDefault {
   def testMethodTypeFor(name: String, arity: Int = -1, args: List[String] = Nil)(
       expected: MethodType
-  ): ZSpec[SparkPlan, Nothing] = {
+  ): Spec[SparkPlan, Nothing] = {
     val outputName = if (args.isEmpty) name else s"$name(${args.mkString(", ")})"
 
     test(s"The function '$outputName' should be a $expected") {
@@ -71,7 +71,7 @@ object MethodTypeSpec extends ZIOSpecDefault {
       testMethodTypeFor("mapValues")(Transformation)
     ).provide(planLayer(keyValueGroupedDatasetPlan))
 
-  override def spec: ZSpec[Any, Any] = {
+  override def spec: Spec[Any, Any] = {
     val specs =
       Seq(
         rddMethodTypes,
