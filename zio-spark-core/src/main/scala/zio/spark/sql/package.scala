@@ -11,8 +11,7 @@ package object sql {
   type SRIO[R, A] = ZIO[R with SparkSession, Throwable, A]
 
   /** Wrap an effecful spark job into zio-spark. */
-  def fromSpark[Out](f: UnderlyingSparkSession => Out)(implicit trace: ZTraceElement): SIO[Out] =
-    SparkSession.attempt(f)
+  def fromSpark[Out](f: UnderlyingSparkSession => Out)(implicit trace: Trace): SIO[Out] = SparkSession.attempt(f)
 
   implicit class DatasetConversionOps[T](private val ds: UnderlyingDataset[T]) extends AnyVal {
     @inline def zioSpark: Dataset[T] = Dataset(ds)

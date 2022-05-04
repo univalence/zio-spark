@@ -8,9 +8,9 @@ import zio.test.TestAspect._
 object ExtraDatasetFeatureTest {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
-  def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] = dataFrameActionsSpec
+  def spec: Spec[SparkSession, Any] = dataFrameActionsSpec
 
-  def dataFrameActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def dataFrameActionsSpec: Spec[SparkSession, Any] =
     suite("ExtraDatatasetFeature Actions")(
       test("Dataset should implement explain correctly") {
         for {

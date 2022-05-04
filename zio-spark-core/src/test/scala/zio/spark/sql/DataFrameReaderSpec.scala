@@ -13,10 +13,10 @@ import zio.test.TestAspect._
 object DataFrameReaderSpec extends ZIOSpecDefault {
   val reader: DataFrameReader[WithoutSchema] = SparkSession.read
 
-  def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
+  def spec: Spec[Annotations with Live, TestFailure[Any]] =
     dataFrameReaderOptionsSpec + dataFrameReaderOptionDefinitionsSpec
 
-  def dataFrameReaderOptionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
+  def dataFrameReaderOptionsSpec: Spec[Annotations with Live, TestFailure[Any]] =
     suite("DataFrameReader Options")(
       test("DataFrameReader should apply options correctly") {
         val options           = Map("a" -> "x", "b" -> "y")
@@ -90,7 +90,7 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
       }
     )
 
-  def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] = {
+  def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any]] = {
     final case class ReaderTest(
         testName:      String,
         endo:          DataFrameReader[WithoutSchema] => DataFrameReader[WithoutSchema],
@@ -98,7 +98,7 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
         expectedValue: String
     ) {
 
-      def build: ZSpec[Any, Nothing] =
+      def build: Spec[Any, Nothing] =
         test(s"DataFrameReader can add the option ($testName)") {
           val readerWithOptions = endo(reader)
           val options           = Map(expectedKey -> expectedValue)

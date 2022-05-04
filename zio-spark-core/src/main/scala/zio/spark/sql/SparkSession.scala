@@ -12,22 +12,32 @@ final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
     extends ExtraSparkSessionFeature(underlyingSparkSession) {
 
   /** Closes the current SparkSession. */
-  def close(implicit trace: ZTraceElement): Task[Unit] = ZIO.attemptBlocking(underlyingSparkSession.close())
+  def close(implicit trace: Trace): Task[Unit] = ZIO.attempt(underlyingSparkSession.close())
 
   /** Executes a SQL query using Spark. */
-  def sql(sqlText: String)(implicit trace: ZTraceElement): Task[DataFrame] =
-    ZIO.attemptBlocking(Dataset(underlyingSparkSession.sql(sqlText)))
+  def sql(sqlText: String)(implicit trace: Trace): Task[DataFrame] =
+    ZIO.attempt(Dataset(underlyingSparkSession.sql(sqlText)))
 
   def conf: Conf =
     new Conf {
-      override def getAll: UIO[Map[String, String]] = UIO.succeed(underlyingSparkSession.conf.getAll)
+      override def getAll(implicit trace: Trace): UIO[Map[String, String]] =
+        ZIO.succeed(underlyingSparkSession.conf.getAll)
     }
 }
 
-object SparkSession extends Accessible[SparkSession] {
+object SparkSession {
   trait Conf {
-    def getAll: UIO[Map[String, String]]
+    def getAll(implicit trace: Trace): UIO[Map[String, String]]
   }
+
+  /** Closes the current SparkSession. */
+  def close(implicit trace: Trace): RIO[SparkSession, Unit] = ZIO.service[SparkSession].flatMap(_.close)
+
+  /** Executes a SQL query using Spark. */
+  def sql(sqlText: String)(implicit trace: Trace): RIO[SparkSession, DataFrame] =
+    ZIO.service[SparkSession].flatMap(_.sql(sqlText))
+
+  def conf: URIO[SparkSession, Conf] = ZIO.service[SparkSession].map(_.conf)
 
   /** Creates a DataFrameReader. */
   def read: DataFrameReader[WithoutSchema] = DataFrameReader(Map.empty, None)
@@ -42,7 +52,7 @@ object SparkSession extends Accessible[SparkSession] {
    */
   def builder: Builder = Builder(UnderlyingSparkSession.builder(), Map.empty)
 
-  def attempt[Out](f: UnderlyingSparkSession => Out)(implicit trace: ZTraceElement): SIO[Out] =
+  def attempt[Out](f: UnderlyingSparkSession => Out)(implicit trace: Trace): SIO[Out] =
     ZIO.serviceWithZIO[SparkSession](ss => ZIO.attempt(f(ss.underlyingSparkSession)))
 
   final case class Builder(
@@ -75,8 +85,7 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def getOrCreate(implicit trace: ZTraceElement): Task[SparkSession] =
-      Task.attempt(SparkSession(self.construct.getOrCreate()))
+    def getOrCreate(implicit trace: Trace): Task[SparkSession] = ZIO.attempt(SparkSession(self.construct.getOrCreate()))
 
     /**
      * Tries to create a spark session.
@@ -84,8 +93,8 @@ object SparkSession extends Accessible[SparkSession] {
      * See [[UnderlyingSparkSession.Builder.getOrCreate]] for more
      * information.
      */
-    def acquireRelease(implicit trace: ZTraceElement): ZIO[Scope, Throwable, SparkSession] =
-      ZIO.acquireRelease(getOrCreate)(ss => Task.attempt(ss.close).orDie)
+    def acquireRelease(implicit trace: Trace): ZIO[Scope, Throwable, SparkSession] =
+      ZIO.acquireRelease(getOrCreate)(ss => ZIO.attempt(ss.close).orDie)
 
     /** Adds multiple configurations to the Builder. */
     def configs(configs: Map[String, String]): Builder = copy(builder, extraConfigs ++ configs)

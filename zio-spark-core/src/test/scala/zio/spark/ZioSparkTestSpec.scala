@@ -29,10 +29,10 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
       .orDie
 
   type SparkTestEnvironment = TestEnvironment with SparkSession
-  type SparkTestSpec        = Spec[SparkTestEnvironment, TestFailure[Any], TestSuccess]
+  type SparkTestSpec        = Spec[SparkTestEnvironment, Any]
 
-  def spec: Spec[TestEnvironment, TestFailure[Any], TestSuccess] = {
-    val specs: Seq[Spec[SparkTestEnvironment, TestFailure[Any], TestSuccess]] =
+  def spec: Spec[TestEnvironment, Any] = {
+    val specs: Seq[Spec[SparkTestEnvironment, Any]] =
       Seq(
         DatasetSpec.datasetActionsSpec,
         DatasetSpec.datasetTransformationsSpec,

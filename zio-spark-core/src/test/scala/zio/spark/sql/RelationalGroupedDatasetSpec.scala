@@ -8,13 +8,13 @@ import zio.test._
 object RelationalGroupedDatasetSpec {
   final case class AggregatePerson(status: String, age: Double)
 
-  def relationalGroupedDatasetAggregationSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] = {
+  def relationalGroupedDatasetAggregationSpec: Spec[SparkSession, Any] = {
     final case class Test(
         aggregation: String,
         f:           String => RelationalGroupedDataset => DataFrame,
         expected:    Seq[Double]
     ) {
-      def build: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+      def build: Spec[SparkSession, Any] =
         test(s"DataFrameWriter should implement $aggregation correctly") {
           for {
             df <- readCsv(s"$resourcesPath/group.csv")

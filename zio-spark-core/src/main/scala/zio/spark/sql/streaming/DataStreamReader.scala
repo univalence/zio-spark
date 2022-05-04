@@ -5,7 +5,7 @@ import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.streaming.{DataStreamReader => UnderlyingDataStreamReader}
 import org.apache.spark.sql.types.StructType
 
-import zio.ZTraceElement
+import zio.Trace
 import zio.spark.sql.{fromSpark, DataFrame, Dataset, SIO}
 import zio.spark.sql.SchemaFromCaseClass.ToStructSchema
 
@@ -28,14 +28,14 @@ final case class DataStreamReader private (
    *
    * See [[UnderlyingDataStreamReader.csv]] for more information.
    */
-  def csv(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.csv(path))
+  def csv(path: String)(implicit trace: Trace): SIO[DataFrame] = loadUsing(_.csv(path))
 
   /**
    * Loads a dataframe from a folder containing a stream of JSON files.
    *
    * See [[UnderlyingDataStreamReader.json]] for more information.
    */
-  def json(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.json(path))
+  def json(path: String)(implicit trace: Trace): SIO[DataFrame] = loadUsing(_.json(path))
 
   /**
    * Loads a dataframe from a folder containing a stream of PARQUET
@@ -43,14 +43,14 @@ final case class DataStreamReader private (
    *
    * See [[UnderlyingDataStreamReader.parquet]] for more information.
    */
-  def parquet(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.parquet(path))
+  def parquet(path: String)(implicit trace: Trace): SIO[DataFrame] = loadUsing(_.parquet(path))
 
   /**
    * Loads a dataframe from a folder containing a stream of ORC files.
    *
    * See [[UnderlyingDataStreamReader.orc]] for more information.
    */
-  def orc(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.orc(path))
+  def orc(path: String)(implicit trace: Trace): SIO[DataFrame] = loadUsing(_.orc(path))
 
   /**
    * Loads a dataframe from a folder containing a stream of TXT files.
@@ -60,7 +60,7 @@ final case class DataStreamReader private (
    *
    * See [[UnderlyingDataStreamReader.textFile]] for more information.
    */
-  def text(path: String)(implicit trace: ZTraceElement): SIO[DataFrame] = loadUsing(_.text(path))
+  def text(path: String)(implicit trace: Trace): SIO[DataFrame] = loadUsing(_.text(path))
 
   /**
    * Loads a dataset[String] from a folder containing a stream of TXT
@@ -68,19 +68,19 @@ final case class DataStreamReader private (
    *
    * See [[UnderlyingDataStreamReader.textFile]] for more information.
    */
-  def textFile(path: String)(implicit trace: ZTraceElement): SIO[Dataset[String]] = {
+  def textFile(path: String)(implicit trace: Trace): SIO[Dataset[String]] = {
     import zio.spark.sql.TryAnalysis.syntax._
     import zio.spark.sql.implicits._
 
     text(path).map(_.select("value").as[String])
   }
 
-  def socket(host: String, port: Int)(implicit trace: ZTraceElement): SIO[DataFrame] =
+  def socket(host: String, port: Int)(implicit trace: Trace): SIO[DataFrame] =
     option("host", host).option("port", port).loadUsing(_.format("socket").load())
 
   /** Loads a dataframe using one of the dataframe loader. */
   private def loadUsing[T](f: UnderlyingDataStreamReader => UnderlyingDataset[T])(implicit
-      trace: ZTraceElement
+      trace: Trace
   ): SIO[Dataset[T]] = fromSpark(ss => Dataset(f(construct(ss))))
 
   /**

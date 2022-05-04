@@ -7,10 +7,10 @@ import zio.test.Assertion.{isLeft, isRight}
 object DataStreamReaderSpec extends ZIOSpecDefault {
   val reader: DataStreamReader = SparkSession.readStream
 
-  def spec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
+  def spec: Spec[Annotations with Live, TestFailure[Any]] =
     dataStreamReaderConfigurationsSpec + dataStreamReaderOptionDefinitionsSpec
 
-  def dataStreamReaderConfigurationsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] =
+  def dataStreamReaderConfigurationsSpec: Spec[Annotations with Live, TestFailure[Any]] =
     suite("DataStreamReader Configurations")(
       test("DataStreamReader should apply options correctly") {
         val options           = Map("a" -> "x", "b" -> "y")
@@ -30,7 +30,7 @@ object DataStreamReaderSpec extends ZIOSpecDefault {
       }
     )
 
-  def dataStreamReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any], TestSuccess] = {
+  def dataStreamReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any]] = {
     final case class ReaderTest(
         testName:      String,
         endo:          DataStreamReader => DataStreamReader,
@@ -38,7 +38,7 @@ object DataStreamReaderSpec extends ZIOSpecDefault {
         expectedValue: String
     ) {
 
-      def build: ZSpec[Any, Nothing] =
+      def build: Spec[Any, Nothing] =
         test(s"DataStreamReader can add the option ($testName)") {
           val readerWithOptions = endo(reader)
           val options           = Map(expectedKey -> expectedValue)

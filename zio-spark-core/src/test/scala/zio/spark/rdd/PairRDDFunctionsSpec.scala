@@ -7,7 +7,7 @@ import zio.test._
 import zio.test.Assertion._
 
 object PairRDDFunctionsSpec {
-  def spec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def spec: Spec[SparkSession, Any] =
     suite("PairRDDFunctionsTest Transformations")(
       test("PairRDDFunctionsTest should add reduce by key correctly") {
         val transformation: Dataset[String] => RDD[(String, Int)] =

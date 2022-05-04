@@ -31,7 +31,7 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(numRows, truncate = true)
+  def show(numRows: Int)(implicit trace: Trace): IO[IOException, Unit] = show(numRows, truncate = true)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form. Strings with
@@ -39,21 +39,21 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20)
+  def show(implicit trace: Trace): IO[IOException, Unit] = show(20)
 
   /**
    * Displays the top 20 rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = show(20, truncate)
+  def show(truncate: Boolean)(implicit trace: Trace): IO[IOException, Unit] = show(20, truncate)
 
   /**
    * Displays the top rows of Dataset in a tabular form.
    *
    * See [[UnderlyingDataset.show]] for more information.
    */
-  def show(numRows: Int, truncate: Boolean)(implicit trace: ZTraceElement): IO[IOException, Unit] = {
+  def show(numRows: Int, truncate: Boolean)(implicit trace: Trace): IO[IOException, Unit] = {
     val trunc         = if (truncate) 20 else 0
     val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
@@ -73,14 +73,14 @@ class DatasetOverlay[T](self: Dataset[T]) {
    *
    * See [[UnderlyingDataset.unpersist]] for more information.
    */
-  def unpersistBlocking(implicit trace: ZTraceElement): UIO[Dataset[T]] =
-    UIO.succeed(transformation(_.unpersist(blocking = true)))
+  def unpersistBlocking(implicit trace: Trace): UIO[Dataset[T]] =
+    ZIO.succeed(transformation(_.unpersist(blocking = true)))
 
   /** Alias for [[headOption]]. */
-  def firstOption(implicit trace: ZTraceElement): Task[Option[T]] = headOption
+  def firstOption(implicit trace: Trace): Task[Option[T]] = headOption
 
   /** Takes the first element of a dataset or None. */
-  def headOption(implicit trace: ZTraceElement): Task[Option[T]] = head(1).map(_.headOption)
+  def headOption(implicit trace: Trace): Task[Option[T]] = head(1).map(_.headOption)
 
   /**
    * Transform the dataset into a [[RDD]].

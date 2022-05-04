@@ -45,14 +45,14 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
       "andThen"
     )
 
-  override def spec: ZSpec[TestEnvironment, Any] =
+  override def spec: Spec[TestEnvironment, Any] =
     suite(s"Verifying compatibility between $sparkStructurePath and $zioSparkStructurePath")(
       test(s"$zioSparkStructurePath should implement all $sparkStructurePath methods") {
         val underlyingMethods: Seq[String]     = getAllMethods[SparkStructure]
         val methods: Seq[String]               = getAllMethods[ZioSparkStructure]
         val notImplementedMethods: Seq[String] = underlyingMethods.filter(!methods.contains(_))
 
-        assert(notImplementedMethods)(isEmpty)
+        assertTrue(notImplementedMethods.isEmpty)
       } @@ failing,
       test(s"$zioSparkStructurePath should have limited new features compare to $sparkStructurePath") {
         val underlyingMethods: Seq[String]     = getAllMethods[SparkStructure]

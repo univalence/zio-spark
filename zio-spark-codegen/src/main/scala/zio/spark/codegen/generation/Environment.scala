@@ -4,7 +4,6 @@ import org.scalafmt.interfaces.Scalafmt
 import sbt.File
 import sbt.Keys.Classpath
 
-import zio.Accessible
 import zio.spark.codegen.ScalaBinaryVersion
 import zio.spark.codegen.ScalaBinaryVersion.versioned
 
@@ -24,7 +23,7 @@ object Environment {
     def itFolderVersioned: File
   }
 
-  object ZIOSparkFolders extends Accessible[ZIOSparkFolders]
+  object ZIOSparkFolders
 
   case class ZIOSparkFoldersLive(sbtMainFolder: File, scalaVersion: ScalaBinaryVersion) extends ZIOSparkFolders {
     override def mainFolder: File = sbtMainFolder
@@ -37,7 +36,7 @@ object Environment {
     def format(code: String, path: Path): String
   }
 
-  object ScalafmtFormatter extends Accessible[ScalafmtFormatter]
+  object ScalafmtFormatter
 
   case class ScalafmtFormatterLive(scalafmt: Scalafmt, configuration: Path) extends ScalafmtFormatter {
     override def format(code: String, path: Path): String = scalafmt.format(configuration, path, code)

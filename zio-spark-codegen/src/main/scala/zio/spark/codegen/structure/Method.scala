@@ -52,7 +52,7 @@ case class Method(
           val sparkParameters = calls.map(_.toCode(isArgs = false, effectful = effectful, className)).mkString("")
 
           calls match {
-            case list if effectful && !list.exists(_.hasImplicit) => s"$sparkParameters(implicit trace: ZTraceElement)"
+            case list if effectful && !list.exists(_.hasImplicit) => s"$sparkParameters(implicit trace: Trace)"
             case _                                                => sparkParameters
           }
         }

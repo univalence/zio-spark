@@ -5,7 +5,7 @@ import zio.spark.sql._
 import zio.test._
 
 object RDDSpec {
-  def rddActionsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def rddActionsSpec: Spec[SparkSession, Any] =
     suite("RDD Actions")(
       test("RDD should implement count correctly") {
         for {
@@ -21,7 +21,7 @@ object RDDSpec {
       }
     )
 
-  def rddTransformationsSpec: Spec[SparkSession, TestFailure[Any], TestSuccess] =
+  def rddTransformationsSpec: Spec[SparkSession, Any] =
     suite("RDD Transformations")(
       test("RDD should implement map correctly") {
         for {

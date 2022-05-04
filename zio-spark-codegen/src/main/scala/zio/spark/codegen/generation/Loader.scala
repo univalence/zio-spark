@@ -3,7 +3,7 @@ package zio.spark.codegen.generation
 import sbt.File
 import sbt.Keys.Classpath
 
-import zio.{IO, Task, UIO, ZIO}
+import zio.{IO, UIO, ZIO}
 import zio.spark.codegen.generation.Error.*
 
 import scala.io.{BufferedSource, Source}
@@ -32,9 +32,9 @@ object Loader {
     maybePath match {
       case None => ZIO.fail(ModuleNotFoundError(moduleName))
       case Some(path) =>
-        Task
+        ZIO
           .attempt(new JarFile(new File(path)))
-          .tap(jar => Logger.info(s"Found  $moduleName in ${jar.getName}"))
+          .tap(jar => Logger.info(s"Found $moduleName in ${jar.getName}"))
           .orDie
     }
   }
@@ -50,9 +50,9 @@ object Loader {
   ): ZIO[Logger, CodegenError, meta.Source] =
     ZIO.scoped {
       for {
-        jar <- ZIO.acquireRelease(findSourceJar(moduleName, classpath))(x => Task.attempt(x.close()).ignore)
+        jar <- ZIO.acquireRelease(findSourceJar(moduleName, classpath))(x => ZIO.attempt(x.close()).ignore)
         source <-
-          Task
+          ZIO
             .attempt {
               val entry: ZipEntry         = jar.getEntry(filePath)
               val stream: InputStream     = jar.getInputStream(entry)
@@ -82,10 +82,10 @@ object Loader {
   def optionalSourceFromFile(file: File): IO[CodegenError, Option[meta.Source]] =
     sourceFromFile(file).foldZIO(
       failure = {
-        case FileReadingError(_, _) => UIO.succeed(None)
+        case FileReadingError(_, _) => ZIO.succeed(None)
         case e                      => ZIO.fail(e)
       },
-      success = source => UIO.succeed(Some(source))
+      success = source => ZIO.succeed(Some(source))
     )
 
 }

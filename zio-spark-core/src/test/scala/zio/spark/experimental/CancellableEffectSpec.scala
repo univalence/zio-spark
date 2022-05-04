@@ -8,7 +8,7 @@ import zio.{durationInt, durationLong, Chunk, Ref, UIO, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
 import zio.test._
-import zio.test.TestAspect.{mac, timeout, withLiveClock}
+import zio.test.TestAspect.{timeout, withLiveClock}
 
 object CancellableEffectSpec {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
@@ -19,24 +19,24 @@ object CancellableEffectSpec {
       runtime <- ZIO.runtime[R with SparkSession]
       sc      <- fromSpark(_.sparkContext).orDie
       listener <-
-        UIO.succeed(new SparkFirehoseListener {
+        ZIO.succeed(new SparkFirehoseListener {
           override def onEvent(event: SparkListenerEvent): Unit = runtime.unsafeRun(events.update(_ :+ event))
         })
-      _ <- UIO.succeed(sc.addSparkListener(listener))
+      _ <- ZIO.succeed(sc.addSparkListener(listener))
       x <- zio
       _ <-
-        UIO
+        ZIO
           .succeed(removeSparkListener(sc, listener))
           .delay(1.seconds)
       allEvents <- events.getAndSet(Chunk.empty)
     } yield (allEvents, x)
 
-  def waitBlocking(seconds: Long): UIO[Long] = UIO.unit.delay(seconds.seconds).as(seconds)
+  def waitBlocking(seconds: Long): UIO[Long] = ZIO.unit.delay(seconds.seconds).as(seconds)
 
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
 
-  def spec: Spec[Annotations with Live with SparkSession, TestFailure[Throwable], TestSuccess] =
+  def spec: Spec[Annotations with Live with SparkSession, Throwable] =
     suite("Test cancellable spark jobs")(
       test("Cancellable jobs should have a specific group Id") {
         CancellableEffect.makeItCancellable(getJobGroup).map(x => assertTrue(x.startsWith("cancellable-group")))
@@ -57,6 +57,6 @@ object CancellableEffectSpec {
             }
           )
         }
-      } @@ timeout(45.seconds) @@ mac @@ withLiveClock
+      } @@ timeout(45.seconds) @@ withLiveClock
     )
 }

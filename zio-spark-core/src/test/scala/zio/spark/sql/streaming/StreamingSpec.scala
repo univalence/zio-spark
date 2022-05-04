@@ -11,7 +11,7 @@ object StreamingSpec {
   def testStreamingPipeline(
       name: String,
       readingEffect: DataStreamReader => SIO[DataFrame]
-  ): ZSpec[SparkSession, Throwable] =
+  ): Spec[SparkSession, Throwable] =
     test(s"Streaming should work with ${name.toUpperCase}s") {
       val tableName = s"test${name.capitalize}"
 
@@ -28,7 +28,7 @@ object StreamingSpec {
       } yield assertTrue(res == 4)
     }
 
-  def streamingSpec: Spec[SparkSession, TestFailure[Throwable], TestSuccess] =
+  def streamingSpec: Spec[SparkSession, Throwable] =
     suite("Streaming spec")(
       testStreamingPipeline(
         name          = "csv",
