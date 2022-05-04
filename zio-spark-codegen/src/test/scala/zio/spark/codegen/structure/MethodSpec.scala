@@ -4,7 +4,7 @@ import zio.{URIO, ZIO}
 import zio.spark.codegen.Helpers.{findMethodDefault, planLayer}
 import zio.spark.codegen.generation.plan.Plan.{datasetPlan, keyValueGroupedDatasetPlan, rddPlan}
 import zio.spark.codegen.generation.plan.SparkPlan
-import zio.test.{assertNever, assertTrue, Spec, TestFailure, TestResult, TestSuccess, ZIOSpecDefault}
+import zio.test.{assertNever, assertTrue, Spec, TestResult, ZIOSpecDefault}
 
 object MethodSpec extends ZIOSpecDefault {
   def genTest2(name: String, arity: Int = -1, args: List[String] = Nil)(
@@ -25,7 +25,7 @@ object MethodSpec extends ZIOSpecDefault {
       res
     }
 
-  val rddMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
+  val rddMethods: Spec[Any, Nothing] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         expectedCode: String
     ): Spec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
@@ -47,7 +47,7 @@ object MethodSpec extends ZIOSpecDefault {
     )
   }.provide(planLayer(rddPlan))
 
-  val datasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
+  val datasetMethods: Spec[Any, Nothing] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         expectedCode: String
     ): Spec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(expectedCode)
@@ -60,7 +60,7 @@ object MethodSpec extends ZIOSpecDefault {
     )
   }.provide(planLayer(datasetPlan))
 
-  val keyValueGroupedDatasetMethods: Spec[Any, TestFailure[Nothing], TestSuccess] = {
+  val keyValueGroupedDatasetMethods: Spec[Any, Nothing] = {
     def checkGen(methodName: String, arity: Int = -1, args: List[String] = Nil)(
         genCodeFragment: String
     ): Spec[SparkPlan, Nothing] = genTest2(methodName, arity, args)(genCodeFragment)

@@ -4,7 +4,6 @@ import org.scalafmt.interfaces.Scalafmt
 import sbt.File
 import sbt.Keys.Classpath
 
-import zio.{URIO, ZIO}
 import zio.spark.codegen.ScalaBinaryVersion
 import zio.spark.codegen.ScalaBinaryVersion.versioned
 
@@ -24,12 +23,7 @@ object Environment {
     def itFolderVersioned: File
   }
 
-  object ZIOSparkFolders {
-    def mainFolder: URIO[ZIOSparkFolders, File] = ZIO.service[ZIOSparkFolders].map(_.mainFolder)
-    def mainFolderVersioned: URIO[ZIOSparkFolders, File] = ZIO.service[ZIOSparkFolders].map(_.mainFolderVersioned)
-    def itFolder: URIO[ZIOSparkFolders, File] = ZIO.service[ZIOSparkFolders].map(_.itFolder)
-    def itFolderVersioned: URIO[ZIOSparkFolders, File] = ZIO.service[ZIOSparkFolders].map(_.itFolderVersioned)
-  }
+  object ZIOSparkFolders
 
   case class ZIOSparkFoldersLive(sbtMainFolder: File, scalaVersion: ScalaBinaryVersion) extends ZIOSparkFolders {
     override def mainFolder: File = sbtMainFolder
@@ -42,10 +36,7 @@ object Environment {
     def format(code: String, path: Path): String
   }
 
-  object ScalafmtFormatter {
-    def format(code: String, path: Path): URIO[ScalafmtFormatter, String] =
-      ZIO.service[ScalafmtFormatter].map(_.format(code, path))
-  }
+  object ScalafmtFormatter
 
   case class ScalafmtFormatterLive(scalafmt: Scalafmt, configuration: Path) extends ScalafmtFormatter {
     override def format(code: String, path: Path): String = scalafmt.format(configuration, path, code)

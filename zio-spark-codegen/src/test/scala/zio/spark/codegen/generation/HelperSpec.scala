@@ -1,7 +1,7 @@
 package zio.spark.codegen.generation
 
 import zio.spark.codegen.generation.template.Helper
-import zio.test.{assertTrue, TestEnvironment, ZIOSpecDefault}
+import zio.test.{assertTrue, Spec, TestEnvironment, ZIOSpecDefault}
 
 object HelperSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment, Any] =
