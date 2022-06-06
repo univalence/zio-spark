@@ -17,7 +17,8 @@ case class Parameter(underlying: Term.Param, scalaVersion: ScalaBinaryVersion) {
 
   val maybeDefault: Option[String] = underlying.default.map(_.toString)
 
-  val modifiers: Seq[Modifier] = if (underlying.collect { case d: Mod.Implicit => d }.nonEmpty) List(Modifier.Implicit) else Nil
+  val modifiers: Seq[Modifier] =
+    if (underlying.collect { case d: Mod.Implicit => d }.nonEmpty) List(Modifier.Implicit) else Nil
 
   def toCode(isArgs: Boolean, callByName: Boolean, className: String): String =
     if (isArgs) toCodeArgument(className)

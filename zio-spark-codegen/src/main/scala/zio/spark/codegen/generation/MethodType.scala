@@ -208,7 +208,7 @@ object MethodType {
       }
 
     val parameterProvokingAnalysis = Set("expr", "condition", "col", "valueMap")
-    val shouldUseTryAnalysis       = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
+    val shouldUseTryAnalysis = oneOfContains(method.anyParameters.map(_.name.toLowerCase), parameterProvokingAnalysis)
 
     method match {
       case _ if shouldUseTryAnalysis                                => baseMethodType.withAnalysis
