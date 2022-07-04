@@ -3,9 +3,9 @@ package zio.spark.experimental
 import org.apache.spark.SparkContext
 import org.apache.spark.annotation.Experimental
 
-import zio.{Trace, ZIO}
+import zio.{Trace, Unsafe, ZIO}
 import zio.internal.ExecutionMetrics
-import zio.spark.sql.{SparkSession, SRIO}
+import zio.spark.sql.SRIO
 
 import scala.util.Random
 
@@ -17,19 +17,15 @@ object CancellableEffect {
       sparkContext: SparkContext,
       groupName:    String
   ) extends zio.Executor {
-    override def unsafeMetrics: Option[ExecutionMetrics] = executor.unsafeMetrics
+    override def metrics(implicit unsafe: Unsafe): Option[ExecutionMetrics] = executor.metrics
 
-    override def unsafeSubmit(runnable: Runnable): Boolean =
-      executor.unsafeSubmit(new Runnable {
-        override def run(): Unit = {
-          if (!Option(sparkContext.getLocalProperty("spark.jobGroup.id")).contains(groupName))
-            sparkContext.setJobGroup(groupName, "cancellable job group")
+    override def submit(runnable: Runnable)(implicit unsafe: Unsafe): Boolean =
+      executor.submit { () =>
+        if (!Option(sparkContext.getLocalProperty("spark.jobGroup.id")).contains(groupName))
+          sparkContext.setJobGroup(groupName, "cancellable job group")
 
-          runnable.run()
-        }
-      })
-
-    override def yieldOpCount: Int = executor.yieldOpCount
+        runnable.run()
+      }
   }
 
   /**
@@ -51,10 +47,10 @@ object CancellableEffect {
     for {
       groupName <- ZIO.succeed("cancellable-group-" + Random.alphanumeric.take(6).mkString) // FIND A SEQ GEN ?
       sc        <- zio.spark.sql.fromSpark(_.sparkContext)
-      runtime   <- ZIO.runtime[SparkSession]
+      executor  <- ZIO.executor
       x <-
         job
-          .onExecutor(new setGroupNameExecutor(runtime.executor, sc, groupName))
+          .onExecutor(new setGroupNameExecutor(executor, sc, groupName))
           .disconnect
           .onInterrupt(ZIO.succeed(sc.cancelJobGroup(groupName)))
     } yield x
