@@ -20,11 +20,15 @@ object CancellableEffect {
     override def metrics(implicit unsafe: Unsafe): Option[ExecutionMetrics] = executor.metrics
 
     override def submit(runnable: Runnable)(implicit unsafe: Unsafe): Boolean =
-      executor.submit { () =>
-        if (!Option(sparkContext.getLocalProperty("spark.jobGroup.id")).contains(groupName))
-          sparkContext.setJobGroup(groupName, "cancellable job group")
+      executor.submit {
+        new Runnable { // Mandatory for scala 2.11
+          override def run(): Unit = {
+            if (!Option(sparkContext.getLocalProperty("spark.jobGroup.id")).contains(groupName))
+              sparkContext.setJobGroup(groupName, "cancellable job group")
 
-        runnable.run()
+            runnable.run()
+          }
+        }
       }
   }
 
