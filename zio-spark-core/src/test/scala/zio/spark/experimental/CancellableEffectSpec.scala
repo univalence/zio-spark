@@ -4,7 +4,7 @@ import org.apache.spark.SparkContextCompatibility.removeSparkListener
 import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
 
-import zio.{durationInt, durationLong, Chunk, Ref, UIO, ZIO}
+import zio.{durationInt, durationLong, Chunk, Ref, UIO, Unsafe, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits.seqRddHolderOps
 import zio.test._
@@ -20,7 +20,10 @@ object CancellableEffectSpec {
       sc      <- fromSpark(_.sparkContext).orDie
       listener <-
         ZIO.succeed(new SparkFirehoseListener {
-          override def onEvent(event: SparkListenerEvent): Unit = runtime.unsafeRun(events.update(_ :+ event))
+          override def onEvent(event: SparkListenerEvent): Unit =
+            Unsafe.unsafeCompat { implicit u =>
+              runtime.unsafe.run(events.update(_ :+ event)).getOrThrowFiberFailure()
+            }
         })
       _ <- ZIO.succeed(sc.addSparkListener(listener))
       x <- zio

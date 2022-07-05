@@ -1,6 +1,6 @@
 package zio.spark.codegen.generation
 
-import zio.{Console, UIO, ULayer, URIO, URLayer, ZIO, ZLayer}
+import zio.{Console, UIO, ULayer, URIO, ZIO, ZLayer}
 
 trait Logger {
   def info(text: => String): UIO[Unit]
@@ -13,12 +13,7 @@ object Logger {
   def success(text: => String): URIO[Logger, Unit] = ZIO.service[Logger].flatMap(_.success(text))
   def error(text: => String): URIO[Logger, Unit]   = ZIO.service[Logger].flatMap(_.error(text))
 
-  val live: URLayer[Console, Logger] =
-    ZLayer {
-      for {
-        console <- ZIO.service[Console]
-      } yield LoggerLive(console)
-    }
+  val live: ULayer[Logger] = ZLayer(ZIO.console.map(LoggerLive))
 
   val silent: ULayer[Logger] = ZLayer.succeed(LoggerSilent)
 
