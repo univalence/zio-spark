@@ -1,6 +1,6 @@
 package zio.spark.experimental
 
-import zio.{IO, Trace}
+import zio._
 import zio.spark.experimental.NewType._
 import zio.spark.rdd.RDD
 
@@ -21,20 +21,24 @@ object MapWithEffect {
         effect: T => IO[E, B],
         onRejection: T => E,
         maxErrorRatio: Ratio = Ratio.p05,
-        decayScale: Weight = Weight(1000L),
-        maxStack: Int = 16
+        decayScale: Weight = Weight(1000L)
+        // maxStack: Int = 16
     )(implicit trace: Trace): RDD[Either[E, B]] =
       rdd.mapPartitions { it: Iterator[T] =>
         type EE = Option[E]
 
-        val runtime: zio.Runtime[Any] = zio.Runtime.default
-
         val createCircuit: CircuitTap[EE, EE] =
-          runtime.unsafeRun(CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale))
+          Unsafe.unsafeCompat { implicit u =>
+            Runtime.default.unsafe
+              .run(CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale))
+              .getOrThrowFiberFailure()
+          }
 
         it.map { x =>
-          val io = createCircuit(effect(x).asSomeError).mapError(_.getOrElse(onRejection(x))).either
-          runtime.unsafeRunFast(io, maxStack)
+          Unsafe.unsafeCompat { implicit u =>
+            val io = createCircuit(effect(x).asSomeError).mapError(_.getOrElse(onRejection(x))).either
+            Runtime.default.unsafe.run(io).getOrThrowFiberFailure()
+          }
         }
       }
   }
