@@ -4,7 +4,7 @@ import org.scalafmt.interfaces.Scalafmt
 import sbt.{settingKey, AutoPlugin, Compile, Def}
 import sbt.Keys.*
 
-import zio.{Console, ULayer, URLayer, ZIO, ZLayer}
+import zio.{ULayer, Unsafe, URLayer, ZIO, ZLayer}
 import zio.spark.codegen.generation.{Generator, Logger, Output}
 import zio.spark.codegen.generation.Environment.{ScalafmtFormatter, ScalafmtFormatterLive, ZIOSparkFolders, ZIOSparkFoldersLive}
 import zio.spark.codegen.generation.plan.Plan
@@ -60,21 +60,24 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             keyValueGroupedDatasetPlan
           )
 
-        val outputs: Seq[Output] =
-          zio.Runtime.default.unsafeRun(
-            Generator
-              .generateAll(plans)
-              .provide(
-                scalaVersionLayer,
-                classpathLayer,
-                scalafmtLayer,
-                zioSparkFoldersLayer,
-                Console.live,
-                Logger.live
+        Unsafe.unsafeCompat { implicit u =>
+          val outputs: Seq[Output] =
+            zio.Runtime.default.unsafe
+              .run(
+                Generator
+                  .generateAll(plans)
+                  .provide(
+                    scalaVersionLayer,
+                    classpathLayer,
+                    scalafmtLayer,
+                    zioSparkFoldersLayer,
+                    Logger.live
+                  )
               )
-          )
+              .getOrThrowFiberFailure()
 
-        outputs.map(_.file)
+          outputs.map(_.file)
+        }
       }.taskValue
     )
 }
