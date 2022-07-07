@@ -11,13 +11,13 @@ lazy val plugin =
     .settings(
       name := "zio-spark-codegen",
       libraryDependencies ++= Seq(
-        "dev.zio"          %% "zio"              % "2.0.0-RC6",
-        "dev.zio"          %% "zio-test"         % "2.0.0-RC6" % Test,
-        "dev.zio"          %% "zio-test-sbt"     % "2.0.0-RC6" % Test,
+        "dev.zio"          %% "zio"              % "2.0.0",
+        "dev.zio"          %% "zio-test"         % "2.0.0" % Test,
+        "dev.zio"          %% "zio-test-sbt"     % "2.0.0" % Test,
         "org.scalameta"    %% "scalafmt-dynamic" % "3.4.3", // equals to sbt-scalafmt's scalfmt-dynamic version
-        "org.scalameta"    %% "scalameta"        % "4.5.3",
-        "org.apache.spark" %% "spark-core"       % "3.2.1" withSources (), // For tests only
-        "org.apache.spark" %% "spark-sql"        % "3.2.1" withSources () // For tests only
+        "org.scalameta"    %% "scalameta"        % "4.5.9",
+        "org.apache.spark" %% "spark-core"       % "3.3.0" withSources (), // For tests only
+        "org.apache.spark" %% "spark-sql"        % "3.3.0" withSources () // For tests only
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
     )
