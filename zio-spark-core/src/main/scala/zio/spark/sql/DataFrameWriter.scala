@@ -35,10 +35,17 @@ final case class DataFrameWriter[T] private (
    *
    * See [[UnderlyingDataFrameWriter.saveAsTable]] for more information.
    */
-  def saveAsTable(path: String)(implicit trace: Trace): Task[Unit] = saveUsing(_.saveAsTable(path))
+  def saveAsTable(tableName: String)(implicit trace: Trace): Task[Unit] = saveUsing(_.saveAsTable(tableName))
 
   /** Alias for [[saveAsTable]]. */
-  def table(path: String)(implicit trace: Trace): Task[Unit] = saveAsTable(path)
+  def table(tableName: String)(implicit trace: Trace): Task[Unit] = saveAsTable(tableName)
+
+  /**
+   * Inserts the content of the DataFrame into the specified table.
+   *
+   * See [[UnderlyingDataFrameWriter.insertInto]] for more information.
+   */
+  def insertInto(tableName: String)(implicit trace: Trace): Task[Unit] = saveUsing(_.insertInto(tableName))
 
   /**
    * Saves the DataFrame using the CSV format.
