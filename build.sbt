@@ -88,7 +88,7 @@ addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageRe
 
 // -- Lib versions
 lazy val zio        = "2.0.0"
-lazy val zioPrelude = "1.0.0-RC15"
+lazy val zioPrelude = "1.0.0-RC16"
 
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.15"
