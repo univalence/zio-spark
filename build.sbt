@@ -105,7 +105,7 @@ lazy val core =
       name := "zio-spark",
       resolvers += Resolver.sonatypeRepo("snapshots"),
       crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala212,
+      scalaVersion       := scala213,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-test"     % zio % Test,
