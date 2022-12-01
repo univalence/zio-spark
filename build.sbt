@@ -178,8 +178,8 @@ def generateSparkLibraryDependencies(scalaMinor: Long): Seq[ModuleID] = {
 def sparkScalaVersionMapping(scalaMinor: Long): String =
   scalaMinor match {
     case 11 => "2.4.8"
-    case 12 => "3.2.1"
-    case 13 => "3.2.1"
+    case 12 => "3.3.1"
+    case 13 => "3.3.1"
     case _  => throw new Exception("It should be unreachable.")
   }
 

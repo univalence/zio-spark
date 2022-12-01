@@ -25,10 +25,11 @@ case object DatasetTemplate extends Template.Default {
           |  Encoder,
           |  Row,
           |  TypedColumn,
-          |  Sniffer
+          |  Sniffer,
+          |  Observation
           |}
           |import zio.spark.sql.streaming.DataStreamWriter
-          |import org.apache.spark.sql.types.StructType
+          |import org.apache.spark.sql.types.{StructType, Metadata}
           |import org.apache.spark.storage.StorageLevel
           |
           |import zio._
