@@ -9,6 +9,9 @@ examples/src/main/resources/output*
 project/project
 target
 
+# Spark
+spark-warehouse
+
 # IDE
 .bloop
 .idea
