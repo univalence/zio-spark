@@ -103,7 +103,7 @@ lazy val core =
     .configs(IntegrationTest)
     .settings(
       name := "zio-spark",
-      resolvers += Resolver.sonatypeRepo("snapshots"),
+      resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
       crossScalaVersions := supportedScalaVersions,
       scalaVersion       := scala213,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
