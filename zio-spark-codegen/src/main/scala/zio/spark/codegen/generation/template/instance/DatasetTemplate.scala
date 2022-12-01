@@ -25,11 +25,10 @@ case object DatasetTemplate extends Template.Default {
           |  Encoder,
           |  Row,
           |  TypedColumn,
-          |  Sniffer,
-          |  Observation
+          |  Sniffer
           |}
           |import zio.spark.sql.streaming.DataStreamWriter
-          |import org.apache.spark.sql.types.{StructType, Metadata}
+          |import org.apache.spark.sql.types.StructType
           |import org.apache.spark.storage.StorageLevel
           |
           |import zio._
@@ -44,11 +43,15 @@ case object DatasetTemplate extends Template.Default {
         case ScalaBinaryVersion.V2_13 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.ExplainMode
-             |import scala.jdk.CollectionConverters._""".stripMargin
+             |import scala.jdk.CollectionConverters._
+             |import org.apache.spark.sql.Observation
+             |import org.apache.spark.sql.types.Metadata""".stripMargin
         case ScalaBinaryVersion.V2_12 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.ExplainMode
-             |import scala.collection.JavaConverters._""".stripMargin
+             |import scala.collection.JavaConverters._
+             |import org.apache.spark.sql.Observation
+             |import org.apache.spark.sql.types.Metadata""".stripMargin
         case ScalaBinaryVersion.V2_11 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.command.ExplainCommand
