@@ -88,7 +88,7 @@ addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageRe
 
 // -- Lib versions
 lazy val zio        = "2.0.0"
-lazy val zioPrelude = "1.0.0-RC15"
+lazy val zioPrelude = "1.0.0-RC16"
 
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.17"
@@ -105,7 +105,7 @@ lazy val core =
       name := "zio-spark",
       resolvers += Resolver.sonatypeRepo("snapshots"),
       crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala213,
+      scalaVersion       := scala212,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-test"     % zio % Test,
