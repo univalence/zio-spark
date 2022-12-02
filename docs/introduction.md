@@ -23,7 +23,7 @@ There are usual ways to improve the performances of spark jobs, in order of prio
 - less data (=> active location, streaming, ...)
 - less udf/rdd
 - better configuration
-- **better resource allocation** <-
+- better resource allocation 👈 ZIO Spark focus
 
 What zio-spark can do is to launch different spark jobs in the same `SparkSession`, allowing to use more of the
 executor capacities. E.g. if you have 5 workers, and only 1 is working to finish the current job, and you wait before

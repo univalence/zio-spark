@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Pipeline
 
-**Pipelines** help you to structure your Spark jobs with ease.
+**Pipeline** helps you to structure your Spark jobs with ease.
 
 If you are building simple pipelines using Dataset, we can see a pipeline as:
 
@@ -27,8 +27,8 @@ val pipeline = Pipeline(
 It creates a description of our job, you can then transform it into a ZIO effect using `run`:
 
 ```scala
-val job: Spark[Long] = pipeline.run
+val job: SIO[Long] = pipeline.run
 ```
 
-`Spark[Long]` is an alias for `ZIO[SparkSession, Throwable, Long]` meaning that it returns an effect that need a 
+`SIO[Long]` is an alias for `ZIO[SparkSession, Throwable, Long]` meaning that it returns an effect that need a 
 SparkSession and will return a Long (the number of rows of the DataFrame).
