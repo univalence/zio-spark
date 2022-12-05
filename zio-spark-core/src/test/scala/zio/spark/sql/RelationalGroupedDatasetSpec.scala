@@ -3,6 +3,7 @@ package zio.spark.sql
 import zio.spark.helper.Fixture._
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 import zio.spark.sql.implicits._
+import scala3encoders.given
 import zio.test._
 
 object RelationalGroupedDatasetSpec {

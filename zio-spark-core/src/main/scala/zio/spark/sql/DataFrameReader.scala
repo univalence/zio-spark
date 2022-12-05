@@ -11,6 +11,8 @@ import org.apache.spark.sql.types.StructType
 import zio.Trace
 import zio.spark.sql.DataFrameReader.SchemaState
 import zio.spark.sql.SchemaFromCaseClass.ToStructSchema
+import zio.spark.sql.implicits._
+import scala3encoders.given
 
 import java.util.Properties
 

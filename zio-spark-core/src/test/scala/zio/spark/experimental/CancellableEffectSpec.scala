@@ -6,7 +6,7 @@ import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, Spar
 
 import zio.{durationInt, durationLong, Chunk, Ref, UIO, Unsafe, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
-import zio.spark.sql.implicits.seqRddHolderOps
+import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.TestAspect.{timeout, withLiveClock}
 

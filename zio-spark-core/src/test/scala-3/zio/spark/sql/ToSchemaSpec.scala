@@ -3,19 +3,21 @@ package zio.spark.sql
 import org.apache.spark.sql.types._
 
 import zio.Scope
-import zio.spark.sql.SchemaFromCaseClass.schemaFrom
-import zio.test._
+import zio.spark.sql.ToSchema._
+import zio.test.{assertTrue, Spec, TestEnvironment, ZIOSpecDefault}
 
-object SchemaFromCaseClassSpec extends ZIOSpecDefault {
+object ToSchemaSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment with Scope, Any] =
     suite("Convert case class into schema")(
       test("Case class with one string") {
         final case class Test(foo: String)
+
         val schema = StructType(Seq(StructField("foo", StringType, nullable = false)))
-        assertTrue(schema.treeString == schemaFrom[Test].toSchema.treeString)
+        assertTrue(schema.treeString == summon[ToStructSchema[Test]].toSchema.treeString)
       },
       test("Case class with all basic types") {
         final case class Test(foo: String, bar: Boolean)
+
         val schema =
           StructType(
             Seq(
@@ -23,7 +25,7 @@ object SchemaFromCaseClassSpec extends ZIOSpecDefault {
               StructField("bar", BooleanType, nullable = false)
             )
           )
-        assertTrue(schemaFrom[Test].toSchema.treeString == schema.treeString)
+        assertTrue(summon[ToStructSchema[Test]].toSchema.treeString == schema.treeString)
       },
       test("Case class with one string and one optional boolean") {
         final case class Test(
@@ -41,6 +43,7 @@ object SchemaFromCaseClassSpec extends ZIOSpecDefault {
             timestamp:      java.sql.Timestamp,
             date:           java.sql.Date
         )
+
         val schema =
           StructType(
             Seq(
@@ -59,17 +62,18 @@ object SchemaFromCaseClassSpec extends ZIOSpecDefault {
               StructField("date", DateType, nullable                     = false)
             )
           )
-        assertTrue(schemaFrom[Test].toSchema.treeString == schema.treeString)
+        assertTrue(summon[ToStructSchema[Test]].toSchema.treeString == schema.treeString)
       },
       test("Case class with a map") {
         final case class Test(foo: Map[String, Boolean])
+
         val schema =
           StructType(
             Seq(
               StructField("foo", DataTypes.createMapType(StringType, BooleanType), nullable = false)
             )
           )
-        assertTrue(schemaFrom[Test].toSchema.treeString == schema.treeString)
+        assertTrue(summon[ToStructSchema[Test]].toSchema.treeString == schema.treeString)
       },
       test("Case class with a nested case class") {
         final case class Bar(baz: String)
@@ -84,7 +88,7 @@ object SchemaFromCaseClassSpec extends ZIOSpecDefault {
             )
           )
 
-        assertTrue(schemaFrom[Test].toSchema.treeString == schema.treeString)
+        assertTrue(summon[ToStructSchema[Test]].toSchema.treeString == schema.treeString)
       },
       test("Case class with a nested nullable case class") {
         final case class Bar(baz: String)
@@ -99,7 +103,7 @@ object SchemaFromCaseClassSpec extends ZIOSpecDefault {
             )
           )
 
-        assertTrue(schemaFrom[Test].toSchema.treeString == schema.treeString)
+        assertTrue(summon[ToStructSchema[Test]].toSchema.treeString == schema.treeString)
       }
     )
 }

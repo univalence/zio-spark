@@ -3,6 +3,7 @@ package zio.spark.sql.streaming
 import zio.durationInt
 import zio.spark.sql._
 import zio.spark.sql.implicits._
+import scala3encoders.given
 import zio.test._
 
 object DataStreamWriterSpec {

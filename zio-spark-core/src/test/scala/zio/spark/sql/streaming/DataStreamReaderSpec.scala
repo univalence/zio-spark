@@ -3,6 +3,9 @@ package zio.spark.sql.streaming
 import zio.spark.sql.SparkSession
 import zio.test._
 import zio.test.Assertion.{isLeft, isRight}
+import zio.spark.sql.implicits._
+import scala3encoders.given
+
 
 object DataStreamReaderSpec extends ZIOSpecDefault {
   val reader: DataStreamReader = SparkSession.readStream
