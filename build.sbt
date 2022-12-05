@@ -93,7 +93,7 @@ lazy val zioPrelude = "1.0.0-RC16"
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.17"
 lazy val scala213 = "2.13.8"
-lazy val scala31 = "3.1.1"
+lazy val scala31 = "3.2.1"
 
 lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala31)
 
@@ -108,7 +108,7 @@ lazy val core =
       name := "zio-spark",
       resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
       crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala213,
+      scalaVersion       := scala31,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._1,
       scalaMinorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
@@ -135,27 +135,27 @@ def example(project: Project): Project =
      * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
     .settings(fork := false)
 
-lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
-lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
-lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
-lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
-lazy val exampleZIOEcosystem =
-  (project in file("examples/zio-ecosystem"))
-    .configure(example)
-    .dependsOn(
-      exampleSimpleApp,
-      exampleSparkCodeMigration,
-      exampleWordCount
-    )
-
-lazy val examples =
-  (project in file("examples")).aggregate(
-    exampleSimpleApp,
-    exampleSparkCodeMigration,
-    exampleUsingOlderSparkVersion,
-    exampleWordCount,
-    exampleZIOEcosystem
-  )
+//lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
+//lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
+//lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
+//lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
+//lazy val exampleZIOEcosystem =
+//  (project in file("examples/zio-ecosystem"))
+//    .configure(example)
+//    .dependsOn(
+//      exampleSimpleApp,
+//      exampleSparkCodeMigration,
+//      exampleWordCount
+//    )
+//
+//lazy val examples =
+//  (project in file("examples")).aggregate(
+//    exampleSimpleApp,
+//    exampleSparkCodeMigration,
+//    exampleUsingOlderSparkVersion,
+//    exampleWordCount,
+//    exampleZIOEcosystem
+//  )
 
 /** Generates required libraries for magnolia. */
 def generateMagnoliaDependency(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
@@ -241,11 +241,11 @@ def scalaVersionSpecificSources(environment: String, baseDirectory: File)(versio
 def crossScalaVersionSources(scalaVersion: String, environment: String, baseDir: File) = {
   val versions = CrossVersion.partialVersion(scalaVersion) match {
     case Some((2, 11)) =>
-      List("2.11+", "2.11-2.12")
+      List("2", "2.11+", "2.11-2.12")
     case Some((2, 12)) =>
-      List("2.11+", "2.12+", "2.11-2.12", "2.12-2.13")
+      List("2", "2.11+", "2.12+", "2.11-2.12", "2.12-2.13")
     case Some((2, 13)) =>
-      List("2.11+", "2.12+", "2.13+", "2.12-2.13")
+      List("2", "2.11+", "2.12+", "2.13+", "2.12-2.13")
     case Some((3, _)) =>
       List("2.11+", "2.12+", "2.13+")
     case _ =>

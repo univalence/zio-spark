@@ -9,7 +9,7 @@ import zio.Trace
 import zio.spark.sql.{fromSpark, DataFrame, Dataset, SIO}
 import zio.spark.sql.SchemaFromCaseClass.ToStructSchema
 
-final case class DataStreamReader private (
+final case class DataStreamReader private[sql] (
     options:             Map[String, String],
     userSpecifiedSchema: Option[StructType]
 ) {

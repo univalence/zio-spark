@@ -14,7 +14,7 @@ import zio.spark.sql.SchemaFromCaseClass.ToStructSchema
 
 import java.util.Properties
 
-final case class DataFrameReader[State <: SchemaState] private (
+final case class DataFrameReader[State <: SchemaState] private[sql] (
     options:             Map[String, String],
     userSpecifiedSchema: Option[StructType]
 ) {
