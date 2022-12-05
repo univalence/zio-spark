@@ -32,6 +32,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             case "2.11" => ScalaBinaryVersion.V2_11
             case "2.12" => ScalaBinaryVersion.V2_12
             case "2.13" => ScalaBinaryVersion.V2_13
+            case "3" => ScalaBinaryVersion.V3
           }
 
         val scalaVersionLayer: ULayer[ScalaBinaryVersion] = ZLayer.succeed(version)

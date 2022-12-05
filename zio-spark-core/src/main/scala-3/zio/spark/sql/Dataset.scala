@@ -29,7 +29,7 @@ import zio._
 import zio.spark.rdd._
 import zio.spark.sql.streaming.DataStreamWriter
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.TypeTag
 
 import java.io.IOException
@@ -73,37 +73,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   def getWithAnalysis[U](f: UnderlyingDataset[T] => U): TryAnalysis[U] = TryAnalysis(f(underlying))
 
   // Handmade functions specific to zio-spark
-  /**
-   * Prints the plans (logical and physical) with a format specified by
-   * a given explain mode.
-   *
-   * @param mode
-   *   specifies the expected output format of plans. <ul> <li>`simple`
-   *   Print only a physical plan.</li> <li>`extended`: Print both
-   *   logical and physical plans.</li> <li>`codegen`: Print a physical
-   *   plan and generated codes if they are available.</li> <li>`cost`:
-   *   Print a logical plan and statistics if they are available.</li>
-   *   <li>`formatted`: Split explain output into two sections: a
-   *   physical plan outline and node details.</li> </ul>
-   * @group basic
-   * @since 3.0.0
-   */
-  def explain(mode: String)(implicit trace: Trace): SIO[Unit] = explain(ExplainMode.fromString(mode))
-
-  /**
-   * Prints the plans (logical and physical) with a format specified by
-   * a given explain mode.
-   *
-   * @group basic
-   * @since 3.0.0
-   */
-  def explain(mode: ExplainMode)(implicit trace: Trace): SIO[Unit] =
-    for {
-      ss   <- ZIO.service[SparkSession]
-      plan <- ss.withActive(underlying.queryExecution.explainString(mode))
-      _    <- Console.printLine(plan)
-    } yield ()
-
   /** Alias for [[headOption]]. */
   def firstOption(implicit trace: Trace): Task[Option[T]] = headOption
 
@@ -122,31 +91,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
 
   /** Takes the first element of a dataset or None. */
   def headOption(implicit trace: Trace): Task[Option[T]] = head(1).map(_.headOption)
-
-  // template:on
-  /** Alias for [[tail]]. */
-  def last(implicit trace: Trace): Task[T] = tail
-
-  /** Alias for [[tailOption]]. */
-  def lastOption(implicit trace: Trace): Task[Option[T]] = tailOption
-
-  /**
-   * Prints the schema to the console in a nice tree format.
-   *
-   * @group basic
-   * @since 1.6.0
-   */
-  def printSchema(implicit trace: Trace): IO[IOException, Unit] = printSchema(Int.MaxValue)
-
-  /**
-   * Prints the schema up to the given level to the console in a nice
-   * tree format.
-   *
-   * @group basic
-   * @since 3.0.0
-   */
-  def printSchema(level: Int)(implicit trace: Trace): IO[IOException, Unit] =
-    Console.printLine(schema.treeString(level))
 
   /**
    * Transform the dataset into a [[RDD]].
@@ -188,27 +132,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
     val stringifiedDf = Sniffer.datasetShowString(underlying, numRows, truncate = trunc)
     Console.printLine(stringifiedDf)
   }
-
-  /**
-   * Computes specified statistics for numeric and string columns.
-   *
-   * See [[org.apache.spark.sql.Dataset.summary]] for more information.
-   */
-  def summary(statistics: Statistics*)(implicit d: DummyImplicit): DataFrame =
-    self.summary(statistics.map(_.toString): _*)
-
-  /**
-   * Takes the last element of a dataset or throws an exception.
-   *
-   * See [[Dataset.tail]] for more information.
-   */
-  def tail(implicit trace: Trace): Task[T] = self.tail(1).map(_.head)
-
-  /** Takes the last element of a dataset or None. */
-  def tailOption(implicit trace: Trace): Task[Option[T]] = self.tail(1).map(_.headOption)
-
-  /** Alias for [[tail]]. */
-  def takeRight(n: Int)(implicit trace: Trace): Task[Seq[T]] = self.tail(n)
 
   /**
    * Chains custom transformations.
