@@ -3,7 +3,7 @@ package zio.spark.sql
 import org.apache.spark.sql.types._
 
 import zio.Scope
-import zio.spark.sql.SchemaFromCaseClass.schemaFrom
+import .schemaFrom
 import zio.test._
 
 object SchemaFromCaseClassSpec extends ZIOSpecDefault {
