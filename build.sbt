@@ -103,6 +103,7 @@ lazy val scalaMinorVersion: SettingKey[Long] = SettingKey("scala minor version")
 lazy val core =
   (project in file("zio-spark-core"))
     .configs(IntegrationTest)
+    .settings(crossScalaVersionSettings)
     .settings(
       name := "zio-spark",
       resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
@@ -228,3 +229,44 @@ def addVersionPadding(baseVersion: String): String = {
     case None => baseVersion
   }
 }
+
+def scalaVersionSpecificSources(environment: String, baseDirectory: File)(versions: String*) = {
+  for {
+    version  <- "scala" :: versions.toList.map("scala-" + _)
+    result    = baseDirectory / "src" / environment / version
+    if result.exists
+  } yield result
+}
+
+def crossScalaVersionSources(scalaVersion: String, environment: String, baseDir: File) = {
+  val versions = CrossVersion.partialVersion(scalaVersion) match {
+    case Some((2, 11)) =>
+      List("2.11+", "2.11-2.12")
+    case Some((2, 12)) =>
+      List("2.11+", "2.12+", "2.11-2.12", "2.12-2.13")
+    case Some((2, 13)) =>
+      List("2.11+", "2.12+", "2.13+", "2.12-2.13")
+    case Some((3, _)) =>
+      List("2.11+", "2.12+", "2.13+")
+    case _ =>
+      List()
+  }
+  scalaVersionSpecificSources(environment, baseDir)(versions: _*)
+}
+
+lazy val crossScalaVersionSettings = Seq(
+  Compile / unmanagedSourceDirectories ++= {
+    crossScalaVersionSources(
+      scalaVersion.value,
+      "main",
+      baseDirectory.value
+    )
+  },
+  Test / unmanagedSourceDirectories ++= {
+    crossScalaVersionSources(
+      scalaVersion.value,
+      "test",
+      baseDirectory.value
+    )
+  }
+)
