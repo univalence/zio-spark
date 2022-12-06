@@ -1,9 +1,7 @@
 package zio.spark.sql.streaming
 
-import scala3encoders.given
 
 import zio.spark.sql.SparkSession
-import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.Assertion._
 

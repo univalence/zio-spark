@@ -19,7 +19,7 @@ object ExtraDatasetFeatureTest {
           _      <- transformedDf.explain
           output <- TestConsole.output
           representation = output.mkString("\n")
-        } yield assert(representation)(containsString("== Physical Plan =="))
+        } yield assertTrue(representation.contains("== Physical Plan =="))
       } @@ silent
     )
 }

@@ -1,6 +1,5 @@
 package zio.spark.helper
 
-import scala3encoders.given
 
 import zio.spark.rdd._
 import zio.spark.sql._

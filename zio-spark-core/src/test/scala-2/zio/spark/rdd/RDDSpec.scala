@@ -1,14 +1,10 @@
 package zio.spark.rdd
 
-import zio.spark.helper.Fixture.{read, Person}
-import zio.spark.sql.{SIO, SparkSession}
+import zio.spark.helper.Fixture.readRDD
+import zio.spark.sql._
 import zio.test._
-import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
-import zio.spark.sql.implicits._
 
 object RDDSpec {
-  val readRDD: SIO[RDD[Person]] = read.map(_.as[Person].rdd)
-
   def rddActionsSpec: Spec[SparkSession, Any] =
     suite("RDD Actions")(
       test("RDD should implement count correctly") {
@@ -21,7 +17,7 @@ object RDDSpec {
         for {
           df     <- readRDD
           output <- df.collect
-        } yield assertTrue(output == 4L)
+        } yield assertTrue(output.length == 4)
       }
     )
 
@@ -32,7 +28,7 @@ object RDDSpec {
           df <- readRDD
           transformedDf = df.map(_.age)
           output <- transformedDf.collect
-        } yield assertTrue(output.headOption.get == 93)
+        } yield assertTrue(output.headOption.contains(93))
       }
     )
 }

@@ -4,7 +4,7 @@ import org.apache.spark.sql.types._
 
 import zio.Scope
 import zio.spark.sql.SchemaFromCaseClass.schemaFrom
-import zio.test.{assertTrue, Spec, TestEnvironment, ZIOSpecDefault}
+import zio.test._
 
 object SchemaFromCaseClassSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment with Scope, Any] =

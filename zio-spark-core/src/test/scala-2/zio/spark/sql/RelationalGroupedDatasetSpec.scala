@@ -1,6 +1,5 @@
 package zio.spark.sql
 
-import scala3encoders.given
 
 import zio.spark.helper.Fixture._
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException

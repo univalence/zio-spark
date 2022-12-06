@@ -60,7 +60,7 @@ object DataFrameWriterSpec {
           df     <- readAgain(path)
           output <- df.count
           _      <- deleteGeneratedFolder(path)
-        } yield assert(output)(equalTo(4))
+        } yield assert(output)(equalTo(4L))
 
       }
 

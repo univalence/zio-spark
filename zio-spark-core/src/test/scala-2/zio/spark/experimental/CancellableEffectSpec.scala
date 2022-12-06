@@ -52,7 +52,7 @@ object CancellableEffectSpec {
             .disconnect
 
         listenSparkEvents(waitBlocking(5).race(job)).map { case (events, n) =>
-          assert(n)(equalTo(5)) &&
+          assert(n)(equalTo(5L)) &&
           assert(
             exists(events) { case js: SparkListenerJobStart =>
               exists(events) { case je: SparkListenerJobEnd =>

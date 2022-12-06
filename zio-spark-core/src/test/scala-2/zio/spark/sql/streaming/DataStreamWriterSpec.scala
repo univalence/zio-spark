@@ -1,6 +1,5 @@
 package zio.spark.sql.streaming
 
-import scala3encoders.given
 
 import zio.durationInt
 import zio.spark.sql._

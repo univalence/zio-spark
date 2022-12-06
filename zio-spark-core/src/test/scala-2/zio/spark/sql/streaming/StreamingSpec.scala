@@ -1,6 +1,5 @@
 package zio.spark.sql.streaming
 
-import scala3encoders.given
 
 import zio.spark.helper.Fixture.{resourcesPath, Person}
 import zio.spark.parameter.append
@@ -28,7 +27,7 @@ object StreamingSpec {
             .test
         memoryDf <- SparkSession.read.table(tableName)
         res      <- memoryDf.count
-      } yield assert(res)(equalTo(4))
+      } yield assert(res)(equalTo(4L))
     }
 
   def streamingSpec: Spec[SparkSession, Throwable] =
@@ -61,7 +60,7 @@ object StreamingSpec {
               .run
           memoryDf <- SparkSession.read.table("testTxt")
           res      <- memoryDf.count
-        } yield assert(res)(equalTo(4))
+        } yield assert(res)(equalTo(4L))
       }
     )
 }

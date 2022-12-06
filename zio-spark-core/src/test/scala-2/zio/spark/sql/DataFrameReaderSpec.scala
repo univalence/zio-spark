@@ -1,7 +1,6 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
-import scala3encoders.given
 
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
@@ -33,31 +32,31 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
         for {
           df     <- read
           output <- df.count
-        } yield assert(output)(equalTo(4))
+        } yield assert(output)(equalTo(4L))
       },
       test("DataFrameReader can read a JSON file") {
         for {
           df     <- SparkSession.read.option("multiline", "true").json(s"$resourcesPath/data-json")
           output <- df.count
-        } yield assert(output)(equalTo(4))
+        } yield assert(output)(equalTo(4L))
       } @@ scala211(ignore),
       test("DataFrameReader can read a Parquet file") {
         for {
           df     <- SparkSession.read.parquet(s"$resourcesPath/data-parquet")
           output <- df.count
-        } yield assert(output)(equalTo(4))
+        } yield assert(output)(equalTo(4L))
       },
       test("DataFrameReader can read a Orc file") {
         for {
           df     <- SparkSession.read.orc(s"$resourcesPath/data-orc")
           output <- df.count
-        } yield assert(output)(equalTo(4))
+        } yield assert(output)(equalTo(4L))
       },
       test("DataFrameReader can read a Text file") {
         for {
           df     <- SparkSession.read.textFile(s"$resourcesPath/data-txt")
           output <- df.flatMap(_.split(" ")).count
-        } yield assert(output)(equalTo(4))
+        } yield assert(output)(equalTo(4L))
       },
       test("DataFrameReader can have a schema by default") {
         val schema =

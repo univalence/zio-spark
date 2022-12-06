@@ -1,10 +1,11 @@
 package zio.spark.rdd
 
+
 import zio.spark.helper.Fixture.readLorem
 import zio.spark.sql.{Dataset, SparkSession}
-import zio.test.{assert, suite, test, Spec}
-import zio.test.Assertion.equalTo
 import zio.spark.sql.implicits._
+import zio.test._
+import zio.test.Assertion._
 
 object PairRDDFunctionsSpec {
   def spec: Spec[SparkSession, Any] =
