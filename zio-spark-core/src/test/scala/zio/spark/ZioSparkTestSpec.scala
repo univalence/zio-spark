@@ -3,7 +3,7 @@ package zio.spark
 import org.apache.log4j.{Level, Logger}
 
 import zio._
-import zio.spark.experimental.{CancellableEffectSpec, PipelineSpec}
+import zio.spark.experimental.{CancellableEffectSpec, MapWithEffectSpec, PipelineSpec}
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsSpec, RDDSpec}
 import zio.spark.sql.{
@@ -31,7 +31,7 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
   type SparkTestEnvironment = TestEnvironment with SparkSession
   type SparkTestSpec        = Spec[SparkTestEnvironment, Any]
 
-  def spec: Spec[TestEnvironment, Any] = {
+  def spec: Spec[TestEnvironment with Scope, Any] = {
     val specs: Seq[Spec[SparkTestEnvironment, Any]] =
       Seq(
         DatasetSpec.datasetActionsSpec,
@@ -52,9 +52,10 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
         RelationalGroupedDatasetSpec.relationalGroupedDatasetAggregationSpec,
         CancellableEffectSpec.spec,
         StreamingSpec.streamingSpec,
-        DataStreamWriterSpec.dataStreamReaderConfigurationsSpec
+        DataStreamWriterSpec.dataStreamReaderConfigurationsSpec,
+        MapWithEffectSpec.spec
       )
 
-    suite("Spark tests")(specs: _*).provideCustomLayerShared(session)
+    suite("Spark tests")(specs: _*).provideSomeLayerShared[TestEnvironment](session)
   }
 }

@@ -7,7 +7,6 @@ import zio.spark.sql.{Dataset, SparkSession}
 import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.Assertion._
-import zio.test.TestAspect._
 
 object PairRDDFunctionsSpec {
   def spec: Spec[SparkSession, Any] =
@@ -20,5 +19,5 @@ object PairRDDFunctionsSpec {
 
         job.map(assert(_)(equalTo(67L)))
       }
-    ) @@ scala212(ignore)
+    )
 }
