@@ -14,6 +14,7 @@ import zio.spark.sql.{
   RelationalGroupedDatasetSpec,
   SparkSession
 }
+import zio.spark.experimental.MapWithEffectSpec
 import zio.spark.sql.streaming.{DataStreamWriterSpec, StreamingSpec}
 import zio.test._
 
@@ -52,7 +53,8 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
         RelationalGroupedDatasetSpec.relationalGroupedDatasetAggregationSpec,
         CancellableEffectSpec.spec,
         StreamingSpec.streamingSpec,
-        DataStreamWriterSpec.dataStreamReaderConfigurationsSpec
+        DataStreamWriterSpec.dataStreamReaderConfigurationsSpec,
+        MapWithEffectSpec.spec
       )
 
     suite("Spark tests")(specs: _*).provideSomeLayerShared[TestEnvironment](session)

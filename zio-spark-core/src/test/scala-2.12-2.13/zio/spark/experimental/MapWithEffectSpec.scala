@@ -3,15 +3,14 @@ package zio.spark.experimental
 import scala3encoders.given // scalafix:ok
 
 import zio.{Task, ZIO}
-import zio.spark.ZioSparkTestSpec.session
 import zio.spark.experimental.MapWithEffect.RDDOps
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
 
-object MapWithEffectSpec extends ZIOSpecDefault {
-  override def spec: Spec[TestEnvironment, Any] =
+object MapWithEffectSpec {
+  def spec =
     suite("smoke")(
       test("basic smoke test") {
         val getRddInt: SIO[RDD[Int]] = Seq(1, 2, 3).toRDD
@@ -36,5 +35,5 @@ object MapWithEffectSpec extends ZIOSpecDefault {
             assertTrue(size == 10000, i == 1, count.toDouble < (0.95d * size))
           }
       }
-    ).provideSomeLayerShared[TestEnvironment](session)
+    )
 }
