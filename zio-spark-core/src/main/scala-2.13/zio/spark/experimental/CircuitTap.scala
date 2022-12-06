@@ -3,6 +3,7 @@ package zio.spark.experimental
 import zio.{Ref, Trace, UIO, ZIO}
 import zio.prelude.Assertion._
 import zio.prelude.Subtype
+import zio.spark.experimental.NewType._
 
 object NewType {
   object Weight extends Subtype[Long] { self =>
