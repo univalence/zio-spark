@@ -30,35 +30,35 @@ object ToSchemaSpec extends ZIOSpecDefault {
       },
       test("Case class with one string and one optional boolean") {
         final case class Test(
-            boolean:        Boolean,
-            string:         String,
-            short:          Short,
-            integer:        Int,
-            long:           Long,
-            bigDecimal:     BigDecimal,
-            float:          Float,
-            double:         Double,
-            byte:           Byte,
-            binary:         Array[Byte],
-            timestamp:      java.sql.Timestamp,
-            date:           java.sql.Date
+            boolean:    Boolean,
+            string:     String,
+            short:      Short,
+            integer:    Int,
+            long:       Long,
+            bigDecimal: BigDecimal,
+            float:      Float,
+            double:     Double,
+            byte:       Byte,
+            binary:     Array[Byte],
+            timestamp:  java.sql.Timestamp,
+            date:       java.sql.Date
         )
 
         val schema =
           StructType(
             Seq(
-              StructField("boolean", BooleanType, nullable               = false),
-              StructField("string", StringType, nullable                 = false),
-              StructField("short", ShortType, nullable                   = false),
-              StructField("integer", IntegerType, nullable               = false),
-              StructField("long", LongType, nullable                     = false),
-              StructField("bigDecimal", DecimalType(10, 0), nullable     = false),
-              StructField("float", FloatType, nullable                   = false),
-              StructField("double", DoubleType, nullable                 = false),
-              StructField("byte", ByteType, nullable                     = false),
-              StructField("binary", BinaryType, nullable                 = false),
-              StructField("timestamp", TimestampType, nullable           = false),
-              StructField("date", DateType, nullable                     = false)
+              StructField("boolean", BooleanType, nullable           = false),
+              StructField("string", StringType, nullable             = false),
+              StructField("short", ShortType, nullable               = false),
+              StructField("integer", IntegerType, nullable           = false),
+              StructField("long", LongType, nullable                 = false),
+              StructField("bigDecimal", DecimalType(10, 0), nullable = false),
+              StructField("float", FloatType, nullable               = false),
+              StructField("double", DoubleType, nullable             = false),
+              StructField("byte", ByteType, nullable                 = false),
+              StructField("binary", BinaryType, nullable             = false),
+              StructField("timestamp", TimestampType, nullable       = false),
+              StructField("date", DateType, nullable                 = false)
             )
           )
         assert(summon[ToStructSchema[Test]].toSchema.treeString)(equalTo(schema.treeString))

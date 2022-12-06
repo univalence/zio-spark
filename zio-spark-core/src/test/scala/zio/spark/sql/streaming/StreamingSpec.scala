@@ -1,12 +1,13 @@
 package zio.spark.sql.streaming
 
-import zio.spark.helper.Fixture.{Person, resourcesPath}
+import scala3encoders.given
+
+import zio.spark.helper.Fixture.{resourcesPath, Person}
 import zio.spark.parameter.append
 import zio.spark.sql._
 import zio.spark.sql.implicits._
-import scala3encoders.given
-import zio.test.Assertion._
 import zio.test._
+import zio.test.Assertion._
 
 object StreamingSpec {
 

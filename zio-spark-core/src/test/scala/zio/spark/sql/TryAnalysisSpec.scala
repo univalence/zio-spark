@@ -1,7 +1,7 @@
 package zio.spark.sql
 
-import zio.test.Assertion._
 import zio.test._
+import zio.test.Assertion._
 
 object TryAnalysisSpec extends ZIOSpecDefault {
   val tryAnalysis: TryAnalysis[Int] = TryAnalysis(10)

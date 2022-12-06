@@ -1,12 +1,12 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+import scala3encoders.given
 
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.implicits._
-import scala3encoders.given
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._

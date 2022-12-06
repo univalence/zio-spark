@@ -1,6 +1,7 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
+
 import zio._
 import zio.spark.parameter._
 import zio.spark.sql.DataFrameReader.WithoutSchema

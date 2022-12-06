@@ -1,9 +1,10 @@
 package zio.spark.rdd
 
+import scala3encoders.given
+
 import zio.spark.helper.Fixture.readLorem
 import zio.spark.sql.{Dataset, SparkSession}
 import zio.spark.sql.implicits._
-import scala3encoders.given
 import zio.test._
 import zio.test.Assertion._
 

@@ -11,5 +11,7 @@ object ExtraDatasetFeatureTest {
   def spec: Spec[SparkSession, Any] = dataFrameActionsSpec
 
   def dataFrameActionsSpec: Spec[SparkSession, Any] =
-    suite("ExtraDatatasetFeature Actions")(test("Dataset should implement explain correctly") {assertTrue(true)} @@ silent)
+    suite("ExtraDatatasetFeature Actions")(test("Dataset should implement explain correctly") {
+      assertTrue(true)
+    } @@ silent)
 }

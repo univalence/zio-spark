@@ -1,7 +1,7 @@
 package zio.spark.helper
 
-import zio.test.Assertion.equalTo
 import zio.test._
+import zio.test.Assertion.equalTo
 
 final case class Conftest[T](text: String, input: T, output: String)
 

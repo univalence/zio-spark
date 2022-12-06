@@ -2,11 +2,12 @@ package zio.spark.sql
 
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.{Row, SaveMode}
+
 import zio.{Random, Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.stream.{ZSink, ZStream}
-import zio.test.Assertion.equalTo
 import zio.test._
+import zio.test.Assertion.equalTo
 import zio.test.TestAspect._
 
 import java.nio.file.{Files, Paths}

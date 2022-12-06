@@ -1,11 +1,12 @@
 package zio.spark.sql
 
+import scala3encoders.given
+
 import zio.spark.helper.Fixture._
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 import zio.spark.sql.implicits._
-import scala3encoders.given
-import zio.test.Assertion.equalTo
 import zio.test._
+import zio.test.Assertion.equalTo
 
 object RelationalGroupedDatasetSpec {
   final case class AggregatePerson(status: String, age: Double)

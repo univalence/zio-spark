@@ -2,20 +2,22 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.storage.StorageLevel
+
+import zio.{Task, ZIO}
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
+import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
-import zio.test._
-import zio.{Task, ZIO}
 
 import scala.util.Try
 
 object DatasetSpec {
 
+  import scala3encoders.given
+
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
-  import scala3encoders.given
 
   implicit class SparkTestOps[O](effect: SIO[O]) {
     def check(f: O => TestResult): SIO[TestResult] = effect.map(f).orDie

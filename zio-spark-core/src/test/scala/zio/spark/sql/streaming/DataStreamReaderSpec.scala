@@ -1,11 +1,11 @@
 package zio.spark.sql.streaming
 
-import zio.spark.sql.SparkSession
-import zio.test._
-import zio.test.Assertion._
-import zio.spark.sql.implicits._
 import scala3encoders.given
 
+import zio.spark.sql.SparkSession
+import zio.spark.sql.implicits._
+import zio.test._
+import zio.test.Assertion._
 
 object DataStreamReaderSpec extends ZIOSpecDefault {
   val reader: DataStreamReader = SparkSession.readStream
