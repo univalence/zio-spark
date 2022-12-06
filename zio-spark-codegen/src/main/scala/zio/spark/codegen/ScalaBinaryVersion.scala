@@ -9,7 +9,7 @@ sealed trait ScalaBinaryVersion {
       case ScalaBinaryVersion.V2_11 => "2.11"
       case ScalaBinaryVersion.V2_12 => "2.12"
       case ScalaBinaryVersion.V2_13 => "2.13"
-      case ScalaBinaryVersion.V3 => "3"
+      case ScalaBinaryVersion.V3    => "3"
     }
 }
 
