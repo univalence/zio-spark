@@ -6,6 +6,7 @@ import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.Assertion.equalTo
+import scala3encoders.given
 
 object RelationalGroupedDatasetSpec {
   final case class AggregatePerson(status: String, age: Double)

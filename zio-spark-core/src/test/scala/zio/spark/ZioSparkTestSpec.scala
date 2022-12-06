@@ -55,6 +55,6 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
         DataStreamWriterSpec.dataStreamReaderConfigurationsSpec
       )
 
-    suite("Spark tests")(specs: _*).provideLayerShared(session)
+    suite("Spark tests")(specs: _*).provideCustomLayerShared(session)
   }
 }

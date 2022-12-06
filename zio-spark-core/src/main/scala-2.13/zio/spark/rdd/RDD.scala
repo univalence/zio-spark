@@ -403,22 +403,6 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
   ): Task[U] = action(_.treeAggregate[U](zeroValue)(seqOp, combOp, depth))
 
   /**
-   * [[org.apache.spark.rdd.RDD#treeAggregate]] with a parameter to do
-   * the final aggregation on the executor
-   *
-   * @param finalAggregateOnExecutor
-   *   do final aggregation on executor
-   */
-  def treeAggregate[U: ClassTag](
-      zeroValue: => U,
-      seqOp: (U, T) => U,
-      combOp: (U, U) => U,
-      depth: => Int,
-      finalAggregateOnExecutor: => Boolean
-  )(implicit trace: Trace): Task[U] =
-    action(_.treeAggregate[U](zeroValue, seqOp, combOp, depth, finalAggregateOnExecutor))
-
-  /**
    * Reduces the elements of this RDD in a multi-level tree pattern.
    *
    * @param depth
