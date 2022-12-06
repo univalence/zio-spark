@@ -3,6 +3,7 @@ package zio.spark.experimental
 import org.apache.spark.SparkContextCompatibility.removeSparkListener
 import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
+import scala3encoders.given // scalafix:ok
 
 import zio.{durationInt, durationLong, Chunk, Ref, UIO, Unsafe, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}

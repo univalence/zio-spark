@@ -1,5 +1,7 @@
 package zio.spark.experimental
 
+import scala3encoders.given // scalafix:ok
+
 import zio.{Task, ZIO}
 import zio.spark.ZioSparkTestSpec.session
 import zio.spark.experimental.MapWithEffect.RDDOps

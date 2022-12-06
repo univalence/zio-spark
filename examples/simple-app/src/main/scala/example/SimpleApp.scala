@@ -1,6 +1,7 @@
 package example
 
 import org.apache.spark.sql.Row
+import scala3encoders.given // scalafix:ok
 
 import zio._
 import zio.spark.experimental

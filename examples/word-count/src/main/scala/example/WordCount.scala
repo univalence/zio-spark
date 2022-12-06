@@ -1,5 +1,7 @@
 package example
 
+import scala3encoders.given // scalafix:ok
+
 import zio._
 import zio.spark.parameter._
 import zio.spark.rdd._

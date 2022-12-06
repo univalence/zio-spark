@@ -137,7 +137,7 @@ final case class DataFrameReader[State <: SchemaState] private[sql] (
   def textFile(path: String*)(implicit trace: Trace, ev: State =:= WithoutSchema): SIO[Dataset[String]] = {
     import zio.spark.sql.TryAnalysis.syntax._
     import zio.spark.sql.implicits._
-    import scala3encoders.given
+    import scala3encoders.given // scalafix:ok
 
     text(path: _*).map(_.select("value").as[String])
   }
