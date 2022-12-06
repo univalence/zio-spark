@@ -135,27 +135,27 @@ def example(project: Project): Project =
      * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
     .settings(fork := false)
 
-//lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
-//lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
-//lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
-//lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
-//lazy val exampleZIOEcosystem =
-//  (project in file("examples/zio-ecosystem"))
-//    .configure(example)
-//    .dependsOn(
-//      exampleSimpleApp,
-//      exampleSparkCodeMigration,
-//      exampleWordCount
-//    )
-//
-//lazy val examples =
-//  (project in file("examples")).aggregate(
-//    exampleSimpleApp,
-//    exampleSparkCodeMigration,
-//    exampleUsingOlderSparkVersion,
-//    exampleWordCount,
-//    exampleZIOEcosystem
-//  )
+lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
+lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
+lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
+lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
+lazy val exampleZIOEcosystem =
+  (project in file("examples/zio-ecosystem"))
+    .configure(example)
+    .dependsOn(
+      exampleSimpleApp,
+      exampleSparkCodeMigration,
+      exampleWordCount
+    )
+
+lazy val examples =
+  (project in file("examples")).aggregate(
+    exampleSimpleApp,
+    exampleSparkCodeMigration,
+    exampleUsingOlderSparkVersion,
+    exampleWordCount,
+    exampleZIOEcosystem
+  )
 
 /** Generates required libraries for magnolia. */
 def generateMagnoliaDependency(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
