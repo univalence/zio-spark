@@ -20,5 +20,5 @@ object PairRDDFunctionsSpec {
 
         job.map(assert(_)(equalTo(67L)))
       }
-    ) @@ scala211(ignore)
+    ) @@ scala212(ignore)
 }
