@@ -8,7 +8,7 @@ import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.implicits._
 import scala3encoders.given
 import zio.test._
-import zio.test.Assertion.{isLeft, isRight}
+import zio.test.Assertion._
 import zio.test.TestAspect._
 
 object DataFrameReaderSpec extends ZIOSpecDefault {
@@ -23,7 +23,7 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
         val options           = Map("a" -> "x", "b" -> "y")
         val readerWithOptions = reader.options(options)
 
-        assertTrue(readerWithOptions.options == options)
+        assert(readerWithOptions.options)(equalTo(options))
       }
     )
 
@@ -33,31 +33,31 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
         for {
           df     <- read
           output <- df.count
-        } yield assertTrue(output == 4)
+        } yield assert(output)(equalTo(4))
       },
       test("DataFrameReader can read a JSON file") {
         for {
           df     <- SparkSession.read.option("multiline", "true").json(s"$resourcesPath/data-json")
           output <- df.count
-        } yield assertTrue(output == 4)
+        } yield assert(output)(equalTo(4))
       } @@ scala211(ignore),
       test("DataFrameReader can read a Parquet file") {
         for {
           df     <- SparkSession.read.parquet(s"$resourcesPath/data-parquet")
           output <- df.count
-        } yield assertTrue(output == 4)
+        } yield assert(output)(equalTo(4))
       },
       test("DataFrameReader can read a Orc file") {
         for {
           df     <- SparkSession.read.orc(s"$resourcesPath/data-orc")
           output <- df.count
-        } yield assertTrue(output == 4)
+        } yield assert(output)(equalTo(4))
       },
       test("DataFrameReader can read a Text file") {
         for {
           df     <- SparkSession.read.textFile(s"$resourcesPath/data-txt")
           output <- df.flatMap(_.split(" ")).count
-        } yield assertTrue(output == 4)
+        } yield assert(output)(equalTo(4))
       },
       test("DataFrameReader can have a schema by default") {
         val schema =
@@ -70,14 +70,14 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
 
         for {
           df <- SparkSession.read.option("multiline", "true").schema(schema).json(s"$resourcesPath/data-json")
-        } yield assertTrue(df.columns == Seq("firstName", "age"))
+        } yield assert(df.columns)(equalTo(Seq("firstName", "age")))
       },
       test("DataFrameReader can have a schema from a case class") {
         final case class Schema(firstName: String, age: Int)
 
         for {
           df <- SparkSession.read.option("multiline", "true").schema[Schema].json(s"$resourcesPath/data-json")
-        } yield assertTrue(df.columns == Seq("firstName", "age"))
+        } yield assert(df.columns)(equalTo(Seq("firstName", "age")))
       },
       test("DataFrameReader can use a schemaString") {
         val schema      = "firstName STRING, age STRING"
@@ -104,7 +104,7 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
           val readerWithOptions = endo(reader)
           val options           = Map(expectedKey -> expectedValue)
 
-          assertTrue(readerWithOptions.options == options)
+          assert(readerWithOptions.options)(equalTo(options))
         }
     }
 

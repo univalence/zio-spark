@@ -4,6 +4,7 @@ import zio.spark.helper.Fixture._
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 import zio.spark.sql.implicits._
 import scala3encoders.given
+import zio.test.Assertion.equalTo
 import zio.test._
 
 object RelationalGroupedDatasetSpec {
@@ -25,7 +26,7 @@ object RelationalGroupedDatasetSpec {
                 .as[AggregatePerson]
                 .map(_.age)
             output <- transformedDf.collect
-          } yield assertTrue(output == expected)
+          } yield assert(output)(equalTo(expected))
         }
     }
 

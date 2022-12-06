@@ -87,7 +87,7 @@ addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
 
 // -- Lib versions
-lazy val zio        = "2.0.0"
+lazy val zio        = "2.0.2"
 lazy val zioPrelude = "1.0.0-RC16"
 
 lazy val scala211 = "2.11.12"
@@ -119,7 +119,7 @@ lazy val core =
         "dev.zio" %% "zio-prelude"  % zioPrelude
       ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
         ++ generateMagnoliaDependency(scalaMajorVersion.value, scalaMinorVersion.value),
-      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       scalacOptions ~= fatalWarningsAsProperties,
       Defaults.itSettings
     )

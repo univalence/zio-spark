@@ -53,7 +53,7 @@ object ToSchema extends AutoDerivation[ToSchema] {
   given ToSchema[Int] = ToSchema(IntegerType)
   given ToSchema[Long] = ToSchema(LongType)
 
-  given ToSchema[java.math.BigDecimal] = ToSchema(DecimalType(10, 0))
+  given ToSchema[BigDecimal] = ToSchema(DecimalType(10, 0))
 
   given ToSchema[Float]   = ToSchema(FloatType)
   given ToSchema[Double] = ToSchema(DoubleType)
