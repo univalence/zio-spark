@@ -1,6 +1,5 @@
 package zio.spark.sql.streaming
 
-
 import zio.durationInt
 import zio.spark.sql._
 import zio.spark.sql.implicits._

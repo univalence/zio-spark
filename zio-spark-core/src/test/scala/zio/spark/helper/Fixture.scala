@@ -1,6 +1,5 @@
 package zio.spark.helper
 
-
 import zio.spark.rdd._
 import zio.spark.sql._
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException

@@ -1,6 +1,5 @@
 package zio.spark.sql.streaming
 
-
 import zio.spark.helper.Fixture.{resourcesPath, Person}
 import zio.spark.parameter.append
 import zio.spark.sql._

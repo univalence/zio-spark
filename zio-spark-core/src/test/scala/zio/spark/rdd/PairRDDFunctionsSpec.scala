@@ -1,6 +1,5 @@
 package zio.spark.rdd
 
-
 import zio.spark.helper.Fixture.readLorem
 import zio.spark.sql.{Dataset, SparkSession}
 import zio.spark.sql.implicits._
