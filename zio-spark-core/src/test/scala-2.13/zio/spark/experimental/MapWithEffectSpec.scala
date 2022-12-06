@@ -36,5 +36,5 @@ object MapWithEffectSpec extends ZIOSpecDefault {
             assertTrue(size == 10000, i == 1, count.toDouble < (0.95d * size))
           }
       }
-    ).provideLayerShared(session)
+    ).provideSomeLayerShared[TestEnvironment](session)
 }

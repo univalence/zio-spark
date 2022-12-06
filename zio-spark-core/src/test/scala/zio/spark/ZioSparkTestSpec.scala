@@ -31,7 +31,7 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
   type SparkTestEnvironment = TestEnvironment with SparkSession
   type SparkTestSpec        = Spec[SparkTestEnvironment, Any]
 
-  def spec: Spec[TestEnvironment, Any] = {
+  def spec: Spec[TestEnvironment with Scope, Any] = {
     val specs: Seq[Spec[SparkTestEnvironment, Any]] =
       Seq(
         DatasetSpec.datasetActionsSpec,
@@ -55,6 +55,6 @@ object ZioSparkTestSpec extends ZIOSpecDefault {
         DataStreamWriterSpec.dataStreamReaderConfigurationsSpec
       )
 
-    suite("Spark tests")(specs: _*).provideCustomLayerShared(session)
+    suite("Spark tests")(specs: _*).provideSomeLayerShared[TestEnvironment](session)
   }
 }
