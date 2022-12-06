@@ -17,7 +17,6 @@ object DatasetSpec {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
-  import scala3encoders.given
 
   implicit class SparkTestOps[O](effect: SIO[O]) {
     def check(f: O => TestResult): SIO[TestResult] = effect.map(f).orDie

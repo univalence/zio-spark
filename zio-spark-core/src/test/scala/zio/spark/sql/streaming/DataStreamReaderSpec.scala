@@ -1,6 +1,5 @@
 package zio.spark.sql.streaming
 
-
 import zio.spark.sql.SparkSession
 import zio.test._
 import zio.test.Assertion._

@@ -20,7 +20,6 @@ import org.apache.spark.sql.{
   TypedColumn
 }
 import org.apache.spark.sql.execution.ExplainMode
-import org.apache.spark.sql.types.Metadata
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
