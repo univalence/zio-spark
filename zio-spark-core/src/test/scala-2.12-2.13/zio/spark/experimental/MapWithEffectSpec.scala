@@ -10,7 +10,7 @@ import zio.spark.sql.implicits._
 import zio.test._
 
 object MapWithEffectSpec {
-  def spec =
+  def spec: Spec[SparkSession,Throwable] =
     suite("smoke")(
       test("basic smoke test") {
         val getRddInt: SIO[RDD[Int]] = Seq(1, 2, 3).toRDD

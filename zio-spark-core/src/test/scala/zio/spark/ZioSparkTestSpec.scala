@@ -4,6 +4,7 @@ import org.apache.log4j.{Level, Logger}
 
 import zio._
 import zio.spark.experimental.{CancellableEffectSpec, PipelineSpec}
+import zio.spark.experimental.MapWithEffectSpec
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsSpec, RDDSpec}
 import zio.spark.sql.{
@@ -14,7 +15,6 @@ import zio.spark.sql.{
   RelationalGroupedDatasetSpec,
   SparkSession
 }
-import zio.spark.experimental.MapWithEffectSpec
 import zio.spark.sql.streaming.{DataStreamWriterSpec, StreamingSpec}
 import zio.test._
 
