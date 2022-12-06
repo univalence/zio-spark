@@ -3,8 +3,6 @@ package zio.spark
 import org.apache.log4j.{Level, Logger}
 
 import zio._
-import zio.spark.experimental.{CancellableEffectSpec, PipelineSpec}
-import zio.spark.experimental.MapWithEffectSpec
 import zio.spark.parameter.localAllNodes
 import zio.spark.rdd.{PairRDDFunctionsSpec, RDDSpec}
 import zio.spark.sql.{

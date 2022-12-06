@@ -1,7 +1,6 @@
 package zio.spark.experimental
 
 import zio.{IO, Runtime, Trace, Unsafe}
-import zio.spark.experimental.NewType.{Ratio, Weight}
 import zio.spark.rdd.RDD
 
 import scala.util.Either
