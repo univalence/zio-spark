@@ -1,5 +1,7 @@
 package zio.spark.experimental
 
+import scala3encoders.given // scalafix:ok
+
 import zio.{Task, ZIO}
 import zio.spark.ZioSparkTestSpec.session
 import zio.spark.experimental.MapWithEffect.RDDOps
@@ -34,5 +36,5 @@ object MapWithEffectSpec extends ZIOSpecDefault {
             assertTrue(size == 10000, i == 1, count.toDouble < (0.95d * size))
           }
       }
-    ).provideCustomLayerShared(session)
+    ).provideLayerShared(session)
 }

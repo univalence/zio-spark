@@ -7,6 +7,7 @@ import zio.{Random, Task, ZIO}
 import zio.spark.helper.Fixture._
 import zio.stream.{ZSink, ZStream}
 import zio.test._
+import zio.test.Assertion.equalTo
 import zio.test.TestAspect._
 
 import java.nio.file.{Files, Paths}
@@ -28,7 +29,7 @@ object DataFrameWriterSpec {
           _ <- writer.csv(path)
           _ <- writer.csv(path)
           _ <- deleteGeneratedFolder(path)
-        } yield assertTrue(writer.mode(mode).mode == mode)
+        } yield assert(writer.mode(mode).mode)(equalTo(mode))
       },
       test("DataFrameWriter can change its partitions") {
         val partitionCol: String = "name"
@@ -45,7 +46,7 @@ object DataFrameWriterSpec {
               .run(ZSink.collectAll)
               .map(_.exists(_.getFileName.toString.startsWith(s"$partitionCol=")))
           _ <- deleteGeneratedFolder(path)
-        } yield assertTrue(writer.partitioningColumns == Seq(partitionCol)) && assertTrue(isPartitioned)
+        } yield assert(writer.partitioningColumns)(equalTo(Seq(partitionCol))) && assert(isPartitioned)(equalTo(true))
       }
     )
 
@@ -59,7 +60,7 @@ object DataFrameWriterSpec {
           df     <- readAgain(path)
           output <- df.count
           _      <- deleteGeneratedFolder(path)
-        } yield assertTrue(output == 4L)
+        } yield assert(output)(equalTo(4L))
 
       }
 
@@ -106,7 +107,7 @@ object DataFrameWriterSpec {
           write             = df.write
           writerWithOptions = endo(write)
           options           = Map(expectedKey -> expectedValue)
-        } yield assertTrue(writerWithOptions.options == options)
+        } yield assert(writerWithOptions.options)(equalTo(options))
       }
 
     val tests =
@@ -151,7 +152,7 @@ object DataFrameWriterSpec {
           for {
             df <- read
             writer = df.write
-          } yield assertTrue(writer.options(options).options == options)
+          } yield assert(writer.options(options).options)(equalTo(options))
         },
         test("DataFrameWriter can save a df as table") {
           for {
@@ -161,7 +162,7 @@ object DataFrameWriterSpec {
             _         <- df.write.copy(mode = SaveMode.Overwrite).saveAsTable(tableName)
             loadDf    <- SparkSession.read.table(tableName)
             assertion <- df.except(loadDf).isEmpty
-          } yield assertTrue(assertion)
+          } yield assert(assertion)(equalTo(true))
         } @@ withLiveRandom,
         test("DataFrameWriter can insert a df into a table") {
           for {
@@ -173,7 +174,7 @@ object DataFrameWriterSpec {
             _         <- df.write.insertInto(tableName)
             loadDf    <- SparkSession.read.table(tableName)
             loadCount <- loadDf.count
-          } yield assertTrue(loadCount == count * 2)
+          } yield assert(loadCount)(equalTo(count * 2))
         } @@ withLiveRandom
       )
 

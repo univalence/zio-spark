@@ -1,5 +1,7 @@
 package zio.spark.helper
 
+import scala3encoders.given // scalafix:ok
+
 import zio.spark.rdd._
 import zio.spark.sql._
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException

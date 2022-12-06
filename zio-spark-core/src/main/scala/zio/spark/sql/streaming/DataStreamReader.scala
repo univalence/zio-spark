@@ -9,7 +9,7 @@ import zio.Trace
 import zio.spark.sql.{fromSpark, DataFrame, Dataset, SIO}
 import zio.spark.sql.SchemaFromCaseClass.ToStructSchema
 
-final case class DataStreamReader private (
+final case class DataStreamReader private[sql] (
     options:             Map[String, String],
     userSpecifiedSchema: Option[StructType]
 ) {
@@ -71,6 +71,7 @@ final case class DataStreamReader private (
   def textFile(path: String)(implicit trace: Trace): SIO[Dataset[String]] = {
     import zio.spark.sql.TryAnalysis.syntax._
     import zio.spark.sql.implicits._
+    import scala3encoders.given // scalafix:ok
 
     text(path).map(_.select("value").as[String])
   }

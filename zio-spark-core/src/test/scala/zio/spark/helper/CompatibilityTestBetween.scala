@@ -26,6 +26,7 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
       .toSeq
       .filter(!_.contains("$"))
       .filter(!scalaDefaultMethods.contains(_))
+      .filter(!_.startsWith("_"))
       .distinct
 
   /** The default methods of any case class. */
@@ -42,7 +43,8 @@ abstract class CompatibilityTestBetween[SparkStructure: ClassTag, ZioSparkStruct
       "unapply",
       "canEqual",
       "compose",
-      "andThen"
+      "andThen",
+      "fromProduct"
     )
 
   override def spec: Spec[TestEnvironment, Any] =

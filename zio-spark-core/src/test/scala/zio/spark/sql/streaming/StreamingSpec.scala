@@ -1,10 +1,13 @@
 package zio.spark.sql.streaming
 
+import scala3encoders.given // scalafix:ok
+
 import zio.spark.helper.Fixture.{resourcesPath, Person}
 import zio.spark.parameter.append
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
+import zio.test.Assertion._
 
 object StreamingSpec {
 
@@ -25,7 +28,7 @@ object StreamingSpec {
             .test
         memoryDf <- SparkSession.read.table(tableName)
         res      <- memoryDf.count
-      } yield assertTrue(res == 4)
+      } yield assert(res)(equalTo(4L))
     }
 
   def streamingSpec: Spec[SparkSession, Throwable] =
@@ -58,7 +61,7 @@ object StreamingSpec {
               .run
           memoryDf <- SparkSession.read.table("testTxt")
           res      <- memoryDf.count
-        } yield assertTrue(res == 4)
+        } yield assert(res)(equalTo(4L))
       }
     )
 }

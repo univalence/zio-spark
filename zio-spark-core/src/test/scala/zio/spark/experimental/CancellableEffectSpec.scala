@@ -3,11 +3,13 @@ package zio.spark.experimental
 import org.apache.spark.SparkContextCompatibility.removeSparkListener
 import org.apache.spark.SparkFirehoseListener
 import org.apache.spark.scheduler.{SparkListenerEvent, SparkListenerJobEnd, SparkListenerJobStart}
+import scala3encoders.given // scalafix:ok
 
 import zio.{durationInt, durationLong, Chunk, Ref, UIO, Unsafe, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
-import zio.spark.sql.implicits.seqRddHolderOps
+import zio.spark.sql.implicits._
 import zio.test._
+import zio.test.Assertion.equalTo
 import zio.test.TestAspect.{timeout, withLiveClock}
 
 object CancellableEffectSpec {
@@ -51,14 +53,14 @@ object CancellableEffectSpec {
             .disconnect
 
         listenSparkEvents(waitBlocking(5).race(job)).map { case (events, n) =>
-          assertTrue(
-            n == 5,
+          assert(n)(equalTo(5L)) &&
+          assert(
             exists(events) { case js: SparkListenerJobStart =>
               exists(events) { case je: SparkListenerJobEnd =>
                 je.jobId == js.jobId && je.jobResult.toString.contains("cancelled job group")
               }
             }
-          )
+          )(equalTo(true))
         }
       } @@ timeout(45.seconds) @@ withLiveClock
     )

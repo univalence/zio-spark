@@ -19,9 +19,7 @@ import org.apache.spark.sql.{
   Sniffer,
   TypedColumn
 }
-import org.apache.spark.sql.Observation
 import org.apache.spark.sql.execution.ExplainMode
-import org.apache.spark.sql.types.Metadata
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.storage.StorageLevel
 
@@ -1388,9 +1386,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *   // +----+----+----+
    * }}}
    *
-   * Note that this supports nested columns in struct and array types.
-   * Nested columns in map types are not currently supported.
-   *
    * @group typedrel
    * @since 2.3.0
    */
@@ -1838,7 +1833,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * {{{
    *   // Monitor the metrics using a listener.
    *   spark.streams.addListener(new StreamingQueryListener() {
-   *     override def onQueryStarted(event: QueryStartedEvent): Unit = {}
    *     override def onQueryProgress(event: QueryProgressEvent): Unit = {
    *       event.progress.observedMetrics.asScala.get("my_event").foreach { row =>
    *         // Trigger if the number of errors exceeds 5 percent
@@ -1850,7 +1844,8 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *         }
    *       }
    *     }
-   *     override def onQueryTerminated(event: QueryTerminatedEvent): Unit = {}
+   *     def onQueryStarted(event: QueryStartedEvent): Unit = {}
+   *     def onQueryTerminated(event: QueryTerminatedEvent): Unit = {}
    *   })
    *   // Observe row count (rc) and error row count (erc) in the streaming Dataset
    *   val observed_ds = ds.observe("my_event", count(lit(1)).as("rc"), count($"error").as("erc"))
@@ -1862,33 +1857,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    */
   def observe(name: String, expr: Column, exprs: Column*): TryAnalysis[Dataset[T]] =
     transformationWithAnalysis(_.observe(name, expr, exprs: _*))
-
-  /**
-   * Observe (named) metrics through an
-   * `org.apache.spark.sql.Observation` instance. This is equivalent to
-   * calling `observe(String, Column, Column*)` but does not require
-   * adding `org.apache.spark.sql.util.QueryExecutionListener` to the
-   * spark session. This method does not support streaming datasets.
-   *
-   * A user can retrieve the metrics by accessing
-   * `org.apache.spark.sql.Observation.get`.
-   *
-   * {{{
-   *   // Observe row count (rows) and highest id (maxid) in the Dataset while writing it
-   *   val observation = Observation("my_metrics")
-   *   val observed_ds = ds.observe(observation, count(lit(1)).as("rows"), max($"id").as("maxid"))
-   *   observed_ds.write.parquet("ds.parquet")
-   *   val metrics = observation.get
-   * }}}
-   *
-   * @throws IllegalArgumentException
-   *   If this is a streaming Dataset (this.isStreaming == true)
-   *
-   * @group typedrel
-   * @since 3.3.0
-   */
-  def observe(observation: Observation, expr: Column, exprs: Column*): TryAnalysis[Dataset[T]] =
-    transformationWithAnalysis(_.observe(observation, expr, exprs: _*))
 
   /**
    * Returns a new Dataset sorted by the given expressions. This is an
@@ -2125,11 +2093,11 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *   // +----+----+----+----+
    * }}}
    *
-   * Note that this supports nested columns in struct and array types.
-   * With `allowMissingColumns`, missing nested columns of struct
-   * columns with the same name will also be filled with null values and
-   * added to the end of struct. Nested columns in map types are not
-   * currently supported.
+   * Note that `allowMissingColumns` supports nested column in struct
+   * types. Missing nested columns of struct columns with the same name
+   * will also be filled with null values and added to the end of
+   * struct. This currently does not support nested columns in array and
+   * map types.
    *
    * @group typedrel
    * @since 3.1.0
@@ -2182,29 +2150,6 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    */
   def withColumn(colName: String, col: Column): TryAnalysis[DataFrame] =
     transformationWithAnalysis(_.withColumn(colName, col))
-
-  /**
-   * Returns a new Dataset by adding columns or replacing the existing
-   * columns that has the same names.
-   *
-   * `colsMap` is a map of column name and column, the column must only
-   * refer to attributes supplied by this Dataset. It is an error to add
-   * columns that refers to some other Dataset.
-   *
-   * @group untypedrel
-   * @since 3.3.0
-   */
-  def withColumns(colsMap: Map[String, Column]): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.withColumns(colsMap))
-
-  /**
-   * Returns a new Dataset by updating an existing column with metadata.
-   *
-   * @group untypedrel
-   * @since 3.3.0
-   */
-  def withMetadata(columnName: String, metadata: Metadata): TryAnalysis[DataFrame] =
-    transformationWithAnalysis(_.withMetadata(columnName, metadata))
 
   // ===============
 

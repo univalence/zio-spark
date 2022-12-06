@@ -601,7 +601,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * Return a new RDD by first applying a function to all elements of
    * this RDD, and then flattening the results.
    */
-  def flatMap[U: ClassTag](f: T => IterableOnce[U]): RDD[U] = transformation(_.flatMap[U](f))
+  def flatMap[U: ClassTag](f: T => TraversableOnce[U]): RDD[U] = transformation(_.flatMap[U](f))
 
   /**
    * Return an RDD created by coalescing all elements within each

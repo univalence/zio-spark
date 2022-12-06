@@ -8,6 +8,8 @@ import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
 object implicits extends LowPrioritySQLImplicits {
+  val given = "" // A little trick to be compliant with scala3
+
   implicit final class StringToColumn(val sc: StringContext) {
     def $(args: Any*): ColumnName = new ColumnName(sc.s(args: _*))
   }

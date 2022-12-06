@@ -2,7 +2,7 @@ package zio.spark.sql.streaming
 
 import zio.spark.sql.SparkSession
 import zio.test._
-import zio.test.Assertion.{isLeft, isRight}
+import zio.test.Assertion._
 
 object DataStreamReaderSpec extends ZIOSpecDefault {
   val reader: DataStreamReader = SparkSession.readStream
@@ -16,7 +16,7 @@ object DataStreamReaderSpec extends ZIOSpecDefault {
         val options           = Map("a" -> "x", "b" -> "y")
         val readerWithOptions = reader.options(options)
 
-        assertTrue(readerWithOptions.options == options)
+        assert(readerWithOptions.options)(equalTo(options))
       },
       test("DataStreamReader can use a schemaString") {
         val schema      = "firstName STRING, age STRING"
@@ -43,7 +43,7 @@ object DataStreamReaderSpec extends ZIOSpecDefault {
           val readerWithOptions = endo(reader)
           val options           = Map(expectedKey -> expectedValue)
 
-          assertTrue(readerWithOptions.options == options)
+          assert(readerWithOptions.options)(equalTo(options))
         }
     }
 

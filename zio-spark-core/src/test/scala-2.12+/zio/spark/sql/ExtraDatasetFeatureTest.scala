@@ -9,6 +9,8 @@ import zio.test.Assertion._
 import zio.test.TestAspect._
 
 object ExtraDatasetFeatureTest {
+  import scala3encoders.given // scalafix:ok
+
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
 

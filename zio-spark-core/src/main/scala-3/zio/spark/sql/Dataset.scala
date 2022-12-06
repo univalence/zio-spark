@@ -28,7 +28,7 @@ import zio._
 import zio.spark.rdd._
 import zio.spark.sql.streaming.DataStreamWriter
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.TypeTag
 
 import java.io.IOException

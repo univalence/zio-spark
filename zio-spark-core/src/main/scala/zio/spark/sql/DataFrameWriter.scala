@@ -4,7 +4,7 @@ import org.apache.spark.sql.{DataFrameWriter => UnderlyingDataFrameWriter, SaveM
 
 import zio.{Task, Trace, ZIO}
 
-final case class DataFrameWriter[T] private (
+final case class DataFrameWriter[T] private[sql] (
     ds:                  Dataset[T],
     mode:                SaveMode,
     options:             Map[String, String],

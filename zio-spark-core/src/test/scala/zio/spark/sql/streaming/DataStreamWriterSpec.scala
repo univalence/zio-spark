@@ -1,9 +1,12 @@
 package zio.spark.sql.streaming
 
+import scala3encoders.given // scalafix:ok
+
 import zio.durationInt
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
+import zio.test.Assertion._
 
 object DataStreamWriterSpec {
   val writerEffect: SIO[DataStreamWriter[Int]] = Seq(1).toDataset.map(_.writeStream)
@@ -20,7 +23,7 @@ object DataStreamWriterSpec {
       for {
         writer <- writerEffect
         writerWithOptions = endo(writer)
-      } yield assertTrue(writerWithOptions.options == options)
+      } yield assert(writerWithOptions.options)(equalTo(options))
     }
 
   def dataStreamReaderConfigurationsSpec: Spec[SparkSession with Live, Any] =
@@ -31,25 +34,25 @@ object DataStreamWriterSpec {
         for {
           writer <- writerEffect
           writerWithOptions = writer.options(options)
-        } yield assertTrue(writerWithOptions.options == options)
+        } yield assert(writerWithOptions.options)(equalTo(options))
       },
       test("DataStreamWriter should apply processing trigger correctly") {
         for {
           writer <- writerEffect
           writerWithOptions = writer.triggerEvery(1.seconds)
-        } yield assertTrue(writerWithOptions.trigger.toString.contains("1000"))
+        } yield assert(writerWithOptions.trigger.toString)(containsString("1000"))
       },
       test("DataStreamWriter should apply continuous trigger correctly") {
         for {
           writer <- writerEffect
           writerWithOptions = writer.continuouslyWithCheckpointEvery(1.seconds)
-        } yield assertTrue(writerWithOptions.trigger.toString.contains("1000"))
+        } yield assert(writerWithOptions.trigger.toString)(containsString("1000"))
       },
       test("DataStreamWriter should apply partitionColumns correctly") {
         for {
           writer <- writerEffect
           writerWithOptions = writer.partitionBy("test")
-        } yield assertTrue(writerWithOptions.partitioningColumns.contains(Seq("test")))
+        } yield assert(writerWithOptions.partitioningColumns)(isSome(equalTo(Seq("test"))))
       },
       testOption(
         testName      = "Any option with a boolean value",
