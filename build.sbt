@@ -133,7 +133,10 @@ def example(project: Project): Project =
      * project root (./) */
     /* which lead to errors, eg. Path does not exist:
      * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
-    .settings(fork := false)
+    .settings(
+      fork := false,
+      publish / skip := true
+    )
 
 lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
 lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
