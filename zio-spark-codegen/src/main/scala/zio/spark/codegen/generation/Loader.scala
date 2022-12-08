@@ -34,7 +34,6 @@ object Loader {
       case Some(path) =>
         ZIO
           .attempt(new JarFile(new File(path)))
-          .tap(jar => Logger.info(s"Found $moduleName in ${jar.getName}"))
           .orDie
     }
   }
@@ -51,6 +50,7 @@ object Loader {
     ZIO.scoped {
       for {
         jar <- ZIO.acquireRelease(findSourceJar(moduleName, classpath))(x => ZIO.attempt(x.close()).ignore)
+        _ <- Logger.info(s"Found $moduleName in ${jar.getName} for $filePath")
         source <-
           ZIO
             .attempt {
