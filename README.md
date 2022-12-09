@@ -59,6 +59,50 @@ build.sbt (as you would usually).
 
 We advise you to use the latest version of Spark for your scala version.
 
+## news 🎉 zio-direct support 🎉
+
+We worked to make zio-spark available for Scala 3, so it works with [zio-direct](https://github.com/zio/zio-direct).
+
+```scala
+import zio.*
+import zio.direct.*
+import zio.spark.sql.*
+
+//import for syntax + spark encoders
+import zio.spark.sql.implicits.*
+import scala3encoders.given
+
+//throwsAnalysisException directly
+import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+
+object Main extends ZIOAppDefault {
+  val sparkSession = SparkSession.builder.master("local").asLayer
+
+  override def run = {
+    defer {
+      val readBuild: RIO[SparkSession,DataFrame] = SparkSession.read.text("./build.sbt")
+      val text: Dataset[String] = readBuild.run.as[String]
+
+      text.filter(_.contains("zio")).show(truncate = false).run
+      
+      Console.printLine("what a time to be alive!").run
+    }.provideLayer(sparkSession)
+  }
+}
+```
+
+build.sbt
+```scala
+scalaVersion := "3.2.1"
+
+"dev.zio" %% "zio" % "2.0.5",
+"dev.zio" % "zio-direct_3" % "1.0.0-RC1",
+"io.univalence" %% "zio-spark" % "0.9.0",
+("org.apache.spark" %% "spark-sql" % "3.3.1" % Provided).cross(CrossVersion.for3Use2_13),
+("org.apache.hadoop" % "hadoop-client" % "3.3.1" % Provided),
+"dev.zio" %% "zio-test" % "2.0.5" % Test
+```
+
 ## Why ?
 
 There are many reasons why we decide to build this library, such as:
