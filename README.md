@@ -116,6 +116,12 @@ There are many reasons why we decide to build this library, such as:
 
 - [ZparkIO](https://github.com/leobenkel/ZparkIO) a framework for Spark, ZIO
 
+
+## Spark with Scala3
+- [iskra](https://github.com/VirtusLab/iskra) from VirtusLab, and interresting take and typesafety for Spark, without compromises on performance.
+- [spark-scala3](https://github.com/vincenzobaz/spark-scala3), one of our dependency to support avec encoders for Spark in Scala3.
+
+
 ## Contributions
 
 Pull requests are welcomed. We are open to organize pair-programming session to tackle improvements. If you want to add
