@@ -29,7 +29,7 @@ object DatasetSpec {
         for {
           df    <- SparkSession.emptyDataset[Person]
           count <- df.count
-        } yield assertTrue(count == 0)
+        } yield assert(count)(equalTo(0L))
       },
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
