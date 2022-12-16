@@ -25,6 +25,12 @@ object DatasetSpec {
 
   def datasetActionsSpec: SparkTestSpec =
     suite("Dataset Actions")(
+      test("We can create an empty dataset from sparksession") {
+        for {
+          df    <- SparkSession.emptyDataset[Person]
+          count <- df.count
+        } yield assertTrue(count == 0)
+      },
       test("Dataset should implement count correctly") {
         val write: DataFrame => Task[Long] = _.count
 
