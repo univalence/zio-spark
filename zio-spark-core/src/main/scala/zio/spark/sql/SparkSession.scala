@@ -1,5 +1,6 @@
 package zio.spark.sql
 
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
 
 import zio._
@@ -95,6 +96,9 @@ object SparkSession {
      */
     def acquireRelease(implicit trace: Trace): ZIO[Scope, Throwable, SparkSession] =
       ZIO.acquireRelease(getOrCreate)(ss => ZIO.attempt(ss.close).orDie)
+
+    /** Adds a spark configuration to the Builder. */
+    def config(conf: SparkConf): Builder = configs(conf.getAll.toMap)
 
     /** Adds multiple configurations to the Builder. */
     def configs(configs: Map[String, String]): Builder = copy(builder, extraConfigs ++ configs)
