@@ -144,7 +144,87 @@ There are many reasons why we decide to build this library, such as:
 * taking advantage of ZIO allowing our jobs to retry and to be run in parallel.
 
 
+## Design
+"What if Spark was using better functional programming and an effect system?"
 
+zio-spark is built with this main idea in mind, to rewrite the existing API in Spark using better 
+functional programming principle. You will find a corresponding type for the existing API : 
+
+
+| org.apache.spark | zio.spark        |
+|------------------|------------------|
+| sql.Dataset      | sql.Dataset      |
+| sql.SparkSession | sql.SparkSession |
+| ...              | ...              |
+
+
+
+It comes with different API, for example : 
+
+```scala
+/**
+ * Returns the number of rows in the Dataset.
+ * @group action
+ * @since 1.6.0
+ */
+def count(implicit trace: Trace): Task[Long] = action(_.count())
+```
+compare to
+```scala
+/**
+ * Returns the number of rows in the Dataset.
+ * @group action
+ * @since 1.6.0
+ */
+def count(): Long = withAction("count", groupBy().count().queryExecution) { plan =>
+  plan.executeCollect().head.getLong(0)
+}
+```
+
+Another example, with errors, which allows you to handle the case where the column do not exist : 
+```scala
+/**
+ * Selects column based on the column name and returns it as a
+ * [[Column]].
+ *
+ * @note
+ *   The column name can also reference to a nested column like `a.b`.
+ *
+ * @group untypedrel
+ * @since 2.0.0
+ */
+def col(colName: String): TryAnalysis[Column] = getWithAnalysis(_.col(colName))
+```
+compare to
+```scala
+def col(colName: String): Column = ...
+```
+
+### Existing code
+
+zio-spark can be use with existing Spark code, without modifications : 
+
+```scala
+def existingCode(implicit ss:org.apache.spark.sql.SparkSession):org.apache.spark.sql.Dataset[String] = {
+  import ss.implicits._
+  ss.read.parquet("toto.parquet").as[String]
+}
+
+//...
+
+val out= 
+  zio.spark.sql.fromSpark(existingCode).flatMap(ds => ZIO.attempt(ds.count()))
+
+//or lift using .zioSpark to start using the new API
+
+val out = 
+  zio.spark.sql.fromSpark(existingCode).flatMap(_.zioSpark.count)
+
+```
+
+One of the core principle is you should be able to integrate zio-spark into an existing codebase, without
+major modifications. In most case you can even just change the imports, and fix the compilation errors related 
+to effects (dataset reads, job launches, ...).
 
 
 
@@ -155,7 +235,7 @@ There are many reasons why we decide to build this library, such as:
 
 ## Spark with Scala3
 - [iskra](https://github.com/VirtusLab/iskra) from VirtusLab, and interresting take and typesafety for Spark, without compromises on performance.
-- [spark-scala3](https://github.com/vincenzobaz/spark-scala3), one of our dependency to support avec encoders for Spark in Scala3.
+- [spark-scala3](https://github.com/vincenzobaz/spark-scala3), one of our dependency to support encoders for Spark in Scala3.
 
 
 ## Contributions
