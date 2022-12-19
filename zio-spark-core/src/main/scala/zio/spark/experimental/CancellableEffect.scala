@@ -49,14 +49,14 @@ object CancellableEffect {
   @Experimental
   def makeItCancellable[R, T](job: SRIO[R, T])(implicit trace: Trace): SRIO[R, T] =
     for {
-      groupName <- ZIO.succeed("cancellable-group-" + Random.alphanumeric.take(6).mkString) // FIND A SEQ GEN ?
+      groupName <- zio.Random.nextUUID.map("cancellable-group-" + _.toString)
       sc        <- zio.spark.sql.fromSpark(_.sparkContext)
       executor  <- ZIO.executor
       x <-
         job
           .onExecutor(new setGroupNameExecutor(executor, sc, groupName))
           .disconnect
-          .onInterrupt(ZIO.succeed(sc.cancelJobGroup(groupName)))
+          .onInterrupt(ZIO.attempt(sc.cancelJobGroup(groupName)).ignore)
     } yield x
 
 }

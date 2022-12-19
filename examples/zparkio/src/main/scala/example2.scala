@@ -10,7 +10,6 @@ import example.example2.Transformations.UserTransformations
 import example.example2.services.{Database, FileIO, SparkBuilder}
 import example.example2.services.Database.{Credentials, Database}
 import example.example2.services.FileIO.FileIO
-import org.apache.spark.SparkException
 import org.apache.spark.sql.Encoder
 
 import zio.{RIO, Task, ZIO, ZLayer}
@@ -75,7 +74,7 @@ package services {
           val content = file.getLines().toArray
 
           file.close()
-          content
+          content.toSeq
         }
     }
 
@@ -132,8 +131,7 @@ package Transformations {
       for {
         /* One advantage of ZIO here is the forking of the source fetch.
          * All source can be fetch in parallel.
-         * Without ZIO, spark would just seat there while waiting for the
-         *  first source to be retrieve before sending the
+         * Without ZIO, spark would just seat there while waiting for the first source to be retrieve before sending the
          * next query to the database. */
         usersF <- DatabaseSource.getUsers.fork
         postsF <- DatabaseSource.getPosts.fork
@@ -177,17 +175,10 @@ trait Application /*extends ZparkioApp[Arguments, APP_ENV, Unit]*/ {
       _     <- ZIO.logInfo(s"There are $count authors")
     } yield ()
 
-  /*
-  def processErrors(f: Throwable): Option[Int] =
-    // println(f)
-    // f.printStackTrace(System.out)
-
-    f match {
-      case _: SparkException       => Some(10)
-      case _: InterruptedException => Some(0)
-      case _                       => Some(1)
-    }
-   */
+  /* def processErrors(f: Throwable): Option[Int] =
+   * // println(f) // f.printStackTrace(System.out)
+   *
+   * f match { case _: SparkException => Some(10) case _: InterruptedException => Some(0) case _ => Some(1) } */
 }
 
 object Application {
