@@ -53,11 +53,11 @@ You can use Gitter 8 to create an example application, with all the dependencies
 For Scala 2.13
 ```bash
 sbt new univalence/zio-spark.g8
-```
+``` 
 
 For Scala 3
 ```bash
-sbt new univalence/zio-spark.g8 --scala-version 3
+sbt new univalence/zio-spark.g8 --useScala3=true
 ```
 
 
@@ -226,6 +226,18 @@ One of the core principle is you should be able to integrate zio-spark into an e
 major modifications. In most case you can even just change the imports, and fix the compilation errors related 
 to effects (dataset reads, job launches, ...).
 
+
+## Is it production ready?
+It's not as battle tested as it should be at the moment, 
+we are migrating progressively existing projects to this new version.
+
+So far noticing surprising in a bad way!
+
+## Why didn't we hear about it before?
+We did a conference talk at the end 2019 ( https://www.youtube.com/watch?v=1ttsi0YwMkI ) on it, but in French.
+<br> Strangely there have been fewer conferences in 2020 - 2021 - ... or we have been very busy at work.
+
+With the rewrite in 2022, we will do some conference with the new design in 2023, in French and in English to present the project.
 
 
 ## Alternatives
