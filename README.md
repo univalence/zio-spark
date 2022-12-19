@@ -19,17 +19,22 @@
 </p>
 
 <p align="center">
-   A functional wrapper around Spark to make it work with ZIO
+   A functional wrapper around Spark to make it work with ZIO, 
+ <br> improve error management and increase performances.
+
 </p>
 
 ## Documentation
 
 You can find the documentation of zio-spark [here](https://univalence.github.io/zio-spark/).
+The documentation covers additional subjects like `CancellableJobs`, code generation, ...
+
 
 ## Help
 
 You can ask us (Dylan, Jonathan) for some help if you want to use the lib or have questions around it : 
 https://calendly.com/zio-spark/help
+
 
 ## Latest version
 
@@ -38,6 +43,23 @@ If you want to get the very last version of this library you can still download 
 ```scala
 libraryDependencies += "io.univalence" %% "zio-spark" % "0.10.0"
 ```
+
+## Quickstart
+
+### Giter 8
+
+You can use Gitter 8 to create an example application, with all the dependencies.
+
+For Scala 2.13
+```bash
+sbt new univalence/zio-spark.g8
+```
+
+For Scala 3
+```bash
+sbt new univalence/zio-spark.g8 --scala-version 3
+```
+
 
 ### Snapshots
 
@@ -56,6 +78,15 @@ You can find the latest version on
 
 ZIO-Spark is compatible with Scala 2.11, 2.12 and 2.13. Spark is provided, you must add your own Spark version in 
 build.sbt (as you would usually). 
+
+```scala
+libraryDependencies ++= Seq(
+  "io.univalence"    %% "zio-spark"  % "0.10.0",
+  "org.apache.spark" %% "spark-core" % "3.3.1" % Provided,
+  "org.apache.spark" %% "spark-sql"  % "3.3.1" % Provided
+)
+```
+
 
 We advise you to use the latest version of Spark for your scala version.
 
@@ -107,10 +138,15 @@ scalaVersion := "3.2.1"
 
 There are many reasons why we decide to build this library, such as:
 * allowing user to build Spark pipeline with ZIO easily.
-* making better code, pure FP, more composable, more readable Spark code.
+* making *better code*, pure FP, more composable, more readable Spark code.
 * stopping the propagation of ```implicit SparkSessions```.
 * improving some performances.
 * taking advantage of ZIO allowing our jobs to retry and to be run in parallel.
+
+
+
+
+
 
 ## Alternatives
 
