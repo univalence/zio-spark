@@ -1,5 +1,7 @@
 package zio.spark.sql
 
+import org.apache.spark.SparkConf
+
 import zio.spark.parameter._
 import zio.test._
 import zio.test.Assertion._
@@ -10,15 +12,22 @@ object SparkSessionSpec extends ZIOSpecDefault {
   def sparkSessionOptionsSpec: Spec[Annotations with Live, TestFailure[Any]] =
     suite("SparkSession Builder Options")(
       test("SparkSession Builder should apply options correctly") {
-        val configs                 = Map("a" -> "x", "b" -> "y")
-        val sparkSessionWithConfigs = SparkSession.builder.configs(configs)
+        val expected                = Map("a" -> "x", "b" -> "y")
+        val sparkSessionWithConfigs = SparkSession.builder.configs(expected)
 
-        assert(sparkSessionWithConfigs.extraConfigs)(equalTo(configs))
+        assert(sparkSessionWithConfigs.extraConfigs)(equalTo(expected))
       },
       test("SparkSession Builder should enable hive support correctly") {
         val sparkSessionWithConfigs = SparkSession.builder.enableHiveSupport
 
         assert(sparkSessionWithConfigs.hiveSupport)(equalTo(true))
+      },
+      test("SparkSession Builder should read spark configuration") {
+        val expected                = Map("spark.app.name" -> "test")
+        val conf                    = new SparkConf().setAppName("test")
+        val sparkSessionWithConfigs = SparkSession.builder.config(conf)
+
+        assert(sparkSessionWithConfigs.extraConfigs)(equalTo(expected))
       }
     )
 
