@@ -7,7 +7,6 @@ import zio.{Trace, Unsafe, ZIO}
 import zio.internal.ExecutionMetrics
 import zio.spark.sql.SRIO
 
-import scala.util.Random
 
 @Experimental
 object CancellableEffect {
