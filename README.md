@@ -231,8 +231,6 @@ to effects (dataset reads, job launches, ...).
 It's not as battle tested as it should be at the moment, 
 we are migrating progressively existing projects to this new version.
 
-So far noticing surprising in a bad way!
-
 ## Why didn't we hear about it before?
 We did a conference talk at the end 2019 ( https://www.youtube.com/watch?v=1ttsi0YwMkI ) on it, but in French.
 <br> Strangely there have been fewer conferences in 2020 - 2021 - ... or we have been very busy at work.
