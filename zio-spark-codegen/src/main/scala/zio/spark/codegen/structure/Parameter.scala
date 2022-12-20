@@ -23,10 +23,12 @@ case class Parameter(underlying: Term.Param, scalaVersion: ScalaBinaryVersion) {
     if (isArgs) toCodeArgument(className)
     else toCodeParameter(callByName)
 
-  private def toCodeArgument(className: String): String =
-    signature match {
-      case _ if signature.contains("*")              => s"$name: _*"
+  private def toCodeArgument(className: String): String = signature match {
+      case _ if signature.startsWith(s"RDD[") && signature.endsWith("*")        => s"$name.map(_.underlying): _*"
+      case _ if signature.endsWith("*")              => s"$name: _*"
       case _ if signature.startsWith(s"$className[") => s"$name.underlying"
+      case _ if signature.startsWith(s"RDD[")        => s"$name.underlying"
+      case _ if signature.startsWith(s"Seq[RDD[")    => s"$name.map(_.underlying)"
       case _                                         => name
     }
 

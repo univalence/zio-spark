@@ -56,6 +56,7 @@ ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "
 // SCoverage configuration
 val excludedPackages: Seq[String] =
   Seq(
+    "zio\\.spark\\.SparkContext.*",                 // Generated source
     "zio\\.spark\\.rdd\\.RDD.*",                    // Generated source
     "zio\\.spark\\.sql\\.Dataset.*",                // Generated source
     "zio\\.spark\\.sql\\.DataFrameNaFunctions.*",   // Generated source

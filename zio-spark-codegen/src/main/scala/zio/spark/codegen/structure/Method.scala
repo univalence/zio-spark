@@ -89,7 +89,10 @@ case class Method(
         val defTypeParams  = strTypeParams(true)
         val bodyTypeParams = strTypeParams(false)
 
-        val conversion = if (returnType.startsWith("Array")) ".toSeq" else ""
+        val conversion =
+          if (returnType.startsWith("Array")) ".toSeq"
+          else if (returnType.startsWith("RDD[Array")) ".map(_.toSeq)"
+          else ""
 
         val deprecation: String =
           df.collect { case d: Mod.Annot if d.toString.contains("deprecated") => d }

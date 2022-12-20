@@ -5,12 +5,15 @@ import org.apache.spark.sql.{Encoder, SparkSession => UnderlyingSparkSession}
 
 import zio._
 import zio.spark.parameter._
+import zio.spark.TMP
 import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.SparkSession.Conf
 import zio.spark.sql.streaming.DataStreamReader
 
 final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
     extends ExtraSparkSessionFeature(underlyingSparkSession) {
+
+  val sparkContext: TMP = TMP(underlyingSparkSession.sparkContext)
 
   /** Closes the current SparkSession. */
   def close(implicit trace: Trace): Task[Unit] = ZIO.attempt(underlyingSparkSession.close())
