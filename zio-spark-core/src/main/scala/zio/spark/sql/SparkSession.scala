@@ -1,6 +1,7 @@
 package zio.spark.sql
 
-import org.apache.spark.sql.{SparkSession => UnderlyingSparkSession}
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.{Encoder, SparkSession => UnderlyingSparkSession}
 
 import zio._
 import zio.spark.parameter._
@@ -17,6 +18,9 @@ final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
   /** Executes a SQL query using Spark. */
   def sql(sqlText: String)(implicit trace: Trace): Task[DataFrame] =
     ZIO.attempt(Dataset(underlyingSparkSession.sql(sqlText)))
+
+  /** Creates a new [[Dataset]] of type T containing zero elements. */
+  def emptyDataset[T: Encoder]: Dataset[T] = Dataset(underlyingSparkSession.emptyDataset[T])
 
   def conf: Conf =
     new Conf {
@@ -36,6 +40,9 @@ object SparkSession {
   /** Executes a SQL query using Spark. */
   def sql(sqlText: String)(implicit trace: Trace): RIO[SparkSession, DataFrame] =
     ZIO.service[SparkSession].flatMap(_.sql(sqlText))
+
+  /** Creates a new [[Dataset]] of type T containing zero elements. */
+  def emptyDataset[T: Encoder]: RIO[SparkSession, Dataset[T]] = ZIO.service[SparkSession].map(_.emptyDataset[T])
 
   def conf: URIO[SparkSession, Conf] = ZIO.service[SparkSession].map(_.conf)
 
@@ -95,6 +102,9 @@ object SparkSession {
      */
     def acquireRelease(implicit trace: Trace): ZIO[Scope, Throwable, SparkSession] =
       ZIO.acquireRelease(getOrCreate)(ss => ZIO.attempt(ss.close).orDie)
+
+    /** Adds a spark configuration to the Builder. */
+    def config(conf: SparkConf): Builder = configs(conf.getAll.toMap)
 
     /** Adds multiple configurations to the Builder. */
     def configs(configs: Map[String, String]): Builder = copy(builder, extraConfigs ++ configs)

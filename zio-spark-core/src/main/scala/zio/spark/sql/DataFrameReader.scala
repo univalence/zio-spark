@@ -193,7 +193,7 @@ final case class DataFrameReader[State <: SchemaState] private[sql] (
     loadUsing(_.jdbc(url, table, columnName, lowerBound, upperBound, numPartitions, connectionProperties))
 
   /** Loads a dataframe using one of the dataframe loader. */
-  private def loadUsing[T](f: UnderlyingDataFrameReader => UnderlyingDataset[T])(implicit
+  def loadUsing[T](f: UnderlyingDataFrameReader => UnderlyingDataset[T])(implicit
       trace: Trace
   ): SIO[Dataset[T]] = fromSpark(ss => Dataset(f(construct(ss))))
 

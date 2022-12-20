@@ -8,5 +8,5 @@ object DataFrameReaderCompatibilitySpec
       org.apache.spark.sql.DataFrameReader,
       zio.spark.sql.DataFrameReader[WithoutSchema]
     ](
-      allowedNewMethods = Seq("withHeader", "withDelimiter", "inferSchema", "userSpecifiedSchema")
+      allowedNewMethods = Seq("withHeader", "withDelimiter", "inferSchema", "userSpecifiedSchema", "loadUsing")
     )
