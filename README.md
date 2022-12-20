@@ -167,7 +167,7 @@ It comes with different API, for example :
  * @group action
  * @since 1.6.0
  */
-def count(implicit trace: Trace): Task[Long] = action(_.count())
+def count(implicit trace: Trace): Task[Long]
 ```
 compare to
 ```scala
@@ -176,9 +176,7 @@ compare to
  * @group action
  * @since 1.6.0
  */
-def count(): Long = withAction("count", groupBy().count().queryExecution) { plan =>
-  plan.executeCollect().head.getLong(0)
-}
+def count(): Long
 ```
 
 Another example, with errors, which allows you to handle the case where the column do not exist : 
@@ -193,11 +191,11 @@ Another example, with errors, which allows you to handle the case where the colu
  * @group untypedrel
  * @since 2.0.0
  */
-def col(colName: String): TryAnalysis[Column] = getWithAnalysis(_.col(colName))
+def col(colName: String): TryAnalysis[Column]
 ```
 compare to
 ```scala
-def col(colName: String): Column = ...
+def col(colName: String): Column
 ```
 
 ### Existing code
