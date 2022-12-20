@@ -87,13 +87,13 @@ addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
 
 // -- Lib versions
-lazy val zio        = "2.0.5"
+lazy val zio        = "2.0.2"
 lazy val zioPrelude = "1.0.0-RC16"
 
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.17"
 lazy val scala213 = "2.13.8"
-lazy val scala31  = "3.2.1"
+lazy val scala31 = "3.2.1"
 
 lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala31)
 
@@ -134,7 +134,7 @@ def example(project: Project): Project =
     /* which lead to errors, eg. Path does not exist:
      * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
     .settings(
-      fork           := false,
+      fork := false,
       publish / skip := true
     )
 
@@ -163,14 +163,14 @@ lazy val examples =
 /** Generates required libraries for magnolia. */
 def generateMagnoliaDependency(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
   scalaMinor match {
-    case _ if scalaMajor == 3 => Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.2.0")
-    case 11                   => Seq("me.lyh" %% "magnolia" % "0.12.1.0-b575bf3")
-    case 12 | 13              => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.2")
-    case _                    => throw new Exception("It should be unreachable.")
+    case _ if scalaMajor == 3 =>  Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.2.0")
+    case 11      => Seq("me.lyh" %% "magnolia" % "0.12.1.0-b575bf3")
+    case 12 | 13 => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.2")
+    case _       => throw new Exception("It should be unreachable.")
   }
 
 /** Generates required libraries for spark. */
-def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
+def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] = {
   scalaMajor match {
     case 2 =>
       val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)
@@ -189,6 +189,8 @@ def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[Mo
       )
     case _ => throw new Exception("It should be unreachable.")
   }
+
+}
 
 /**
  * Returns the correct spark version depending of the current scala
@@ -232,44 +234,43 @@ def addVersionPadding(baseVersion: String): String = {
   }
 }
 
-def scalaVersionSpecificSources(environment: String, baseDirectory: File)(versions: String*) =
+def scalaVersionSpecificSources(environment: String, baseDirectory: File)(versions: String*) = {
   for {
-    version <- "scala" :: versions.toList.map("scala-" + _)
-    result = baseDirectory / "src" / environment / version
+    version  <- "scala" :: versions.toList.map("scala-" + _)
+    result    = baseDirectory / "src" / environment / version
     if result.exists
   } yield result
+}
 
 def crossScalaVersionSources(scalaVersion: String, environment: String, baseDir: File) = {
-  val versions =
-    CrossVersion.partialVersion(scalaVersion) match {
-      case Some((2, 11)) =>
-        List("2", "2.11+", "2.11-2.12")
-      case Some((2, 12)) =>
-        List("2", "2.11+", "2.12+", "2.11-2.12", "2.12-2.13")
-      case Some((2, 13)) =>
-        List("2", "2.11+", "2.12+", "2.13+", "2.12-2.13")
-      case Some((3, _)) =>
-        List("2.11+", "2.12+", "2.13+")
-      case _ =>
-        List()
-    }
+  val versions = CrossVersion.partialVersion(scalaVersion) match {
+    case Some((2, 11)) =>
+      List("2", "2.11+", "2.11-2.12")
+    case Some((2, 12)) =>
+      List("2", "2.11+", "2.12+", "2.11-2.12", "2.12-2.13")
+    case Some((2, 13)) =>
+      List("2", "2.11+", "2.12+", "2.13+", "2.12-2.13")
+    case Some((3, _)) =>
+      List("2.11+", "2.12+", "2.13+")
+    case _ =>
+      List()
+  }
   scalaVersionSpecificSources(environment, baseDir)(versions: _*)
 }
 
-lazy val crossScalaVersionSettings =
-  Seq(
-    Compile / unmanagedSourceDirectories ++= {
-      crossScalaVersionSources(
-        scalaVersion.value,
-        "main",
-        baseDirectory.value
-      )
-    },
-    Test / unmanagedSourceDirectories ++= {
-      crossScalaVersionSources(
-        scalaVersion.value,
-        "test",
-        baseDirectory.value
-      )
-    }
-  )
+lazy val crossScalaVersionSettings = Seq(
+  Compile / unmanagedSourceDirectories ++= {
+    crossScalaVersionSources(
+      scalaVersion.value,
+      "main",
+      baseDirectory.value
+    )
+  },
+  Test / unmanagedSourceDirectories ++= {
+    crossScalaVersionSources(
+      scalaVersion.value,
+      "test",
+      baseDirectory.value
+    )
+  }
+)
