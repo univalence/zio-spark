@@ -28,14 +28,14 @@ object MapWithEffect {
         type EE = Option[E]
 
         val createCircuit: CircuitTap[EE, EE] =
-          Unsafe.unsafeCompat { implicit u =>
+          Unsafe.unsafe { implicit u =>
             Runtime.default.unsafe
               .run(CircuitTap.make[EE, EE](maxErrorRatio, _ => true, None, decayScale))
               .getOrThrowFiberFailure()
           }
 
         it.map { x =>
-          Unsafe.unsafeCompat { implicit u =>
+          Unsafe.unsafe { implicit u =>
             val io = createCircuit(effect(x).asSomeError).mapError(_.getOrElse(onRejection(x))).either
             Runtime.default.unsafe.run(io).getOrThrowFiberFailure()
           }

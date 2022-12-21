@@ -142,6 +142,7 @@ lazy val exampleSimpleApp              = (project in file("examples/simple-app")
 lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
 lazy val exampleUsingOlderSparkVersion = (project in file("examples/using-older-spark-version")).configure(example)
 lazy val exampleWordCount              = (project in file("examples/word-count")).configure(example)
+lazy val exampleZparkio = (project in file("examples/zparkio")).configure(example)
 lazy val exampleZIOEcosystem =
   (project in file("examples/zio-ecosystem"))
     .configure(example)
@@ -157,6 +158,7 @@ lazy val examples =
     exampleSparkCodeMigration,
     exampleUsingOlderSparkVersion,
     exampleWordCount,
+    exampleZparkio,
     exampleZIOEcosystem
   )
 
