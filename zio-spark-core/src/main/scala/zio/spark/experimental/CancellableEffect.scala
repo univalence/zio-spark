@@ -3,10 +3,9 @@ package zio.spark.experimental
 import org.apache.spark.SparkContext
 import org.apache.spark.annotation.Experimental
 
-import zio.{Trace, Unsafe, ZIO}
+import zio.{RIO, Trace, Unsafe, ZIO}
 import zio.internal.ExecutionMetrics
-import zio.spark.sql.SRIO
-
+import zio.spark.sql.SparkSession
 
 @Experimental
 object CancellableEffect {
@@ -46,7 +45,7 @@ object CancellableEffect {
    * @return
    */
   @Experimental
-  def makeItCancellable[R, T](job: SRIO[R, T])(implicit trace: Trace): SRIO[R, T] =
+  def makeItCancellable[R <: SparkSession, T](job: RIO[R, T])(implicit trace: Trace): RIO[R, T] =
     for {
       groupName <- zio.Random.nextUUID.map("cancellable-group-" + _.toString)
       sc        <- zio.spark.sql.fromSpark(_.sparkContext)
