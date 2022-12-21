@@ -3,11 +3,9 @@ package zio.spark.experimental
 import org.apache.spark.SparkContext
 import org.apache.spark.annotation.Experimental
 
-import zio.{Trace, Unsafe, ZIO}
+import zio.{RIO, Trace, Unsafe, ZIO}
 import zio.internal.ExecutionMetrics
-import zio.spark.sql.SRIO
-
-import scala.util.Random
+import zio.spark.sql.SparkSession
 
 @Experimental
 object CancellableEffect {
@@ -47,16 +45,16 @@ object CancellableEffect {
    * @return
    */
   @Experimental
-  def makeItCancellable[R, T](job: SRIO[R, T])(implicit trace: Trace): SRIO[R, T] =
+  def makeItCancellable[R <: SparkSession, T](job: RIO[R, T])(implicit trace: Trace): RIO[R, T] =
     for {
-      groupName <- ZIO.succeed("cancellable-group-" + Random.alphanumeric.take(6).mkString) // FIND A SEQ GEN ?
+      groupName <- zio.Random.nextUUID.map("cancellable-group-" + _.toString)
       sc        <- zio.spark.sql.fromSpark(_.sparkContext)
       executor  <- ZIO.executor
       x <-
         job
           .onExecutor(new setGroupNameExecutor(executor, sc, groupName))
           .disconnect
-          .onInterrupt(ZIO.succeed(sc.cancelJobGroup(groupName)))
+          .onInterrupt(ZIO.attempt(sc.cancelJobGroup(groupName)).ignore)
     } yield x
 
 }
