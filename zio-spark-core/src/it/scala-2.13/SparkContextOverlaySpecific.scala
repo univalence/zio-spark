@@ -7,7 +7,7 @@ import scala.collection.Map
 /**
  * Handmade functions for SparkContext shared for all Scala versions.
  */
-class SparkContextOverlay(self: SparkContext) {
+class SparkContextOverlaySpecific(self: SparkContext) {
 
   // template:on
 
