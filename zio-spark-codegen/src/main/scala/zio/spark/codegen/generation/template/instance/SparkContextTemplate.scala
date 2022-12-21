@@ -59,31 +59,32 @@ case object SparkContextTemplate extends Template.Default {
     Some("@SuppressWarnings(Array(\"scalafix:DisableSyntax.defaultArgs\"))")
 
   private def isGetter(method: Method): Boolean = {
-    val getters = Set(
-      "startTime",
-      "makeRDD",
-      "range",
-      "hadoopFile",
-      "newAPIHadoopRDD",
-      "emptyRDD",
-      "union",
-      "getConf",
-      "jars",
-      "files",
-      "master",
-      "deployMode",
-      "appName",
-      "isLocal",
-      "isStopped",
-      "statusTracker",
-      "uiWebUrl",
-      "hadoopConfiguration",
-      "sparkUser",
-      "applicationId",
-      "applicationAttemptId",
-      "defaultParallelism",
-      "defaultMinPartitions"
-    )
+    val getters =
+      Set(
+        "startTime",
+        "makeRDD",
+        "range",
+        "hadoopFile",
+        "newAPIHadoopRDD",
+        "emptyRDD",
+        "union",
+        "getConf",
+        "jars",
+        "files",
+        "master",
+        "deployMode",
+        "appName",
+        "isLocal",
+        "isStopped",
+        "statusTracker",
+        "uiWebUrl",
+        "hadoopConfiguration",
+        "sparkUser",
+        "applicationId",
+        "applicationAttemptId",
+        "defaultParallelism",
+        "defaultMinPartitions"
+      )
 
     getters(method.name)
   }
