@@ -597,7 +597,7 @@ final case class RDD[T](underlying: UnderlyingRDD[T]) { self =>
    * Return an RDD created by coalescing all elements within each
    * partition into an array.
    */
-  def glom: RDD[Seq[T]] = transformation(_.glom())
+  def glom: RDD[Seq[T]] = transformation(_.glom().map(_.toSeq))
 
   /**
    * Return the intersection of this RDD and another one. The output

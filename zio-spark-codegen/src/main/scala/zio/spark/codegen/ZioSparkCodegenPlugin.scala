@@ -53,13 +53,13 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
         val plans: Seq[Plan] =
           Seq(
-            sparkContextPlan,
-            rddPlan,
-            datasetPlan,
-            dataFrameNaFunctionsPlan,
-            dataFrameStatFunctionsPlan,
-            relationalGroupedDatasetPlan,
-            keyValueGroupedDatasetPlan
+            sparkContextPlan
+//            rddPlan,
+//            datasetPlan,
+//            dataFrameNaFunctionsPlan,
+//            dataFrameStatFunctionsPlan,
+//            relationalGroupedDatasetPlan,
+//            keyValueGroupedDatasetPlan
           )
 
         Unsafe.unsafeCompat { implicit u =>

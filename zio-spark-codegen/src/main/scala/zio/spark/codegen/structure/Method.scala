@@ -7,6 +7,7 @@ import zio.spark.codegen.structure.Helpers.cleanType
 
 import scala.meta.*
 import scala.meta.contrib.AssociatedComments
+import scala.util.Try
 
 case class Method(
     df:           Defn.Def,
@@ -16,12 +17,13 @@ case class Method(
     scalaVersion: ScalaBinaryVersion
 ) {
   self =>
-
   val calls: List[ParameterGroup]    = df.paramss.map(pg => ParameterGroup.fromScalaMeta(pg, scalaVersion))
   val anyParameters: List[Parameter] = calls.flatMap(_.parameters)
 
-  val name: String                   = df.name.value
-  val returnType: String             = df.decltpe.get.toString()
+  val name: String = df.name.value
+
+  val returnType: String = df.decltpe.map(_.toString()).getOrElse("")
+
   val fullName: String               = s"$hierarchy.$className.$name"
   val typeParams: Seq[TypeParameter] = df.tparams.map(TypeParameter.fromScalaMeta)
 
@@ -74,14 +76,19 @@ case class Method(
         val cleanReturnType = cleanType(returnType, plan)
 
         val trueReturnType =
-          methodType match {
-            case MethodType.DriverAction               => s"Task[$cleanReturnType]"
-            case MethodType.DistributedComputation     => s"Task[$cleanReturnType]"
-            case MethodType.GetWithAnalysis            => s"TryAnalysis[$cleanReturnType]"
-            case MethodType.TransformationWithAnalysis => s"TryAnalysis[$cleanReturnType]"
-            case MethodType.UnpackWithAnalysis         => s"TryAnalysis[$cleanReturnType]"
-            case _                                     => cleanReturnType
-          }
+          if (cleanReturnType.nonEmpty) {
+            val returnType =
+              methodType match {
+                case MethodType.DriverAction               => s"Task[$cleanReturnType]"
+                case MethodType.DistributedComputation     => s"Task[$cleanReturnType]"
+                case MethodType.GetWithAnalysis            => s"TryAnalysis[$cleanReturnType]"
+                case MethodType.TransformationWithAnalysis => s"TryAnalysis[$cleanReturnType]"
+                case MethodType.UnpackWithAnalysis         => s"TryAnalysis[$cleanReturnType]"
+                case _                                     => cleanReturnType
+              }
+
+            s": $returnType"
+          } else ""
 
         val strTypeParams: Boolean => String =
           inDefinition => if (typeParams.nonEmpty) s"[${typeParams.map(_.toCode(inDefinition)).mkString(", ")}]" else ""
@@ -101,7 +108,7 @@ case class Method(
             .getOrElse("")
 
         s"""$comment$deprecation
-           |def $name$defTypeParams$parameters: $trueReturnType = 
+           |def $name$defTypeParams$parameters$trueReturnType =
            |  $transformation(_.$name$bodyTypeParams$arguments$conversion)""".stripMargin
     }
 
