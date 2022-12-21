@@ -51,7 +51,7 @@ trait Plan {
            | * This file is generated using zio-spark-codegen, you should not edit
            | * this file directly.
            | */
-           | 
+           |
            |$raw""".stripMargin
       code <- formatCode(base)
       _    <- postValidation(code)

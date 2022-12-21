@@ -40,6 +40,9 @@ case object SparkContextTemplate extends Template.Default {
 
   override def helpers: Helper = action && get
 
+  override def annotations(scalaVersion: ScalaBinaryVersion): Option[String] =
+    Some("@SuppressWarnings(Array(\"scalafix:DisableSyntax.defaultArgs\"))")
+
   private def isAction(method: Method): Boolean = {
     val actions = Set(
       "addArchive",

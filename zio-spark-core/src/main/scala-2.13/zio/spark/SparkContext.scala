@@ -29,6 +29,7 @@ import zio.spark.rdd.RDD
 
 import scala.reflect.ClassTag
 
+@SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs"))
 final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   // scalafix:off
   implicit private def lift[U](x: UnderlyingRDD[U]): RDD[U]                      = RDD(x)
