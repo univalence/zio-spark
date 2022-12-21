@@ -1,6 +1,11 @@
 package zio.spark
 
-import org.apache.spark.sql.{Dataset => UnderlyingDataset, Row, SparkSession => UnderlyingSparkSession}
+import org.apache.spark.sql.{
+  AnalysisException,
+  Dataset => UnderlyingDataset,
+  Row,
+  SparkSession => UnderlyingSparkSession
+}
 
 import zio._
 
@@ -15,5 +20,19 @@ package object sql {
 
   implicit class DatasetConversionOps[T](private val ds: UnderlyingDataset[T]) extends AnyVal {
     @inline def zioSpark: Dataset[T] = Dataset(ds)
+  }
+
+  object syntax {
+
+    /**
+     * If you want to skip AnalysisException
+     * import zio.spark.sql.syntax.throwAnalysisException._
+     */
+
+    object throwsAnalysisException {
+      @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
+      @throws[AnalysisException]
+      implicit def forceThrows[T](analysis: TryAnalysis[T]): T = analysis.getOrThrow
+    }
   }
 }
