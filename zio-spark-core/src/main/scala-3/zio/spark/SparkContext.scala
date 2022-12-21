@@ -10,7 +10,6 @@ package zio.spark
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapred.{InputFormat, JobConf}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat}
-import org.apache.spark.{Accumulable, AccumulableParam, Accumulator, AccumulatorParam}
 import org.apache.spark.{
   SimpleFutureAction,
   SparkConf,
@@ -21,13 +20,13 @@ import org.apache.spark.{
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.input.PortableDataStream
 import org.apache.spark.rdd.{RDD => UnderlyingRDD}
+import org.apache.spark.resource._
 import org.apache.spark.scheduler.SchedulingMode.SchedulingMode
 import org.apache.spark.util._
 
 import zio._
 import zio.spark.rdd.RDD
 
-import scala.collection.generic.Growable
 import scala.reflect.ClassTag
 
 @SuppressWarnings(Array("scalafix:DisableSyntax.defaultArgs"))
@@ -55,7 +54,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def getPersistentRDDs: Task[Map[Int, RDD[_]]] =
     ZIO.attempt(
-      self.underlying.getPersistentRDDs.mapValues(rdd => RDD(rdd))
+      self.underlying.getPersistentRDDs.view.mapValues(rdd => RDD(rdd)).toMap
     )
 
   // Generated functions coming from spark
@@ -308,69 +307,27 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   // ===============
 
   /**
-   * Create an [[org.apache.spark.Accumulable]] shared variable, to
-   * which tasks can add values with `+=`. Only the driver can access
-   * the accumulable's `value`.
-   * @tparam R
-   *   accumulator result type
-   * @tparam T
-   *   type that can be added to the accumulator
-   */
-  @deprecated("use AccumulatorV2", "2.0.0")
-  def accumulable[R, T](
-      initialValue: => R
-  )(implicit param: AccumulableParam[R, T], trace: Trace): Task[Accumulable[R, T]] =
-    action(_.accumulable[R, T](initialValue))
-
-  /**
-   * Create an [[org.apache.spark.Accumulable]] shared variable, with a
-   * name for display in the Spark UI. Tasks can add values to the
-   * accumulable using the `+=` operator. Only the driver can access the
-   * accumulable's `value`.
-   * @tparam R
-   *   accumulator result type
-   * @tparam T
-   *   type that can be added to the accumulator
-   */
-  @deprecated("use AccumulatorV2", "2.0.0")
-  def accumulable[R, T](initialValue: => R, name: => String)(implicit
-      param: AccumulableParam[R, T],
-      trace: Trace
-  ): Task[Accumulable[R, T]] = action(_.accumulable[R, T](initialValue, name))
-
-  /**
-   * Create an accumulator from a "mutable collection" type.
+   * :: Experimental :: Add an archive to be downloaded and unpacked
+   * with this Spark job on every node.
    *
-   * Growable and TraversableOnce are the standard APIs that guarantee
-   * += and ++=, implemented by standard mutable collections. So you can
-   * use this with mutable Map, Set, etc.
+   * If an archive is added during execution, it will not be available
+   * until the next TaskSet starts.
+   *
+   * @param path
+   *   can be either a local file, a file in HDFS (or other
+   *   Hadoop-supported filesystems), or an HTTP, HTTPS or FTP URI. To
+   *   access the file in Spark jobs, use
+   *   `SparkFiles.get(paths-to-files)` to find its download/unpacked
+   *   location. The given path should be one of .zip, .tar, .tar.gz,
+   *   .tgz and .jar.
+   *
+   * @note
+   *   A path can be added only once. Subsequent additions of the same
+   *   path are ignored.
+   *
+   * @since 3.1.0
    */
-  @deprecated("use AccumulatorV2", "2.0.0")
-  def accumulableCollection[R <% Growable[T] with TraversableOnce[T] with Serializable: ClassTag, T](
-      initialValue: => R
-  )(implicit trace: Trace): Task[Accumulable[R, T]] = action(_.accumulableCollection[R, T](initialValue))
-
-  // Methods for creating shared variables
-  /**
-   * Create an [[org.apache.spark.Accumulator]] variable of a given
-   * type, which tasks can "add" values to using the `+=` method. Only
-   * the driver can access the accumulator's `value`.
-   */
-  @deprecated("use AccumulatorV2", "2.0.0")
-  def accumulator[T](initialValue: => T)(implicit param: AccumulatorParam[T], trace: Trace): Task[Accumulator[T]] =
-    action(_.accumulator[T](initialValue))
-
-  /**
-   * Create an [[org.apache.spark.Accumulator]] variable of a given
-   * type, with a name for display in the Spark UI. Tasks can "add"
-   * values to the accumulator using the `+=` method. Only the driver
-   * can access the accumulator's `value`.
-   */
-  @deprecated("use AccumulatorV2", "2.0.0")
-  def accumulator[T](initialValue: => T, name: => String)(implicit
-      param: AccumulatorParam[T],
-      trace: Trace
-  ): Task[Accumulator[T]] = action(_.accumulator[T](initialValue, name))
+  def addArchive(path: => String)(implicit trace: Trace): Task[Unit] = action(_.addArchive(path))
 
   /**
    * Add a file to be downloaded with this Spark job on every node.
@@ -428,7 +385,9 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    *   A path can be added only once. Subsequent additions of the same
    *   path are ignored.
    */
-  def addJar(path: => String)(implicit trace: Trace) = action(_.addJar(path))
+  def addJar(path: => String)(implicit trace: Trace): Task[Unit] = action(_.addJar(path))
+
+  def archives(implicit trace: Trace): Task[Seq[String]] = action(_.archives)
 
   /**
    * Get an RDD for a Hadoop-readable dataset as PortableDataStream for
@@ -514,7 +473,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def broadcast[T: ClassTag](value: => T)(implicit trace: Trace): Task[Broadcast[T]] = action(_.broadcast[T](value))
 
   /** Cancel all jobs that have been scheduled or are running. */
-  def cancelAllJobs(implicit trace: Trace) = action(_.cancelAllJobs())
+  def cancelAllJobs(implicit trace: Trace): Task[Unit] = action(_.cancelAllJobs())
 
   /**
    * Cancel a given job if it's scheduled or running.
@@ -545,7 +504,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    * Cancel active jobs for the specified group. See
    * `org.apache.spark.SparkContext.setJobGroup` for more information.
    */
-  def cancelJobGroup(groupId: => String)(implicit trace: Trace) = action(_.cancelJobGroup(groupId))
+  def cancelJobGroup(groupId: => String)(implicit trace: Trace): Task[Unit] = action(_.cancelJobGroup(groupId))
 
   /**
    * Cancel a given stage and all jobs associated with it.
@@ -576,10 +535,10 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    * Clear the thread-local property for overriding the call sites of
    * actions and RDDs.
    */
-  def clearCallSite(implicit trace: Trace) = action(_.clearCallSite())
+  def clearCallSite(implicit trace: Trace): Task[Unit] = action(_.clearCallSite())
 
   /** Clear the current thread's job group ID and its description. */
-  def clearJobGroup(implicit trace: Trace) = action(_.clearJobGroup())
+  def clearJobGroup(implicit trace: Trace): Task[Unit] = action(_.clearJobGroup())
 
   /**
    * Create and register a `CollectionAccumulator`, which starts with
@@ -611,8 +570,8 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def getCheckpointDir(implicit trace: Trace): Task[Option[String]] = action(_.getCheckpointDir)
 
   /**
-   * Return a map from the slave to the max memory available for caching
-   * and the remaining memory available for caching.
+   * Return a map from the block manager to the max memory available for
+   * caching and the remaining memory available for caching.
    */
   def getExecutorMemoryStatus(implicit trace: Trace): Task[Map[String, (Long, Long)]] =
     action(_.getExecutorMemoryStatus)
@@ -689,6 +648,14 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
       interruptThread: => Boolean = true,
       reason: => String = "killed via SparkContext.killTaskAttempt"
   )(implicit trace: Trace): Task[Boolean] = action(_.killTaskAttempt(taskId, interruptThread, reason))
+
+  /**
+   * :: Experimental :: Returns a list of archive paths that are added
+   * to resources.
+   *
+   * @since 3.1.0
+   */
+  def listArchives(implicit trace: Trace): Task[Seq[String]] = action(_.listArchives())
 
   /** Returns a list of file paths that are added to resources. */
   def listFiles(implicit trace: Trace): Task[Seq[String]] = action(_.listFiles())
@@ -815,6 +782,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
       trace: Trace
   ): Task[RDD[T]] = action(_.parallelize[T](seq, numSlices))
 
+  // Methods for creating shared variables
   /**
    * Register the given accumulator.
    *
@@ -833,6 +801,8 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def register(acc: => AccumulatorV2[_, _], name: => String)(implicit trace: Trace): Task[Unit] =
     action(_.register(acc, name))
+
+  def resources(implicit trace: Trace): Task[Map[String, ResourceInformation]] = action(_.resources)
 
   /**
    * Run a function on a given set of partitions in an RDD and pass the
@@ -946,7 +916,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
       rdd: => RDD[T],
       processPartition: (TaskContext, Iterator[T]) => U,
       resultHandler: (Int, U) => Unit
-  )(implicit trace: Trace) = action(_.runJob[T, U](rdd.underlying, processPartition, resultHandler))
+  )(implicit trace: Trace): Task[Unit] = action(_.runJob[T, U](rdd.underlying, processPartition, resultHandler))
 
   /**
    * Run a job on all partitions in an RDD and pass the results to a
@@ -961,13 +931,13 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def runJob[T, U: ClassTag](rdd: => RDD[T], processPartition: Iterator[T] => U, resultHandler: (Int, U) => Unit)(
       implicit trace: Trace
-  ) = action(_.runJob[T, U](rdd.underlying, processPartition, resultHandler))
+  ): Task[Unit] = action(_.runJob[T, U](rdd.underlying, processPartition, resultHandler))
 
   /**
    * Set the thread-local property for overriding the call sites of
    * actions and RDDs.
    */
-  def setCallSite(shortCallSite: => String)(implicit trace: Trace) = action(_.setCallSite(shortCallSite))
+  def setCallSite(shortCallSite: => String)(implicit trace: Trace): Task[Unit] = action(_.setCallSite(shortCallSite))
 
   /**
    * Set the directory under which RDDs are going to be checkpointed.
@@ -975,10 +945,10 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    *   path to the directory where checkpoint files will be stored (must
    *   be HDFS path if running in cluster)
    */
-  def setCheckpointDir(directory: => String)(implicit trace: Trace) = action(_.setCheckpointDir(directory))
+  def setCheckpointDir(directory: => String)(implicit trace: Trace): Task[Unit] = action(_.setCheckpointDir(directory))
 
   /** Set a human readable description of the current job. */
-  def setJobDescription(value: => String)(implicit trace: Trace) = action(_.setJobDescription(value))
+  def setJobDescription(value: => String)(implicit trace: Trace): Task[Unit] = action(_.setJobDescription(value))
 
   /**
    * Assigns a group ID to all the jobs started by this thread until the
@@ -1010,7 +980,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def setJobGroup(groupId: => String, description: => String, interruptOnCancel: => Boolean = false)(implicit
       trace: Trace
-  ) = action(_.setJobGroup(groupId, description, interruptOnCancel))
+  ): Task[Unit] = action(_.setJobGroup(groupId, description, interruptOnCancel))
 
   /**
    * Set a local property that affects jobs submitted from this thread,
@@ -1025,7 +995,8 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    * worker threads spawn other worker threads. As a result, local
    * properties may propagate unpredictably.
    */
-  def setLocalProperty(key: => String, value: => String)(implicit trace: Trace) = action(_.setLocalProperty(key, value))
+  def setLocalProperty(key: => String, value: => String)(implicit trace: Trace): Task[Unit] =
+    action(_.setLocalProperty(key, value))
 
   /**
    * Control our logLevel. This overrides any user-defined log settings.
@@ -1033,7 +1004,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    *   The desired log level as a string. Valid log levels include: ALL,
    *   DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
    */
-  def setLogLevel(logLevel: => String)(implicit trace: Trace) = action(_.setLogLevel(logLevel))
+  def setLogLevel(logLevel: => String)(implicit trace: Trace): Task[Unit] = action(_.setLogLevel(logLevel))
 
   /** Shut down the SparkContext. */
   def stop(implicit trace: Trace): Task[Unit] = action(_.stop())
@@ -1067,7 +1038,8 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   /**
    * Read a text file from HDFS, a local file system (available on all
    * nodes), or any Hadoop-supported file system URI, and return it as
-   * an RDD of Strings.
+   * an RDD of Strings. The text files must be encoded as UTF-8.
+   *
    * @param path
    *   path to the text file on a supported file system
    * @param minPartitions
@@ -1087,7 +1059,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    * (available on all nodes), or any Hadoop-supported file system URI.
    * Each file is read as a single record and returned in a key-value
    * pair, where the key is the path of each file, the value is the
-   * content of each file.
+   * content of each file. The text files must be encoded as UTF-8.
    *
    * <p> For example, if you have the following files:
    * {{{
