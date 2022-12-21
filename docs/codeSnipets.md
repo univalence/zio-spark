@@ -60,7 +60,7 @@ def process2(input: DataFrame) = {
 
 ## Cancellable Effects + Caching
 
-Caching mecanisme is from Spark, it's effecful, you need to call it before doing a computation to mark the dataset as something
+Caching mechanism is from Spark, it's effecful, you need to call it before doing a computation to mark the dataset as something
 to be cached. CancellableEffect is an experimental feature from zio-spark, that allow to propagate an Interrupt to stop the job. 
 
 ```scala
