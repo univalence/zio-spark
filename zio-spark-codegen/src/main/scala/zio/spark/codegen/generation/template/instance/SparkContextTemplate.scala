@@ -44,31 +44,33 @@ case object SparkContextTemplate extends Template.Default {
     Some("@SuppressWarnings(Array(\"scalafix:DisableSyntax.defaultArgs\"))")
 
   private def isAction(method: Method): Boolean = {
-    val actions = Set(
-      "addArchive",
-      "addFile",
-      "addJar",
-      "binaryFiles",
-      "binaryRecords",
-      "cancelAllJobs",
-      "cancelJob",
-      "cancelStage",
-      "clearCallSite",
-      "clearJobGroup",
-      "broadcast",
-      "hadoopFile",
-      "hadoopRDD",
-      "killTaskAttempt",
-      "runJob"
-    )
+    val actions =
+      Set(
+        "addArchive",
+        "addFile",
+        "addJar",
+        "binaryFiles",
+        "binaryRecords",
+        "cancelAllJobs",
+        "cancelJob",
+        "cancelStage",
+        "clearCallSite",
+        "clearJobGroup",
+        "broadcast",
+        "hadoopFile",
+        "hadoopRDD",
+        "killTaskAttempt",
+        "runJob"
+      )
 
     actions(method.name)
   }
 
-  override def getMethodType(method: Method): MethodType = method match {
-    case _ if isAction(method) => MethodType.DriverAction
-    case _ if method.name == "sequenceFile" => MethodType.Ignored
-    case _ if method.name == "getPersistentRDDs" => MethodType.ToImplement
-    case _ => MethodType.Get
-  }
+  override def getMethodType(method: Method): MethodType =
+    method match {
+      case _ if isAction(method)                   => MethodType.DriverAction
+      case _ if method.name == "sequenceFile"      => MethodType.Ignored
+      case _ if method.name == "getPersistentRDDs" => MethodType.ToImplement
+      case _                                       => MethodType.Get
+    }
 }
