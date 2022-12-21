@@ -26,7 +26,9 @@ package object sql {
 
     /**
      * If you want to skip AnalysisException
+     * {{{
      * import zio.spark.sql.syntax.throwAnalysisException._
+     * }}}
      */
 
     object throwsAnalysisException {
