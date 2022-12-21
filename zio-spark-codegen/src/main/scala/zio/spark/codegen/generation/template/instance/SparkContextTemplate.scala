@@ -58,34 +58,41 @@ case object SparkContextTemplate extends Template.Default {
   override def annotations(scalaVersion: ScalaBinaryVersion): Option[String] =
     Some("@SuppressWarnings(Array(\"scalafix:DisableSyntax.defaultArgs\"))")
 
-  private def isAction(method: Method): Boolean = {
-    val actions =
-      Set(
-        "addArchive",
-        "addFile",
-        "addJar",
-        "binaryFiles",
-        "binaryRecords",
-        "cancelAllJobs",
-        "cancelJob",
-        "cancelStage",
-        "clearCallSite",
-        "clearJobGroup",
-        "broadcast",
-        "hadoopFile",
-        "hadoopRDD",
-        "killTaskAttempt",
-        "runJob"
-      )
+  private def isGetter(method: Method): Boolean = {
+    val getters = Set(
+      "startTime",
+      "makeRDD",
+      "range",
+      "hadoopFile",
+      "newAPIHadoopRDD",
+      "emptyRDD",
+      "union",
+      "getConf",
+      "jars",
+      "files",
+      "master",
+      "deployMode",
+      "appName",
+      "isLocal",
+      "isStopped",
+      "statusTracker",
+      "uiWebUrl",
+      "hadoopConfiguration",
+      "sparkUser",
+      "applicationId",
+      "applicationAttemptId",
+      "defaultParallelism",
+      "defaultMinPartitions"
+    )
 
-    actions(method.name)
+    getters(method.name)
   }
 
   override def getMethodType(method: Method): MethodType =
     method match {
-      case _ if isAction(method)                   => MethodType.DriverAction
+      case _ if isGetter(method)                   => MethodType.Get
       case _ if method.name == "sequenceFile"      => MethodType.Ignored
       case _ if method.name == "getPersistentRDDs" => MethodType.ToImplement
-      case _                                       => MethodType.Get
+      case _                                       => MethodType.DriverAction
     }
 }

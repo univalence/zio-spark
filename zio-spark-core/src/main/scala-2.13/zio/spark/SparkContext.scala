@@ -72,26 +72,6 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def applicationId: String = get(_.applicationId)
 
-  def archives: Seq[String] = get(_.archives)
-
-  /**
-   * Cancel active jobs for the specified group. See
-   * `org.apache.spark.SparkContext.setJobGroup` for more information.
-   */
-  def cancelJobGroup(groupId: String): Unit = get(_.cancelJobGroup(groupId))
-
-  /**
-   * Create and register a `CollectionAccumulator`, which starts with
-   * empty list and accumulates inputs by adding them into the list.
-   */
-  def collectionAccumulator[T]: CollectionAccumulator[T] = get(_.collectionAccumulator[T])
-
-  /**
-   * Create and register a `CollectionAccumulator`, which starts with
-   * empty list and accumulates inputs by adding them into the list.
-   */
-  def collectionAccumulator[T](name: String): CollectionAccumulator[T] = get(_.collectionAccumulator[T](name))
-
   /**
    * Default min number of partitions for Hadoop RDDs when not given by
    * user Notice that we use math.min so the "defaultMinPartitions"
@@ -108,45 +88,16 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
 
   def deployMode: String = get(_.deployMode)
 
-  /**
-   * Create and register a double accumulator, which starts with 0 and
-   * accumulates inputs by `add`.
-   */
-  def doubleAccumulator: DoubleAccumulator = get(_.doubleAccumulator)
-
-  /**
-   * Create and register a double accumulator, which starts with 0 and
-   * accumulates inputs by `add`.
-   */
-  def doubleAccumulator(name: String): DoubleAccumulator = get(_.doubleAccumulator(name))
-
   /** Get an RDD that has no partitions or elements. */
   def emptyRDD[T: ClassTag]: RDD[T] = get(_.emptyRDD[T])
 
   def files: Seq[String] = get(_.files)
-
-  def getCheckpointDir: Option[String] = get(_.getCheckpointDir)
 
   /**
    * Return a copy of this SparkContext's configuration. The
    * configuration ''cannot'' be changed at runtime.
    */
   def getConf: SparkConf = get(_.getConf)
-
-  /**
-   * Return a map from the block manager to the max memory available for
-   * caching and the remaining memory available for caching.
-   */
-  def getExecutorMemoryStatus: Map[String, (Long, Long)] = get(_.getExecutorMemoryStatus)
-
-  /**
-   * Get a local property set in this thread, or null if it is missing.
-   * See `org.apache.spark.SparkContext.setLocalProperty`.
-   */
-  def getLocalProperty(key: String): String = get(_.getLocalProperty(key))
-
-  /** Return current scheduling mode */
-  def getSchedulingMode: SchedulingMode = get(_.getSchedulingMode)
 
   /**
    * A default Hadoop Configuration for the Hadoop code (e.g. file
@@ -159,38 +110,102 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def hadoopConfiguration: Configuration = get(_.hadoopConfiguration)
 
+  /**
+   * Get an RDD for a Hadoop file with an arbitrary InputFormat
+   *
+   * @note
+   *   Because Hadoop's RecordReader class re-uses the same Writable
+   *   object for each record, directly caching the returned RDD or
+   *   directly passing it to an aggregation or shuffle operation will
+   *   create many references to the same object. If you plan to
+   *   directly cache, sort, or aggregate Hadoop writable objects, you
+   *   should first copy them using a `map` function.
+   * @param path
+   *   directory to the input data files, the path can be comma
+   *   separated paths as a list of inputs
+   * @param inputFormatClass
+   *   storage format of the data to be read
+   * @param keyClass
+   *   `Class` of the key associated with the `inputFormatClass`
+   *   parameter
+   * @param valueClass
+   *   `Class` of the value associated with the `inputFormatClass`
+   *   parameter
+   * @param minPartitions
+   *   suggested minimum number of partitions for the resulting RDD
+   * @return
+   *   RDD of tuples of key and corresponding value
+   */
+  def hadoopFile[K, V](
+      path: String,
+      inputFormatClass: Class[_ <: InputFormat[K, V]],
+      keyClass: Class[K],
+      valueClass: Class[V],
+      minPartitions: Int = defaultMinPartitions
+  ): RDD[(K, V)] = get(_.hadoopFile[K, V](path, inputFormatClass, keyClass, valueClass, minPartitions))
+
+  /**
+   * Smarter version of hadoopFile() that uses class tags to figure out
+   * the classes of keys, values and the InputFormat so that users don't
+   * need to pass them directly. Instead, callers can just write, for
+   * example,
+   * {{{
+   * val file = sparkContext.hadoopFile[LongWritable, Text, TextInputFormat](path, minPartitions)
+   * }}}
+   *
+   * @note
+   *   Because Hadoop's RecordReader class re-uses the same Writable
+   *   object for each record, directly caching the returned RDD or
+   *   directly passing it to an aggregation or shuffle operation will
+   *   create many references to the same object. If you plan to
+   *   directly cache, sort, or aggregate Hadoop writable objects, you
+   *   should first copy them using a `map` function.
+   * @param path
+   *   directory to the input data files, the path can be comma
+   *   separated paths as a list of inputs
+   * @param minPartitions
+   *   suggested minimum number of partitions for the resulting RDD
+   * @return
+   *   RDD of tuples of key and corresponding value
+   */
+  def hadoopFile[K, V, F <: InputFormat[K, V]](path: String, minPartitions: Int)(implicit
+      km: ClassTag[K],
+      vm: ClassTag[V],
+      fm: ClassTag[F]
+  ): RDD[(K, V)] = get(_.hadoopFile[K, V, F](path, minPartitions))
+
+  /**
+   * Smarter version of hadoopFile() that uses class tags to figure out
+   * the classes of keys, values and the InputFormat so that users don't
+   * need to pass them directly. Instead, callers can just write, for
+   * example,
+   * {{{
+   * val file = sparkContext.hadoopFile[LongWritable, Text, TextInputFormat](path)
+   * }}}
+   *
+   * @note
+   *   Because Hadoop's RecordReader class re-uses the same Writable
+   *   object for each record, directly caching the returned RDD or
+   *   directly passing it to an aggregation or shuffle operation will
+   *   create many references to the same object. If you plan to
+   *   directly cache, sort, or aggregate Hadoop writable objects, you
+   *   should first copy them using a `map` function.
+   * @param path
+   *   directory to the input data files, the path can be comma
+   *   separated paths as a list of inputs
+   * @return
+   *   RDD of tuples of key and corresponding value
+   */
+  def hadoopFile[K, V, F <: InputFormat[K, V]](
+      path: String
+  )(implicit km: ClassTag[K], vm: ClassTag[V], fm: ClassTag[F]): RDD[(K, V)] = get(_.hadoopFile[K, V, F](path))
+
   def isLocal: Boolean = get(_.isLocal)
 
   /** @return true if context is stopped or in the midst of stopping. */
   def isStopped: Boolean = get(_.isStopped)
 
   def jars: Seq[String] = get(_.jars)
-
-  /**
-   * :: Experimental :: Returns a list of archive paths that are added
-   * to resources.
-   *
-   * @since 3.1.0
-   */
-  def listArchives: Seq[String] = get(_.listArchives())
-
-  /** Returns a list of file paths that are added to resources. */
-  def listFiles: Seq[String] = get(_.listFiles())
-
-  /** Returns a list of jar files that are added to resources. */
-  def listJars: Seq[String] = get(_.listJars())
-
-  /**
-   * Create and register a long accumulator, which starts with 0 and
-   * accumulates inputs by `add`.
-   */
-  def longAccumulator: LongAccumulator = get(_.longAccumulator)
-
-  /**
-   * Create and register a long accumulator, which starts with 0 and
-   * accumulates inputs by `add`.
-   */
-  def longAccumulator(name: String): LongAccumulator = get(_.longAccumulator(name))
 
   /**
    * Distribute a local Scala collection to form an RDD.
@@ -219,67 +234,6 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def makeRDD[T: ClassTag](seq: Seq[(T, Seq[String])]): RDD[T] = get(_.makeRDD[T](seq))
 
   def master: String = get(_.master)
-
-  /**
-   * Smarter version of `newApiHadoopFile` that uses class tags to
-   * figure out the classes of keys, values and the
-   * `org.apache.hadoop.mapreduce.InputFormat` (new MapReduce API) so
-   * that user don't need to pass them directly. Instead, callers can
-   * just write, for example:
-   * ```
-   * val file = sparkContext.hadoopFile[LongWritable, Text, TextInputFormat](path)
-   * ```
-   *
-   * @note
-   *   Because Hadoop's RecordReader class re-uses the same Writable
-   *   object for each record, directly caching the returned RDD or
-   *   directly passing it to an aggregation or shuffle operation will
-   *   create many references to the same object. If you plan to
-   *   directly cache, sort, or aggregate Hadoop writable objects, you
-   *   should first copy them using a `map` function.
-   * @param path
-   *   directory to the input data files, the path can be comma
-   *   separated paths as a list of inputs
-   * @return
-   *   RDD of tuples of key and corresponding value
-   */
-  def newAPIHadoopFile[K, V, F <: NewInputFormat[K, V]](
-      path: String
-  )(implicit km: ClassTag[K], vm: ClassTag[V], fm: ClassTag[F]): RDD[(K, V)] = get(_.newAPIHadoopFile[K, V, F](path))
-
-  /**
-   * Get an RDD for a given Hadoop file with an arbitrary new API
-   * InputFormat and extra configuration options to pass to the input
-   * format.
-   *
-   * @note
-   *   Because Hadoop's RecordReader class re-uses the same Writable
-   *   object for each record, directly caching the returned RDD or
-   *   directly passing it to an aggregation or shuffle operation will
-   *   create many references to the same object. If you plan to
-   *   directly cache, sort, or aggregate Hadoop writable objects, you
-   *   should first copy them using a `map` function.
-   * @param path
-   *   directory to the input data files, the path can be comma
-   *   separated paths as a list of inputs
-   * @param fClass
-   *   storage format of the data to be read
-   * @param kClass
-   *   `Class` of the key associated with the `fClass` parameter
-   * @param vClass
-   *   `Class` of the value associated with the `fClass` parameter
-   * @param conf
-   *   Hadoop configuration
-   * @return
-   *   RDD of tuples of key and corresponding value
-   */
-  def newAPIHadoopFile[K, V, F <: NewInputFormat[K, V]](
-      path: String,
-      fClass: Class[F],
-      kClass: Class[K],
-      vClass: Class[V],
-      conf: Configuration = hadoopConfiguration
-  ): RDD[(K, V)] = get(_.newAPIHadoopFile[K, V, F](path, fClass, kClass, vClass, conf))
 
   /**
    * Get an RDD for a given Hadoop file with an arbitrary new API
@@ -315,49 +269,6 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   ): RDD[(K, V)] = get(_.newAPIHadoopRDD[K, V, F](conf, fClass, kClass, vClass))
 
   /**
-   * Load an RDD saved as a SequenceFile containing serialized objects,
-   * with NullWritable keys and BytesWritable values that contain a
-   * serialized partition. This is still an experimental storage format
-   * and may not be supported exactly as is in future Spark releases. It
-   * will also be pretty slow if you use the default serializer (Java
-   * serialization), though the nice thing about it is that there's very
-   * little effort required to save arbitrary objects.
-   *
-   * @param path
-   *   directory to the input data files, the path can be comma
-   *   separated paths as a list of inputs
-   * @param minPartitions
-   *   suggested minimum number of partitions for the resulting RDD
-   * @return
-   *   RDD representing deserialized data from the file(s)
-   */
-  def objectFile[T: ClassTag](path: String, minPartitions: Int = defaultMinPartitions): RDD[T] =
-    get(_.objectFile[T](path, minPartitions))
-
-  // Methods for creating RDDs
-  /**
-   * Distribute a local Scala collection to form an RDD.
-   *
-   * @note
-   *   Parallelize acts lazily. If `seq` is a mutable collection and is
-   *   altered after the call to parallelize and before the first action
-   *   on the RDD, the resultant RDD will reflect the modified
-   *   collection. Pass a copy of the argument to avoid this.
-   * @note
-   *   avoid using `parallelize(Seq())` to create an empty `RDD`.
-   *   Consider `emptyRDD` for an RDD with no partitions, or
-   *   `parallelize(Seq[T]())` for an RDD of `T` with empty partitions.
-   * @param seq
-   *   Scala collection to distribute
-   * @param numSlices
-   *   number of partitions to divide the collection into
-   * @return
-   *   RDD representing distributed collection
-   */
-  def parallelize[T: ClassTag](seq: Seq[T], numSlices: Int = defaultParallelism): RDD[T] =
-    get(_.parallelize[T](seq, numSlices))
-
-  /**
    * Creates a new RDD[Long] containing elements from `start` to
    * `end`(exclusive), increased by `step` every element.
    *
@@ -379,143 +290,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def range(start: Long, end: Long, step: Long = 1, numSlices: Int = defaultParallelism): RDD[Long] =
     get(_.range(start, end, step, numSlices))
 
-  // Methods for creating shared variables
-  /**
-   * Register the given accumulator.
-   *
-   * @note
-   *   Accumulators must be registered before use, or it will throw
-   *   exception.
-   */
-  def register(acc: AccumulatorV2[_, _]): Unit = get(_.register(acc))
-
-  /**
-   * Register the given accumulator with given name.
-   *
-   * @note
-   *   Accumulators must be registered before use, or it will throw
-   *   exception.
-   */
-  def register(acc: AccumulatorV2[_, _], name: String): Unit = get(_.register(acc, name))
-
-  def resources: Map[String, ResourceInformation] = get(_.resources)
-
-  /**
-   * Set the thread-local property for overriding the call sites of
-   * actions and RDDs.
-   */
-  def setCallSite(shortCallSite: String): Unit = get(_.setCallSite(shortCallSite))
-
-  /**
-   * Set the directory under which RDDs are going to be checkpointed.
-   * @param directory
-   *   path to the directory where checkpoint files will be stored (must
-   *   be HDFS path if running in cluster)
-   */
-  def setCheckpointDir(directory: String): Unit = get(_.setCheckpointDir(directory))
-
-  /** Set a human readable description of the current job. */
-  def setJobDescription(value: String): Unit = get(_.setJobDescription(value))
-
-  /**
-   * Assigns a group ID to all the jobs started by this thread until the
-   * group ID is set to a different value or cleared.
-   *
-   * Often, a unit of execution in an application consists of multiple
-   * Spark actions or jobs. Application programmers can use this method
-   * to group all those jobs together and give a group description. Once
-   * set, the Spark web UI will associate such jobs with this group.
-   *
-   * The application can also use
-   * `org.apache.spark.SparkContext.cancelJobGroup` to cancel all
-   * running jobs in this group. For example,
-   * {{{
-   * // In the main thread:
-   * sc.setJobGroup("some_job_to_cancel", "some job description")
-   * sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10); i }.count()
-   *
-   * // In a separate thread:
-   * sc.cancelJobGroup("some_job_to_cancel")
-   * }}}
-   *
-   * @param interruptOnCancel
-   *   If true, then job cancellation will result in
-   *   `Thread.interrupt()` being called on the job's executor threads.
-   *   This is useful to help ensure that the tasks are actually stopped
-   *   in a timely manner, but is off by default due to HDFS-1208, where
-   *   HDFS may respond to Thread.interrupt() by marking nodes as dead.
-   */
-  def setJobGroup(groupId: String, description: String, interruptOnCancel: Boolean = false): Unit =
-    get(_.setJobGroup(groupId, description, interruptOnCancel))
-
-  /**
-   * Set a local property that affects jobs submitted from this thread,
-   * such as the Spark fair scheduler pool. User-defined properties may
-   * also be set here. These properties are propagated through to worker
-   * tasks and can be accessed there via
-   * [[org.apache.spark.TaskContext#getLocalProperty]].
-   *
-   * These properties are inherited by child threads spawned from this
-   * thread. This may have unexpected consequences when working with
-   * thread pools. The standard java implementation of thread pools have
-   * worker threads spawn other worker threads. As a result, local
-   * properties may propagate unpredictably.
-   */
-  def setLocalProperty(key: String, value: String): Unit = get(_.setLocalProperty(key, value))
-
-  /**
-   * Control our logLevel. This overrides any user-defined log settings.
-   * @param logLevel
-   *   The desired log level as a string. Valid log levels include: ALL,
-   *   DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
-   */
-  def setLogLevel(logLevel: String): Unit = get(_.setLogLevel(logLevel))
-
   def statusTracker: SparkStatusTracker = get(_.statusTracker)
-
-  /** Shut down the SparkContext. */
-  def stop: Unit = get(_.stop())
-
-  /**
-   * Submit a job for execution and return a FutureJob holding the
-   * result.
-   *
-   * @param rdd
-   *   target RDD to run tasks on
-   * @param processPartition
-   *   a function to run on each partition of the RDD
-   * @param partitions
-   *   set of partitions to run on; some jobs may not want to compute on
-   *   all partitions of the target RDD, e.g. for operations like
-   *   `first()`
-   * @param resultHandler
-   *   callback to pass each result to
-   * @param resultFunc
-   *   function to be executed when the result is ready
-   */
-  def submitJob[T, U, R](
-      rdd: RDD[T],
-      processPartition: Iterator[T] => U,
-      partitions: Seq[Int],
-      resultHandler: (Int, U) => Unit,
-      resultFunc: => R
-  ): SimpleFutureAction[R] =
-    get(_.submitJob[T, U, R](rdd.underlying, processPartition, partitions, resultHandler, resultFunc))
-
-  /**
-   * Read a text file from HDFS, a local file system (available on all
-   * nodes), or any Hadoop-supported file system URI, and return it as
-   * an RDD of Strings. The text files must be encoded as UTF-8.
-   *
-   * @param path
-   *   path to the text file on a supported file system
-   * @param minPartitions
-   *   suggested minimum number of partitions for the resulting RDD
-   * @return
-   *   RDD of lines of the text file
-   */
-  def textFile(path: String, minPartitions: Int = defaultMinPartitions): RDD[String] =
-    get(_.textFile(path, minPartitions))
 
   def uiWebUrl: Option[String] = get(_.uiWebUrl)
 
@@ -528,58 +303,6 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def union[T: ClassTag](first: RDD[T], rest: RDD[T]*): RDD[T] =
     get(_.union[T](first.underlying, rest.map(_.underlying): _*))
-
-  /** The version of Spark on which this application is running. */
-  def version: String = get(_.version)
-
-  /**
-   * Read a directory of text files from HDFS, a local file system
-   * (available on all nodes), or any Hadoop-supported file system URI.
-   * Each file is read as a single record and returned in a key-value
-   * pair, where the key is the path of each file, the value is the
-   * content of each file. The text files must be encoded as UTF-8.
-   *
-   * <p> For example, if you have the following files:
-   * {{{
-   *   hdfs://a-hdfs-path/part-00000
-   *   hdfs://a-hdfs-path/part-00001
-   *   ...
-   *   hdfs://a-hdfs-path/part-nnnnn
-   * }}}
-   *
-   * Do `val rdd = sparkContext.wholeTextFile("hdfs://a-hdfs-path")`,
-   *
-   * <p> then `rdd` contains
-   * {{{
-   *   (a-hdfs-path/part-00000, its content)
-   *   (a-hdfs-path/part-00001, its content)
-   *   ...
-   *   (a-hdfs-path/part-nnnnn, its content)
-   * }}}
-   *
-   * @note
-   *   Small files are preferred, large file is also allowable, but may
-   *   cause bad performance.
-   * @note
-   *   On some filesystems, `.../path/&#42;` can be a more efficient way
-   *   to read all files in a directory rather than `.../path/` or
-   *   `.../path`
-   * @note
-   *   Partitioning is determined by data locality. This may result in
-   *   too few partitions by default.
-   *
-   * @param path
-   *   Directory to the input data files, the path can be comma
-   *   separated paths as the list of inputs.
-   * @param minPartitions
-   *   A suggestion value of the minimal splitting number for input
-   *   data.
-   * @return
-   *   RDD representing tuples of file path and the corresponding file
-   *   content
-   */
-  def wholeTextFiles(path: String, minPartitions: Int = defaultMinPartitions): RDD[(String, String)] =
-    get(_.wholeTextFiles(path, minPartitions))
 
   // ===============
 
@@ -663,6 +386,8 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    *   path are ignored.
    */
   def addJar(path: => String)(implicit trace: Trace): Task[Unit] = action(_.addJar(path))
+
+  def archives(implicit trace: Trace): Task[Seq[String]] = action(_.archives)
 
   /**
    * Get an RDD for a Hadoop-readable dataset as PortableDataStream for
@@ -776,6 +501,12 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def cancelJob(jobId: => Int)(implicit trace: Trace): Task[Unit] = action(_.cancelJob(jobId))
 
   /**
+   * Cancel active jobs for the specified group. See
+   * `org.apache.spark.SparkContext.setJobGroup` for more information.
+   */
+  def cancelJobGroup(groupId: => String)(implicit trace: Trace): Task[Unit] = action(_.cancelJobGroup(groupId))
+
+  /**
    * Cancel a given stage and all jobs associated with it.
    *
    * @param stageId
@@ -810,97 +541,49 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def clearJobGroup(implicit trace: Trace): Task[Unit] = action(_.clearJobGroup())
 
   /**
-   * Get an RDD for a Hadoop file with an arbitrary InputFormat
-   *
-   * @note
-   *   Because Hadoop's RecordReader class re-uses the same Writable
-   *   object for each record, directly caching the returned RDD or
-   *   directly passing it to an aggregation or shuffle operation will
-   *   create many references to the same object. If you plan to
-   *   directly cache, sort, or aggregate Hadoop writable objects, you
-   *   should first copy them using a `map` function.
-   * @param path
-   *   directory to the input data files, the path can be comma
-   *   separated paths as a list of inputs
-   * @param inputFormatClass
-   *   storage format of the data to be read
-   * @param keyClass
-   *   `Class` of the key associated with the `inputFormatClass`
-   *   parameter
-   * @param valueClass
-   *   `Class` of the value associated with the `inputFormatClass`
-   *   parameter
-   * @param minPartitions
-   *   suggested minimum number of partitions for the resulting RDD
-   * @return
-   *   RDD of tuples of key and corresponding value
+   * Create and register a `CollectionAccumulator`, which starts with
+   * empty list and accumulates inputs by adding them into the list.
    */
-  def hadoopFile[K, V](
-      path: => String,
-      inputFormatClass: => Class[_ <: InputFormat[K, V]],
-      keyClass: => Class[K],
-      valueClass: => Class[V],
-      minPartitions: => Int = defaultMinPartitions
-  )(implicit trace: Trace): Task[RDD[(K, V)]] =
-    action(_.hadoopFile[K, V](path, inputFormatClass, keyClass, valueClass, minPartitions))
+  def collectionAccumulator[T](implicit trace: Trace): Task[CollectionAccumulator[T]] =
+    action(_.collectionAccumulator[T])
 
   /**
-   * Smarter version of hadoopFile() that uses class tags to figure out
-   * the classes of keys, values and the InputFormat so that users don't
-   * need to pass them directly. Instead, callers can just write, for
-   * example,
-   * {{{
-   * val file = sparkContext.hadoopFile[LongWritable, Text, TextInputFormat](path, minPartitions)
-   * }}}
-   *
-   * @note
-   *   Because Hadoop's RecordReader class re-uses the same Writable
-   *   object for each record, directly caching the returned RDD or
-   *   directly passing it to an aggregation or shuffle operation will
-   *   create many references to the same object. If you plan to
-   *   directly cache, sort, or aggregate Hadoop writable objects, you
-   *   should first copy them using a `map` function.
-   * @param path
-   *   directory to the input data files, the path can be comma
-   *   separated paths as a list of inputs
-   * @param minPartitions
-   *   suggested minimum number of partitions for the resulting RDD
-   * @return
-   *   RDD of tuples of key and corresponding value
+   * Create and register a `CollectionAccumulator`, which starts with
+   * empty list and accumulates inputs by adding them into the list.
    */
-  def hadoopFile[K, V, F <: InputFormat[K, V]](path: => String, minPartitions: => Int)(implicit
-      km: ClassTag[K],
-      vm: ClassTag[V],
-      fm: ClassTag[F],
-      trace: Trace
-  ): Task[RDD[(K, V)]] = action(_.hadoopFile[K, V, F](path, minPartitions))
+  def collectionAccumulator[T](name: => String)(implicit trace: Trace): Task[CollectionAccumulator[T]] =
+    action(_.collectionAccumulator[T](name))
 
   /**
-   * Smarter version of hadoopFile() that uses class tags to figure out
-   * the classes of keys, values and the InputFormat so that users don't
-   * need to pass them directly. Instead, callers can just write, for
-   * example,
-   * {{{
-   * val file = sparkContext.hadoopFile[LongWritable, Text, TextInputFormat](path)
-   * }}}
-   *
-   * @note
-   *   Because Hadoop's RecordReader class re-uses the same Writable
-   *   object for each record, directly caching the returned RDD or
-   *   directly passing it to an aggregation or shuffle operation will
-   *   create many references to the same object. If you plan to
-   *   directly cache, sort, or aggregate Hadoop writable objects, you
-   *   should first copy them using a `map` function.
-   * @param path
-   *   directory to the input data files, the path can be comma
-   *   separated paths as a list of inputs
-   * @return
-   *   RDD of tuples of key and corresponding value
+   * Create and register a double accumulator, which starts with 0 and
+   * accumulates inputs by `add`.
    */
-  def hadoopFile[K, V, F <: InputFormat[K, V]](
-      path: => String
-  )(implicit km: ClassTag[K], vm: ClassTag[V], fm: ClassTag[F], trace: Trace): Task[RDD[(K, V)]] =
-    action(_.hadoopFile[K, V, F](path))
+  def doubleAccumulator(implicit trace: Trace): Task[DoubleAccumulator] = action(_.doubleAccumulator)
+
+  /**
+   * Create and register a double accumulator, which starts with 0 and
+   * accumulates inputs by `add`.
+   */
+  def doubleAccumulator(name: => String)(implicit trace: Trace): Task[DoubleAccumulator] =
+    action(_.doubleAccumulator(name))
+
+  def getCheckpointDir(implicit trace: Trace): Task[Option[String]] = action(_.getCheckpointDir)
+
+  /**
+   * Return a map from the block manager to the max memory available for
+   * caching and the remaining memory available for caching.
+   */
+  def getExecutorMemoryStatus(implicit trace: Trace): Task[Map[String, (Long, Long)]] =
+    action(_.getExecutorMemoryStatus)
+
+  /**
+   * Get a local property set in this thread, or null if it is missing.
+   * See `org.apache.spark.SparkContext.setLocalProperty`.
+   */
+  def getLocalProperty(key: => String)(implicit trace: Trace): Task[String] = action(_.getLocalProperty(key))
+
+  /** Return current scheduling mode */
+  def getSchedulingMode(implicit trace: Trace): Task[SchedulingMode] = action(_.getSchedulingMode)
 
   /**
    * Get an RDD for a Hadoop-readable dataset from a Hadoop JobConf
@@ -965,6 +648,161 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
       interruptThread: => Boolean = true,
       reason: => String = "killed via SparkContext.killTaskAttempt"
   )(implicit trace: Trace): Task[Boolean] = action(_.killTaskAttempt(taskId, interruptThread, reason))
+
+  /**
+   * :: Experimental :: Returns a list of archive paths that are added
+   * to resources.
+   *
+   * @since 3.1.0
+   */
+  def listArchives(implicit trace: Trace): Task[Seq[String]] = action(_.listArchives())
+
+  /** Returns a list of file paths that are added to resources. */
+  def listFiles(implicit trace: Trace): Task[Seq[String]] = action(_.listFiles())
+
+  /** Returns a list of jar files that are added to resources. */
+  def listJars(implicit trace: Trace): Task[Seq[String]] = action(_.listJars())
+
+  /**
+   * Create and register a long accumulator, which starts with 0 and
+   * accumulates inputs by `add`.
+   */
+  def longAccumulator(implicit trace: Trace): Task[LongAccumulator] = action(_.longAccumulator)
+
+  /**
+   * Create and register a long accumulator, which starts with 0 and
+   * accumulates inputs by `add`.
+   */
+  def longAccumulator(name: => String)(implicit trace: Trace): Task[LongAccumulator] = action(_.longAccumulator(name))
+
+  /**
+   * Smarter version of `newApiHadoopFile` that uses class tags to
+   * figure out the classes of keys, values and the
+   * `org.apache.hadoop.mapreduce.InputFormat` (new MapReduce API) so
+   * that user don't need to pass them directly. Instead, callers can
+   * just write, for example:
+   * ```
+   * val file = sparkContext.hadoopFile[LongWritable, Text, TextInputFormat](path)
+   * ```
+   *
+   * @note
+   *   Because Hadoop's RecordReader class re-uses the same Writable
+   *   object for each record, directly caching the returned RDD or
+   *   directly passing it to an aggregation or shuffle operation will
+   *   create many references to the same object. If you plan to
+   *   directly cache, sort, or aggregate Hadoop writable objects, you
+   *   should first copy them using a `map` function.
+   * @param path
+   *   directory to the input data files, the path can be comma
+   *   separated paths as a list of inputs
+   * @return
+   *   RDD of tuples of key and corresponding value
+   */
+  def newAPIHadoopFile[K, V, F <: NewInputFormat[K, V]](
+      path: => String
+  )(implicit km: ClassTag[K], vm: ClassTag[V], fm: ClassTag[F], trace: Trace): Task[RDD[(K, V)]] =
+    action(_.newAPIHadoopFile[K, V, F](path))
+
+  /**
+   * Get an RDD for a given Hadoop file with an arbitrary new API
+   * InputFormat and extra configuration options to pass to the input
+   * format.
+   *
+   * @note
+   *   Because Hadoop's RecordReader class re-uses the same Writable
+   *   object for each record, directly caching the returned RDD or
+   *   directly passing it to an aggregation or shuffle operation will
+   *   create many references to the same object. If you plan to
+   *   directly cache, sort, or aggregate Hadoop writable objects, you
+   *   should first copy them using a `map` function.
+   * @param path
+   *   directory to the input data files, the path can be comma
+   *   separated paths as a list of inputs
+   * @param fClass
+   *   storage format of the data to be read
+   * @param kClass
+   *   `Class` of the key associated with the `fClass` parameter
+   * @param vClass
+   *   `Class` of the value associated with the `fClass` parameter
+   * @param conf
+   *   Hadoop configuration
+   * @return
+   *   RDD of tuples of key and corresponding value
+   */
+  def newAPIHadoopFile[K, V, F <: NewInputFormat[K, V]](
+      path: => String,
+      fClass: => Class[F],
+      kClass: => Class[K],
+      vClass: => Class[V],
+      conf: => Configuration = hadoopConfiguration
+  )(implicit trace: Trace): Task[RDD[(K, V)]] = action(_.newAPIHadoopFile[K, V, F](path, fClass, kClass, vClass, conf))
+
+  /**
+   * Load an RDD saved as a SequenceFile containing serialized objects,
+   * with NullWritable keys and BytesWritable values that contain a
+   * serialized partition. This is still an experimental storage format
+   * and may not be supported exactly as is in future Spark releases. It
+   * will also be pretty slow if you use the default serializer (Java
+   * serialization), though the nice thing about it is that there's very
+   * little effort required to save arbitrary objects.
+   *
+   * @param path
+   *   directory to the input data files, the path can be comma
+   *   separated paths as a list of inputs
+   * @param minPartitions
+   *   suggested minimum number of partitions for the resulting RDD
+   * @return
+   *   RDD representing deserialized data from the file(s)
+   */
+  def objectFile[T: ClassTag](path: => String, minPartitions: => Int = defaultMinPartitions)(implicit
+      trace: Trace
+  ): Task[RDD[T]] = action(_.objectFile[T](path, minPartitions))
+
+  // Methods for creating RDDs
+  /**
+   * Distribute a local Scala collection to form an RDD.
+   *
+   * @note
+   *   Parallelize acts lazily. If `seq` is a mutable collection and is
+   *   altered after the call to parallelize and before the first action
+   *   on the RDD, the resultant RDD will reflect the modified
+   *   collection. Pass a copy of the argument to avoid this.
+   * @note
+   *   avoid using `parallelize(Seq())` to create an empty `RDD`.
+   *   Consider `emptyRDD` for an RDD with no partitions, or
+   *   `parallelize(Seq[T]())` for an RDD of `T` with empty partitions.
+   * @param seq
+   *   Scala collection to distribute
+   * @param numSlices
+   *   number of partitions to divide the collection into
+   * @return
+   *   RDD representing distributed collection
+   */
+  def parallelize[T: ClassTag](seq: => Seq[T], numSlices: => Int = defaultParallelism)(implicit
+      trace: Trace
+  ): Task[RDD[T]] = action(_.parallelize[T](seq, numSlices))
+
+  // Methods for creating shared variables
+  /**
+   * Register the given accumulator.
+   *
+   * @note
+   *   Accumulators must be registered before use, or it will throw
+   *   exception.
+   */
+  def register(acc: => AccumulatorV2[_, _])(implicit trace: Trace): Task[Unit] = action(_.register(acc))
+
+  /**
+   * Register the given accumulator with given name.
+   *
+   * @note
+   *   Accumulators must be registered before use, or it will throw
+   *   exception.
+   */
+  def register(acc: => AccumulatorV2[_, _], name: => String)(implicit trace: Trace): Task[Unit] =
+    action(_.register(acc, name))
+
+  def resources(implicit trace: Trace): Task[Map[String, ResourceInformation]] = action(_.resources)
 
   /**
    * Run a function on a given set of partitions in an RDD and pass the
@@ -1094,6 +932,177 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def runJob[T, U: ClassTag](rdd: => RDD[T], processPartition: Iterator[T] => U, resultHandler: (Int, U) => Unit)(
       implicit trace: Trace
   ): Task[Unit] = action(_.runJob[T, U](rdd.underlying, processPartition, resultHandler))
+
+  /**
+   * Set the thread-local property for overriding the call sites of
+   * actions and RDDs.
+   */
+  def setCallSite(shortCallSite: => String)(implicit trace: Trace): Task[Unit] = action(_.setCallSite(shortCallSite))
+
+  /**
+   * Set the directory under which RDDs are going to be checkpointed.
+   * @param directory
+   *   path to the directory where checkpoint files will be stored (must
+   *   be HDFS path if running in cluster)
+   */
+  def setCheckpointDir(directory: => String)(implicit trace: Trace): Task[Unit] = action(_.setCheckpointDir(directory))
+
+  /** Set a human readable description of the current job. */
+  def setJobDescription(value: => String)(implicit trace: Trace): Task[Unit] = action(_.setJobDescription(value))
+
+  /**
+   * Assigns a group ID to all the jobs started by this thread until the
+   * group ID is set to a different value or cleared.
+   *
+   * Often, a unit of execution in an application consists of multiple
+   * Spark actions or jobs. Application programmers can use this method
+   * to group all those jobs together and give a group description. Once
+   * set, the Spark web UI will associate such jobs with this group.
+   *
+   * The application can also use
+   * `org.apache.spark.SparkContext.cancelJobGroup` to cancel all
+   * running jobs in this group. For example,
+   * {{{
+   * // In the main thread:
+   * sc.setJobGroup("some_job_to_cancel", "some job description")
+   * sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10); i }.count()
+   *
+   * // In a separate thread:
+   * sc.cancelJobGroup("some_job_to_cancel")
+   * }}}
+   *
+   * @param interruptOnCancel
+   *   If true, then job cancellation will result in
+   *   `Thread.interrupt()` being called on the job's executor threads.
+   *   This is useful to help ensure that the tasks are actually stopped
+   *   in a timely manner, but is off by default due to HDFS-1208, where
+   *   HDFS may respond to Thread.interrupt() by marking nodes as dead.
+   */
+  def setJobGroup(groupId: => String, description: => String, interruptOnCancel: => Boolean = false)(implicit
+      trace: Trace
+  ): Task[Unit] = action(_.setJobGroup(groupId, description, interruptOnCancel))
+
+  /**
+   * Set a local property that affects jobs submitted from this thread,
+   * such as the Spark fair scheduler pool. User-defined properties may
+   * also be set here. These properties are propagated through to worker
+   * tasks and can be accessed there via
+   * [[org.apache.spark.TaskContext#getLocalProperty]].
+   *
+   * These properties are inherited by child threads spawned from this
+   * thread. This may have unexpected consequences when working with
+   * thread pools. The standard java implementation of thread pools have
+   * worker threads spawn other worker threads. As a result, local
+   * properties may propagate unpredictably.
+   */
+  def setLocalProperty(key: => String, value: => String)(implicit trace: Trace): Task[Unit] =
+    action(_.setLocalProperty(key, value))
+
+  /**
+   * Control our logLevel. This overrides any user-defined log settings.
+   * @param logLevel
+   *   The desired log level as a string. Valid log levels include: ALL,
+   *   DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
+   */
+  def setLogLevel(logLevel: => String)(implicit trace: Trace): Task[Unit] = action(_.setLogLevel(logLevel))
+
+  /** Shut down the SparkContext. */
+  def stop(implicit trace: Trace): Task[Unit] = action(_.stop())
+
+  /**
+   * Submit a job for execution and return a FutureJob holding the
+   * result.
+   *
+   * @param rdd
+   *   target RDD to run tasks on
+   * @param processPartition
+   *   a function to run on each partition of the RDD
+   * @param partitions
+   *   set of partitions to run on; some jobs may not want to compute on
+   *   all partitions of the target RDD, e.g. for operations like
+   *   `first()`
+   * @param resultHandler
+   *   callback to pass each result to
+   * @param resultFunc
+   *   function to be executed when the result is ready
+   */
+  def submitJob[T, U, R](
+      rdd: => RDD[T],
+      processPartition: Iterator[T] => U,
+      partitions: => Seq[Int],
+      resultHandler: (Int, U) => Unit,
+      resultFunc: => R
+  )(implicit trace: Trace): Task[SimpleFutureAction[R]] =
+    action(_.submitJob[T, U, R](rdd.underlying, processPartition, partitions, resultHandler, resultFunc))
+
+  /**
+   * Read a text file from HDFS, a local file system (available on all
+   * nodes), or any Hadoop-supported file system URI, and return it as
+   * an RDD of Strings. The text files must be encoded as UTF-8.
+   *
+   * @param path
+   *   path to the text file on a supported file system
+   * @param minPartitions
+   *   suggested minimum number of partitions for the resulting RDD
+   * @return
+   *   RDD of lines of the text file
+   */
+  def textFile(path: => String, minPartitions: => Int = defaultMinPartitions)(implicit
+      trace: Trace
+  ): Task[RDD[String]] = action(_.textFile(path, minPartitions))
+
+  /** The version of Spark on which this application is running. */
+  def version(implicit trace: Trace): Task[String] = action(_.version)
+
+  /**
+   * Read a directory of text files from HDFS, a local file system
+   * (available on all nodes), or any Hadoop-supported file system URI.
+   * Each file is read as a single record and returned in a key-value
+   * pair, where the key is the path of each file, the value is the
+   * content of each file. The text files must be encoded as UTF-8.
+   *
+   * <p> For example, if you have the following files:
+   * {{{
+   *   hdfs://a-hdfs-path/part-00000
+   *   hdfs://a-hdfs-path/part-00001
+   *   ...
+   *   hdfs://a-hdfs-path/part-nnnnn
+   * }}}
+   *
+   * Do `val rdd = sparkContext.wholeTextFile("hdfs://a-hdfs-path")`,
+   *
+   * <p> then `rdd` contains
+   * {{{
+   *   (a-hdfs-path/part-00000, its content)
+   *   (a-hdfs-path/part-00001, its content)
+   *   ...
+   *   (a-hdfs-path/part-nnnnn, its content)
+   * }}}
+   *
+   * @note
+   *   Small files are preferred, large file is also allowable, but may
+   *   cause bad performance.
+   * @note
+   *   On some filesystems, `.../path/&#42;` can be a more efficient way
+   *   to read all files in a directory rather than `.../path/` or
+   *   `.../path`
+   * @note
+   *   Partitioning is determined by data locality. This may result in
+   *   too few partitions by default.
+   *
+   * @param path
+   *   Directory to the input data files, the path can be comma
+   *   separated paths as the list of inputs.
+   * @param minPartitions
+   *   A suggestion value of the minimal splitting number for input
+   *   data.
+   * @return
+   *   RDD representing tuples of file path and the corresponding file
+   *   content
+   */
+  def wholeTextFiles(path: => String, minPartitions: => Int = defaultMinPartitions)(implicit
+      trace: Trace
+  ): Task[RDD[(String, String)]] = action(_.wholeTextFiles(path, minPartitions))
 
   // ===============
 
