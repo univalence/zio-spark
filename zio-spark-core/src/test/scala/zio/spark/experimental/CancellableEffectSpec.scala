@@ -23,7 +23,7 @@ object CancellableEffectSpec {
       listener <-
         ZIO.succeed(new SparkFirehoseListener {
           override def onEvent(event: SparkListenerEvent): Unit =
-            Unsafe.unsafeCompat { implicit u =>
+            Unsafe.unsafe { implicit u =>
               runtime.unsafe.run(events.update(_ :+ event)).getOrThrowFiberFailure()
             }
         })
