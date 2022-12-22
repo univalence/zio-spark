@@ -34,7 +34,7 @@ The documentation covers additional subjects like `CancellableJobs`, code genera
 
 - [x] Exhaustive support of the apache.spark API (released april 2022, using ScalaMeta and code generation)
 - [x] Support for Scala 3 (released early december 2022)
-- [ ] update to have a complete wrapper for SparkContext
+- [ ] complete wrapper for SparkContext (small update)
 - [ ] port of spark-test to zio-spark (creation of zio-spark-test)
 - [ ] integration of typed-queries
 
