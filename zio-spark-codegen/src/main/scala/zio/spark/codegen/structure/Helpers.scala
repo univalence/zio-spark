@@ -3,21 +3,23 @@ import zio.spark.codegen.ScalaBinaryVersion
 import zio.spark.codegen.generation.plan.SparkPlan
 
 import scala.meta.*
+import scala.util.Try
 
 object Helpers {
-  def cleanPrefixPackage(type_ : String): String = {
+  def cleanPrefixPackage(type_ : String): String =
+    Try {
+      val res =
+        type_
+          .parse[Type]
+          .get
+          .transform {
+            case t"Array"                                 => t"Seq"
+            case Type.Select(q"scala.collection", tpname) => t"collection.$tpname"
+            case t"$ref.$tpname"                          => tpname
+          }
 
-    val res =
-      type_
-        .parse[Type]
-        .get
-        .transform {
-          case t"Array"                                 => t"Seq"
-          case Type.Select(q"scala.collection", tpname) => t"collection.$tpname"
-          case t"$ref.$tpname"                          => tpname
-        }
-    res.toString()
-  }
+      res.toString()
+    }.getOrElse("")
 
   def cleanType(type_ : String, plan: SparkPlan): String =
     cleanPrefixPackage(type_)

@@ -20,6 +20,7 @@ case class Module(name: String, hierarchy: String) {
 }
 
 object Module {
+  val baseModule: Module = Module("spark-core", "org.apache.spark")
   val coreModule: Module = Module("spark-core", "org.apache.spark.rdd")
   val sqlModule: Module  = Module("spark-sql", "org.apache.spark.sql")
 }

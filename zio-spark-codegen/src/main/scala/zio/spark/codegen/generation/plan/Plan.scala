@@ -3,13 +3,14 @@ package zio.spark.codegen.generation.plan
 import zio.{UIO, URIO, ZIO}
 import zio.spark.codegen.generation.Environment.{Environment, ScalafmtFormatter}
 import zio.spark.codegen.generation.Error.CodegenError
-import zio.spark.codegen.generation.Module.{coreModule, sqlModule}
+import zio.spark.codegen.generation.Module.{baseModule, coreModule, sqlModule}
 import zio.spark.codegen.generation.Output
 import zio.spark.codegen.generation.template.instance.*
 
 import java.nio.file.Path
 
 object Plan {
+  val sparkContextPlan: SparkPlan             = SparkPlan(baseModule, SparkContextTemplate)
   val rddPlan: SparkPlan                      = SparkPlan(coreModule, RDDTemplate)
   val datasetPlan: SparkPlan                  = SparkPlan(sqlModule, DatasetTemplate)
   val dataFrameNaFunctionsPlan: SparkPlan     = SparkPlan(sqlModule, DataFrameNaFunctionsTemplate)
@@ -50,7 +51,7 @@ trait Plan {
            | * This file is generated using zio-spark-codegen, you should not edit
            | * this file directly.
            | */
-           | 
+           |
            |$raw""".stripMargin
       code <- formatCode(base)
       _    <- postValidation(code)

@@ -53,6 +53,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
 
         val plans: Seq[Plan] =
           Seq(
+            sparkContextPlan,
             rddPlan,
             datasetPlan,
             dataFrameNaFunctionsPlan,
