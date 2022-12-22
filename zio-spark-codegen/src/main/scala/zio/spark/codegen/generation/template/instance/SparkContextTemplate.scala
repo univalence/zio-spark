@@ -75,7 +75,6 @@ case object SparkContextTemplate extends Template.Default {
         "deployMode",
         "appName",
         "isLocal",
-        "isStopped",
         "statusTracker",
         "uiWebUrl",
         "hadoopConfiguration",
@@ -83,7 +82,10 @@ case object SparkContextTemplate extends Template.Default {
         "applicationId",
         "applicationAttemptId",
         "defaultParallelism",
-        "defaultMinPartitions"
+        "defaultMinPartitions",
+        "objectFile",
+        "version",
+        "wholeTextFiles"
       )
 
     getters(method.name)

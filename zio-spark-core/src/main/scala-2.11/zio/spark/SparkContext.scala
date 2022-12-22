@@ -203,9 +203,6 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
 
   def isLocal: Boolean = get(_.isLocal)
 
-  /** @return true if context is stopped or in the midst of stopping. */
-  def isStopped: Boolean = get(_.isStopped)
-
   def jars: Seq[String] = get(_.jars)
 
   /**
@@ -270,6 +267,26 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   ): RDD[(K, V)] = get(_.newAPIHadoopRDD[K, V, F](conf, fClass, kClass, vClass))
 
   /**
+   * Load an RDD saved as a SequenceFile containing serialized objects,
+   * with NullWritable keys and BytesWritable values that contain a
+   * serialized partition. This is still an experimental storage format
+   * and may not be supported exactly as is in future Spark releases. It
+   * will also be pretty slow if you use the default serializer (Java
+   * serialization), though the nice thing about it is that there's very
+   * little effort required to save arbitrary objects.
+   *
+   * @param path
+   *   directory to the input data files, the path can be comma
+   *   separated paths as a list of inputs
+   * @param minPartitions
+   *   suggested minimum number of partitions for the resulting RDD
+   * @return
+   *   RDD representing deserialized data from the file(s)
+   */
+  def objectFile[T: ClassTag](path: String, minPartitions: Int = defaultMinPartitions): RDD[T] =
+    get(_.objectFile[T](path, minPartitions))
+
+  /**
    * Creates a new RDD[Long] containing elements from `start` to
    * `end`(exclusive), increased by `step` every element.
    *
@@ -304,6 +321,58 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def union[T: ClassTag](first: RDD[T], rest: RDD[T]*): RDD[T] =
     get(_.union[T](first.underlying, rest.map(_.underlying): _*))
+
+  /** The version of Spark on which this application is running. */
+  def version: String = get(_.version)
+
+  /**
+   * Read a directory of text files from HDFS, a local file system
+   * (available on all nodes), or any Hadoop-supported file system URI.
+   * Each file is read as a single record and returned in a key-value
+   * pair, where the key is the path of each file, the value is the
+   * content of each file.
+   *
+   * <p> For example, if you have the following files:
+   * {{{
+   *   hdfs://a-hdfs-path/part-00000
+   *   hdfs://a-hdfs-path/part-00001
+   *   ...
+   *   hdfs://a-hdfs-path/part-nnnnn
+   * }}}
+   *
+   * Do `val rdd = sparkContext.wholeTextFile("hdfs://a-hdfs-path")`,
+   *
+   * <p> then `rdd` contains
+   * {{{
+   *   (a-hdfs-path/part-00000, its content)
+   *   (a-hdfs-path/part-00001, its content)
+   *   ...
+   *   (a-hdfs-path/part-nnnnn, its content)
+   * }}}
+   *
+   * @note
+   *   Small files are preferred, large file is also allowable, but may
+   *   cause bad performance.
+   * @note
+   *   On some filesystems, `.../path/&#42;` can be a more efficient way
+   *   to read all files in a directory rather than `.../path/` or
+   *   `.../path`
+   * @note
+   *   Partitioning is determined by data locality. This may result in
+   *   too few partitions by default.
+   *
+   * @param path
+   *   Directory to the input data files, the path can be comma
+   *   separated paths as the list of inputs.
+   * @param minPartitions
+   *   A suggestion value of the minimal splitting number for input
+   *   data.
+   * @return
+   *   RDD representing tuples of file path and the corresponding file
+   *   content
+   */
+  def wholeTextFiles(path: String, minPartitions: Int = defaultMinPartitions): RDD[(String, String)] =
+    get(_.wholeTextFiles(path, minPartitions))
 
   // ===============
 
@@ -667,6 +736,9 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   )(implicit trace: Trace): Task[RDD[(K, V)]] =
     action(_.hadoopRDD[K, V](conf, inputFormatClass, keyClass, valueClass, minPartitions))
 
+  /** @return true if context is stopped or in the midst of stopping. */
+  def isStopped(implicit trace: Trace): Task[Boolean] = action(_.isStopped)
+
   /**
    * Kill and reschedule the given task attempt. Task ids can be
    * obtained from the Spark UI or through SparkListener.onTaskStart.
@@ -769,27 +841,6 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
       vClass: => Class[V],
       conf: => Configuration = hadoopConfiguration
   )(implicit trace: Trace): Task[RDD[(K, V)]] = action(_.newAPIHadoopFile[K, V, F](path, fClass, kClass, vClass, conf))
-
-  /**
-   * Load an RDD saved as a SequenceFile containing serialized objects,
-   * with NullWritable keys and BytesWritable values that contain a
-   * serialized partition. This is still an experimental storage format
-   * and may not be supported exactly as is in future Spark releases. It
-   * will also be pretty slow if you use the default serializer (Java
-   * serialization), though the nice thing about it is that there's very
-   * little effort required to save arbitrary objects.
-   *
-   * @param path
-   *   directory to the input data files, the path can be comma
-   *   separated paths as a list of inputs
-   * @param minPartitions
-   *   suggested minimum number of partitions for the resulting RDD
-   * @return
-   *   RDD representing deserialized data from the file(s)
-   */
-  def objectFile[T: ClassTag](path: => String, minPartitions: => Int = defaultMinPartitions)(implicit
-      trace: Trace
-  ): Task[RDD[T]] = action(_.objectFile[T](path, minPartitions))
 
   // Methods for creating RDDs
   /**
@@ -1078,59 +1129,6 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def textFile(path: => String, minPartitions: => Int = defaultMinPartitions)(implicit
       trace: Trace
   ): Task[RDD[String]] = action(_.textFile(path, minPartitions))
-
-  /** The version of Spark on which this application is running. */
-  def version(implicit trace: Trace): Task[String] = action(_.version)
-
-  /**
-   * Read a directory of text files from HDFS, a local file system
-   * (available on all nodes), or any Hadoop-supported file system URI.
-   * Each file is read as a single record and returned in a key-value
-   * pair, where the key is the path of each file, the value is the
-   * content of each file.
-   *
-   * <p> For example, if you have the following files:
-   * {{{
-   *   hdfs://a-hdfs-path/part-00000
-   *   hdfs://a-hdfs-path/part-00001
-   *   ...
-   *   hdfs://a-hdfs-path/part-nnnnn
-   * }}}
-   *
-   * Do `val rdd = sparkContext.wholeTextFile("hdfs://a-hdfs-path")`,
-   *
-   * <p> then `rdd` contains
-   * {{{
-   *   (a-hdfs-path/part-00000, its content)
-   *   (a-hdfs-path/part-00001, its content)
-   *   ...
-   *   (a-hdfs-path/part-nnnnn, its content)
-   * }}}
-   *
-   * @note
-   *   Small files are preferred, large file is also allowable, but may
-   *   cause bad performance.
-   * @note
-   *   On some filesystems, `.../path/&#42;` can be a more efficient way
-   *   to read all files in a directory rather than `.../path/` or
-   *   `.../path`
-   * @note
-   *   Partitioning is determined by data locality. This may result in
-   *   too few partitions by default.
-   *
-   * @param path
-   *   Directory to the input data files, the path can be comma
-   *   separated paths as the list of inputs.
-   * @param minPartitions
-   *   A suggestion value of the minimal splitting number for input
-   *   data.
-   * @return
-   *   RDD representing tuples of file path and the corresponding file
-   *   content
-   */
-  def wholeTextFiles(path: => String, minPartitions: => Int = defaultMinPartitions)(implicit
-      trace: Trace
-  ): Task[RDD[(String, String)]] = action(_.wholeTextFiles(path, minPartitions))
 
   // ===============
 
