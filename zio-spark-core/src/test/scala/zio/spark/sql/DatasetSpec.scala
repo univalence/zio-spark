@@ -1,9 +1,10 @@
 package zio.spark.sql
 
+import org.apache.spark.SparkFirehoseListener
+import org.apache.spark.scheduler.{JobSucceeded, SparkListenerEvent, SparkListenerJobEnd}
 import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.storage.StorageLevel
-
-import zio.{Task, ZIO}
+import zio.{Chunk, Ref, Task, Unsafe, ZIO}
 import zio.spark.ZioSparkTestSpec.SparkTestSpec
 import zio.spark.helper.Fixture._
 import zio.test._
@@ -316,7 +317,7 @@ object DatasetSpec {
 
   def fromSparkSpec: SparkTestSpec =
     suite("fromSpark")(
-      test("Zio-spark can wrap spark code") {
+      test("zio-spark can wrap spark code") {
         val job: SIO[Long] =
           fromSpark { ss =>
             val inputDf =
