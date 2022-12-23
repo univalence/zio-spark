@@ -105,11 +105,9 @@ lazy val core =
   (project in file("zio-spark-core"))
     .configs(IntegrationTest)
     .settings(crossScalaVersionSettings)
+    .settings(commonSettings)
     .settings(
       name := "zio-spark",
-      resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
-      crossScalaVersions := supportedScalaVersions,
-      scalaVersion       := scala213,
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._1,
       scalaMinorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
@@ -120,11 +118,23 @@ lazy val core =
         "dev.zio" %% "zio-prelude"  % zioPrelude
       ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
         ++ generateMagnoliaDependency(scalaMajorVersion.value, scalaMinorVersion.value),
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-      scalacOptions ~= fatalWarningsAsProperties,
       Defaults.itSettings
     )
     .enablePlugins(ZioSparkCodegenPlugin)
+
+lazy val test =
+  (project in file("zio-spark-test"))
+    .settings(crossScalaVersionSettings)
+    .settings(commonSettings)
+    .settings(
+      name := "zio-spark-test",
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test" % zio % Test,
+        "dev.zio" %% "zio-test-sbt" % zio % Test,
+        "dev.zio" %% "zio" % zio
+      )
+    )
+    .dependsOn(core)
 
 def example(project: Project): Project =
   project
@@ -276,3 +286,11 @@ lazy val crossScalaVersionSettings =
       )
     }
   )
+
+lazy val commonSettings = Seq(
+  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
+  crossScalaVersions := supportedScalaVersions,
+  scalaVersion := scala213,
+  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+  scalacOptions ~= fatalWarningsAsProperties,
+)
