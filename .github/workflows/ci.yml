@@ -55,7 +55,7 @@ jobs:
         working-directory: website
         run: npm run build
 
-  test:
+  test-core:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
     strategy:
@@ -80,6 +80,23 @@ jobs:
       - name: Publish coverage to codecov
         if: ${{ startsWith(matrix.scala, '2.13.') }}
         uses: codecov/codecov-action@v2
+
+  test-test:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        scala: ["2.11.12", "2.12.17", "2.13.8", "3.2.0"]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2.4.0
+      - name: Setup Scala and Java
+        uses: olafurpg/setup-scala@v13
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+      - name: Run tests
+        run: sbt ++${{ matrix.scala }}! "project test" testSpecific
 
   check-codegen:
     runs-on: ubuntu-latest
