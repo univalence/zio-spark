@@ -1,5 +1,3 @@
 package zio.spark.test
 
-object AssertionSpec {
-
-}
+object AssertionSpec {}
