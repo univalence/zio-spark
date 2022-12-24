@@ -1,5 +1,3 @@
-
-
 name         := "zparkio-comparaison"
 scalaVersion := "2.13.8"
 
@@ -9,5 +7,4 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql"  % "3.3.1" % Provided
 )
 
-
-libraryDependencies += "dev.zio" %% "zio-logging" % "2.1.5"
+libraryDependencies += "dev.zio" %% "zio-logging" % "2.1.6"
