@@ -29,12 +29,13 @@
 You can find the documentation of zio-spark [here](https://univalence.github.io/zio-spark/).
 The documentation covers additional subjects like `CancellableJobs`, code generation, ...
 
+You can find the scaladoc of zio-spark [here](https://javadoc.io/doc/io.univalence/zio-spark_2.13/0.10.0/index.html).
 
 ## Roadmap
 
 - [x] Exhaustive support of the apache.spark API (released april 2022, using ScalaMeta and code generation)
 - [x] Support for Scala 3 (released early december 2022)
-- [ ] complete wrapper for SparkContext (small update)
+- [X] complete wrapper for SparkContext (small update)
 - [ ] port of spark-test to zio-spark (creation of zio-spark-test)
 - [ ] integration of typed-queries
 
