@@ -146,7 +146,10 @@ def example(project: Project): Project =
      * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
     .settings(
       fork           := false,
-      publish / skip := true
+      publish / skip := true,
+      // Don't generate documentation for the examples
+      Compile / doc / sources := Seq.empty,
+      Compile / packageDoc / publishArtifact := false
     )
 
 lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
