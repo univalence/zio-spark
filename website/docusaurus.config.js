@@ -66,6 +66,10 @@ const config = {
             title: 'More',
             items: [
               {
+                label: 'Scaladoc',
+                href: 'https://javadoc.io/doc/io.univalence/zio-spark_2.13/0.10.0/index.html',
+              },
+              {
                 label: 'ZIO',
                 href: 'https://zio.dev/',
               },
