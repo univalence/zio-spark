@@ -10,7 +10,6 @@ import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
-import zio.test.Assertion.equalTo
 import zio.test.TestAspect.{timeout, withLiveClock}
 
 object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
@@ -54,14 +53,14 @@ object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
             .disconnect
 
         listenSparkEvents(waitBlocking(5).race(job)).map { case (events, n) =>
-          assert(n)(equalTo(5L)) &&
-          assert(
+          assertTrue(
+            n == 5L,
             exists(events) { case js: SparkListenerJobStart =>
               exists(events) { case je: SparkListenerJobEnd =>
                 je.jobId == js.jobId && je.jobResult.toString.contains("cancelled job group")
               }
             }
-          )(equalTo(true))
+          )
         }
       } @@ timeout(45.seconds) @@ withLiveClock
     )

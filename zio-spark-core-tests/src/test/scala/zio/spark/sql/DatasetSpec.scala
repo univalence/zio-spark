@@ -270,7 +270,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
             output <- df.count
           } yield output
 
-        job.map(assert(_)(equalTo(2L)))
+        job.map(result => assertTrue(result == 2L))
       }
     )
 
@@ -331,7 +331,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
             processedDf.count()
           }
 
-        job.map(assert(_)(equalTo(2L)))
+        job.map(output => assertTrue(output == 2L))
       }
     )
 

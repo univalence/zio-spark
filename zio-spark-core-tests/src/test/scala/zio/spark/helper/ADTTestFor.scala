@@ -1,7 +1,6 @@
 package zio.spark.helper
 
 import zio.test._
-import zio.test.Assertion.equalTo
 
 final case class Conftest[T](text: String, input: T, output: String)
 
@@ -11,7 +10,7 @@ abstract class ADTTestFor[T](name: String, conftests: List[Conftest[T]]) extends
       val tests =
         conftests.map(conftest =>
           test(s"$name is converted into its string representation correctly (${conftest.text})") {
-            assert(conftest.input.toString)(equalTo(conftest.output))
+            assertTrue(conftest.input.toString == conftest.output)
           }
         )
       tests
