@@ -131,12 +131,11 @@ lazy val coreTests =
       scalaMinorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio" % zio,
-"dev.zio" %% "zio-test" % zio % Test,
+        "dev.zio" %% "zio-test" % zio % Test,
         "dev.zio" %% "zio-test-sbt" % zio % Test,
       ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
     )
-    .dependsOn(core)
-    .dependsOn(test)
+    .dependsOn(core, test)
 
 lazy val test =
   (project in file("zio-spark-test"))

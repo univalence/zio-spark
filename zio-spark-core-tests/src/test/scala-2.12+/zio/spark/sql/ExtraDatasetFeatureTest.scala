@@ -15,7 +15,7 @@ object ExtraDatasetFeatureTest extends SharedZIOSparkSpecDefault {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
 
-  def spec: Spec[SparkSession,Any] = suite("ExtraDatasetFeatureTest tests")(dataFrameActionsSpec)
+  def spec: Spec[SparkSession, Any] = suite("ExtraDatasetFeatureTest tests")(dataFrameActionsSpec)
 
   def dataFrameActionsSpec: Spec[SparkSession, Any] =
     suite("ExtraDatatasetFeature actions")(

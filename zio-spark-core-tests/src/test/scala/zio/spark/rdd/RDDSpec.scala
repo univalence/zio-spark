@@ -34,7 +34,7 @@ object RDDSpec extends SharedZIOSparkSpecDefault {
       }
     )
 
-  override def spec: Spec[SparkSession,Any] =
+  override def spec: Spec[SparkSession, Any] =
     suite("RDD tests")(
       rddActionsSpec,
       rddTransformationsSpec

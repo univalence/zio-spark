@@ -335,7 +335,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
       }
     )
 
-  override def spec: Spec[SparkSession,Any] =
+  override def spec: Spec[SparkSession, Any] =
     suite("Dataset tests")(
       datasetActionsSpec,
       datasetTransformationsSpec,

@@ -8,7 +8,7 @@ import zio.test._
 import zio.test.Assertion._
 
 object PipelineSpec extends SharedZIOSparkSpecDefault {
-  override def spec: Spec[SparkSession,Throwable] =
+  override def spec: Spec[SparkSession, Throwable] =
     suite("Pipeline spec")(
       test("Pipeline can be build without transformations") {
         val write: DataFrame => Task[Long] = _.count

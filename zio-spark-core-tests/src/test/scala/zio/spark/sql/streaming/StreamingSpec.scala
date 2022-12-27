@@ -32,7 +32,7 @@ object StreamingSpec extends SharedZIOSparkSpecDefault {
       } yield assert(res)(equalTo(4L))
     }
 
-  override def spec: Spec[SparkSession,Throwable] =
+  override def spec: Spec[SparkSession, Throwable] =
     suite("Streaming spec")(
       testStreamingPipeline(
         name          = "csv",

@@ -182,7 +182,7 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
     suite("DataFrameWriter Option Definitions")(tests: _*)
   }
 
-  override def spec: Spec[Live with SparkSession with Annotations,Any] =
+  override def spec: Spec[Live with SparkSession with Annotations, Any] =
     suite("DataFrameWriter tests")(
       dataFrameWriterBuilderSpec,
       dataFrameWriterSavingSpec,

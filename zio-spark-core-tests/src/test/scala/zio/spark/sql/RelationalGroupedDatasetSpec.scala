@@ -58,5 +58,5 @@ object RelationalGroupedDatasetSpec extends SharedZIOSparkSpecDefault {
     suite("RelationalGroupedDataset Aggregation")(tests.map(_.build): _*)
   }
 
-  override def spec: Spec[SparkSession,Any] = relationalGroupedDatasetAggregationSpec
+  override def spec: Spec[SparkSession, Any] = relationalGroupedDatasetAggregationSpec
 }

@@ -13,7 +13,7 @@ import zio.test.TestAspect._
 object DataFrameReaderSpec extends SharedZIOSparkSpecDefault {
   val reader: DataFrameReader[WithoutSchema] = SparkSession.read
 
-  def spec: Spec[SparkSession,Throwable] =
+  def spec: Spec[SparkSession, Throwable] =
     suite("DataFrameReader tests")(
       dataFrameReaderOptionsSpec,
       dataFrameReaderOptionDefinitionsSpec,
