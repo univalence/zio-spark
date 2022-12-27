@@ -30,7 +30,7 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
           _ <- writer.csv(path)
           _ <- writer.csv(path)
           _ <- deleteGeneratedFolder(path)
-        } yield assertTrue(writer.mode(mode).mode == mode)
+        } yield assert(writer.mode(mode).mode)(equalTo(mode))
       },
       test("DataFrameWriter can change its partitions") {
         val partitionCol: String = "name"
@@ -153,7 +153,7 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
           for {
             df <- read
             writer = df.write
-          } yield assertTrue(writer.options(options).options == options)
+          } yield assert(writer.options(options).options)(equalTo(options))
         },
         test("DataFrameWriter can save a df as table") {
           for {
