@@ -128,11 +128,13 @@ lazy val test =
     .settings(commonSettings)
     .settings(
       name := "zio-spark-test",
+      scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._1,
+      scalaMinorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-test" % zio % Test,
-        "dev.zio" %% "zio-test-sbt" % zio % Test,
-        "dev.zio" %% "zio" % zio
-      )
+        "dev.zio" %% "zio" % zio,
+        "dev.zio" %% "zio-test" % zio,
+        "dev.zio" %% "zio-test-sbt" % zio % Test
+      ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
     )
     .dependsOn(core)
 
