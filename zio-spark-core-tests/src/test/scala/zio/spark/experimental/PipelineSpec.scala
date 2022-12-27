@@ -1,15 +1,15 @@
 package zio.spark.experimental
 
-import zio.Task
-import zio.spark.ZioSparkTestSpec.SparkTestSpec
+import zio.{Scope, Task}
 import zio.spark.helper.Fixture._
 import zio.spark.sql._
 import zio.test._
 import zio.test.Assertion._
+import zio.spark.test._
 
-object PipelineSpec {
-  def pipelineSpec: SparkTestSpec =
-    suite("Pipeline Spec")(
+object PipelineSpec extends SharedZIOSparkSpecDefault {
+  override def spec =
+    suite("Pipeline spec")(
       test("Pipeline can be build without transformations") {
         val write: DataFrame => Task[Long] = _.count
 

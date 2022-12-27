@@ -7,17 +7,18 @@ import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
+import zio.spark.test._
 
-object ExtraDatasetFeatureTest {
+object ExtraDatasetFeatureTest extends SharedZIOSparkSpecDefault {
   import scala3encoders.given // scalafix:ok
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
 
-  def spec: Spec[SparkSession, Any] = dataFrameActionsSpec
+  def spec = suite("ExtraDatasetFeatureTest tests")(dataFrameActionsSpec)
 
   def dataFrameActionsSpec: Spec[SparkSession, Any] =
-    suite("ExtraDatatasetFeature Actions")(
+    suite("ExtraDatatasetFeature actions")(
       test("ExtraDatatasetFeature should implement tail(n)/takeRight(n) correctly") {
         val process: DataFrame => Dataset[String]       = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[Seq[String]] = _.takeRight(2)

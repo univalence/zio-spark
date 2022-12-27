@@ -2,17 +2,16 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.storage.StorageLevel
-
-import zio.{Task, ZIO}
-import zio.spark.ZioSparkTestSpec.SparkTestSpec
+import zio._
 import zio.spark.helper.Fixture._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
+import zio.spark.test._
 
 import scala.util.Try
 
-object DatasetSpec {
+object DatasetSpec extends SharedZIOSparkSpecDefault {
 
   import scala3encoders.given // scalafix:ok
 
@@ -23,7 +22,7 @@ object DatasetSpec {
     def check(f: O => TestResult): SIO[TestResult] = effect.map(f).orDie
   }
 
-  def datasetActionsSpec: SparkTestSpec =
+  def datasetActionsSpec: Spec[SparkSession, Throwable] =
     suite("Dataset Actions")(
       test("We can create an empty dataset from sparksession") {
         for {
@@ -111,7 +110,7 @@ object DatasetSpec {
       } @@ silent
     )
 
-  def errorSpec: SparkTestSpec =
+  def errorSpec: Spec[SparkSession, Throwable] =
     suite("Dataset error handling")(
       test("Dataset still can dies with AnalysisException using 'throwAnalysisException' implicit") {
         val process: DataFrame => DataFrame = _.selectExpr("yolo")
@@ -137,7 +136,7 @@ object DatasetSpec {
       }
     )
 
-  def datasetTransformationsSpec: SparkTestSpec =
+  def datasetTransformationsSpec: Spec[SparkSession, Throwable] =
     suite("Dataset Transformations")(
       test("Dataset should implement limit correctly") {
         val process: DataFrame => DataFrame = _.limit(2)
@@ -274,7 +273,7 @@ object DatasetSpec {
       }
     )
 
-  def persistencySpec: SparkTestSpec =
+  def persistencySpec: Spec[SparkSession, Throwable] =
     suite("Persistency Tests")(
       test("By default a dataset has no persistency") {
         for {
@@ -314,7 +313,7 @@ object DatasetSpec {
       // we can not run those test in parallel.
     ) @@ sequential
 
-  def fromSparkSpec: SparkTestSpec =
+  def fromSparkSpec: Spec[SparkSession, Throwable] =
     suite("fromSpark")(
       test("Zio-spark can wrap spark code") {
         val job: SIO[Long] =
@@ -333,5 +332,15 @@ object DatasetSpec {
 
         job.map(assert(_)(equalTo(2L)))
       }
+    )
+
+  override def spec =
+    suite("Dataset tests")(
+      datasetActionsSpec,
+      datasetTransformationsSpec,
+      sqlSpec,
+      persistencySpec,
+      errorSpec,
+      fromSparkSpec,
     )
 }

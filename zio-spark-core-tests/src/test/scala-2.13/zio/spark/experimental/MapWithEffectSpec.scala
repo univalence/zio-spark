@@ -8,9 +8,10 @@ import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
+import zio.spark.test._
 
-object MapWithEffectSpec {
-  def spec: Spec[SparkSession, Throwable] =
+object MapWithEffectSpec extends SharedZIOSparkSpecDefault {
+  def spec =
     suite("smoke")(
       test("basic smoke test") {
         val getRddInt: SIO[RDD[Int]] = Seq(1, 2, 3).toRDD

@@ -8,8 +8,9 @@ import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.Assertion._
+import zio.spark.test._
 
-object StreamingSpec {
+object StreamingSpec extends SharedZIOSparkSpecDefault {
 
   def testStreamingPipeline(
       name: String,
@@ -31,7 +32,7 @@ object StreamingSpec {
       } yield assert(res)(equalTo(4L))
     }
 
-  def streamingSpec: Spec[SparkSession, Throwable] =
+ override def spec =
     suite("Streaming spec")(
       testStreamingPipeline(
         name          = "csv",

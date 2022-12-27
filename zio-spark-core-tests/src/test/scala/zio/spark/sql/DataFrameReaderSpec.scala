@@ -1,23 +1,27 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
-import scala3encoders.given // scalafix:ok
-
-import zio.spark.ZioSparkTestSpec.SparkTestSpec
+import scala3encoders.given
 import zio.spark.helper.Fixture._
 import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.implicits._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
+import zio.spark.test._
 
-object DataFrameReaderSpec extends ZIOSpecDefault {
+object DataFrameReaderSpec extends SharedZIOSparkSpecDefault {
   val reader: DataFrameReader[WithoutSchema] = SparkSession.read
 
-  def spec: Spec[Annotations with Live, TestFailure[Any]] =
-    dataFrameReaderOptionsSpec + dataFrameReaderOptionDefinitionsSpec
+  def spec = {
+    suite("DataFrameReader tests")(
+      dataFrameReaderOptionsSpec,
+      dataFrameReaderOptionDefinitionsSpec,
+      dataFrameReaderReadingSpec,
+    )
+  }
 
-  def dataFrameReaderOptionsSpec: Spec[Annotations with Live, TestFailure[Any]] =
+  def dataFrameReaderOptionsSpec: Spec[Any, Nothing] =
     suite("DataFrameReader Options")(
       test("DataFrameReader should apply options correctly") {
         val options           = Map("a" -> "x", "b" -> "y")
@@ -27,7 +31,7 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
       }
     )
 
-  def dataFrameReaderReadingSpec: SparkTestSpec =
+  def dataFrameReaderReadingSpec: Spec[SparkSession, Throwable] =
     suite("DataFrameReader reading files")(
       test("DataFrameReader can read a CSV file") {
         for {
@@ -91,7 +95,7 @@ object DataFrameReaderSpec extends ZIOSpecDefault {
       }
     )
 
-  def dataFrameReaderOptionDefinitionsSpec: Spec[Annotations with Live, TestFailure[Any]] = {
+  def dataFrameReaderOptionDefinitionsSpec: Spec[Any, Nothing] = {
     final case class ReaderTest(
         testName:      String,
         endo:          DataFrameReader[WithoutSchema] => DataFrameReader[WithoutSchema],
