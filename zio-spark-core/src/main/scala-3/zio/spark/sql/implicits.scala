@@ -2,7 +2,7 @@ package zio.spark.sql
 
 import scala3encoders.given
 import org.apache.spark.sql.{ColumnName, Encoder}
-import zio.spark.rdd.{RDD, RDDConversionOps}
+import zio.spark.rdd.*
 import zio.*
 
 import scala.reflect.ClassTag
@@ -20,8 +20,7 @@ object implicits {
   }
 
   extension [T: ClassTag](seq: Seq[T]) {
-    def toRDD(implicit trace: Trace): URIO[SparkSession, RDD[T]] =
-      zio.spark.sql.fromSpark(_.sparkContext.makeRDD(seq).zioSpark).orDie
+    def toRDD(implicit trace: Trace): SIO[RDD[T]] = ZIO.serviceWith[SparkSession](_.sparkContext.makeRDD(seq))
   }
 
 }
