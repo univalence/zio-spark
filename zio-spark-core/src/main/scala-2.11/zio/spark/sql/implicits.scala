@@ -60,14 +60,14 @@ object implicits extends LowPrioritySQLImplicits {
   implicit def scalaBoolean: Encoder[Boolean] = Encoders.scalaBoolean
 
   implicit class seqDatasetHolderOps[T: org.apache.spark.sql.Encoder](seq: Seq[T]) {
-    def toDataset: URIO[SparkSession, Dataset[T]] =
+    def toDataset: SIO[Dataset[T]] =
       zio.spark.sql.fromSpark(ss => ss.implicits.localSeqToDatasetHolder(seq).toDS().zioSpark).orDie
 
-    def toDS(implicit trace: Trace): URIO[SparkSession, Dataset[T]] = toDataset
+    def toDS(implicit trace: Trace): SIO[Dataset[T]] = toDataset
   }
 
   implicit class seqRddHolderOps[T: ClassTag](seq: Seq[T]) {
-    def toRDD: URIO[SparkSession, RDD[T]] = zio.spark.sql.fromSpark(_.sparkContext.makeRDD(seq).zioSpark).orDie
+    def toRDD: SIO[RDD[T]] = zio.spark.sql.fromSpark(_.sparkContext.makeRDD(seq).zioSpark).orDie
   }
 
 }
