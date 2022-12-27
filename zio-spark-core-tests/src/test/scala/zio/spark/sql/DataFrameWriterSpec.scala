@@ -8,6 +8,7 @@ import zio.spark.helper.Fixture._
 import zio.spark.test._
 import zio.stream.{ZSink, ZStream}
 import zio.test._
+import zio.test.Assertion._
 import zio.test.TestAspect._
 
 import java.nio.file.{Files, Paths}
@@ -107,7 +108,7 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
           write             = df.write
           writerWithOptions = endo(write)
           options           = Map(expectedKey -> expectedValue)
-        } yield assertTrue(writerWithOptions.options == options)
+        } yield assert(writerWithOptions.options)(equalTo(options))
       }
 
     val tests =

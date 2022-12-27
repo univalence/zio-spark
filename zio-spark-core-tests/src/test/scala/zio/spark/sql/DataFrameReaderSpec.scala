@@ -27,7 +27,7 @@ object DataFrameReaderSpec extends SharedZIOSparkSpecDefault {
         val options           = Map("a" -> "x", "b" -> "y")
         val readerWithOptions = reader.options(options)
 
-        assertTrue(readerWithOptions.options == options)
+        assert(readerWithOptions.options)(equalTo(options))
       }
     )
 
