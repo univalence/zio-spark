@@ -2,8 +2,8 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{ColumnName, Encoders}
 
-import zio.Trace
-import zio.spark.rdd.{RDD, RDDConversionOps}
+import zio._
+import zio.spark.rdd._
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
@@ -93,7 +93,7 @@ object implicits extends LowPrioritySQLImplicits {
   }
 
   implicit class seqRddHolderOps[T: ClassTag](seq: Seq[T]) {
-    def toRDD(implicit trace: Trace): SIO[RDD[T]] = zio.spark.sql.fromSpark(_.sparkContext.makeRDD(seq).zioSpark).orDie
+    def toRDD(implicit trace: Trace): SIO[RDD[T]] = ZIO.serviceWith[SparkSession](_.sparkContext.makeRDD(seq))
   }
 
 }
