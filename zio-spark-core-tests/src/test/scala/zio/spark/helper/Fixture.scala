@@ -12,9 +12,9 @@ object Fixture {
 
   def readCsv(path: String): SIO[DataFrame] = SparkSession.read.inferSchema.withHeader.withDelimiter(";").csv(path)
 
-  val resourcesPath: String = "zio-spark-core/src/test/resources"
+  val resourcesPath: String = "zio-spark-core-tests/src/test/resources"
 
-  val targetsPath: String = "zio-spark-core/target/test"
+  val targetsPath: String = "zio-spark-core-tests/target/test"
 
   val read: SIO[DataFrame] = readCsv(s"$resourcesPath/data-csv")
 

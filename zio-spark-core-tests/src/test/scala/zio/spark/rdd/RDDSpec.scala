@@ -2,11 +2,13 @@ package zio.spark.rdd
 
 import zio.spark.helper.Fixture.readRDD
 import zio.spark.sql._
+import zio.spark.test._
 import zio.test._
 
-object RDDSpec {
+object RDDSpec extends SharedZIOSparkSpecDefault {
+
   def rddActionsSpec: Spec[SparkSession, Any] =
-    suite("RDD Actions")(
+    suite("RDD actions")(
       test("RDD should implement count correctly") {
         for {
           df     <- readRDD
@@ -22,7 +24,7 @@ object RDDSpec {
     )
 
   def rddTransformationsSpec: Spec[SparkSession, Any] =
-    suite("RDD Transformations")(
+    suite("RDD transformations")(
       test("RDD should implement map correctly") {
         for {
           df <- readRDD
@@ -30,5 +32,11 @@ object RDDSpec {
           output <- transformedDf.collect
         } yield assertTrue(output.headOption.contains(93))
       }
+    )
+
+  override def spec: Spec[SparkSession, Any] =
+    suite("RDD tests")(
+      rddActionsSpec,
+      rddTransformationsSpec
     )
 }

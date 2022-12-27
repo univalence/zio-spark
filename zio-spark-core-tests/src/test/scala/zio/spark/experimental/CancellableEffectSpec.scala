@@ -8,11 +8,12 @@ import scala3encoders.given // scalafix:ok
 import zio.{durationInt, durationLong, Chunk, Ref, UIO, Unsafe, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion.equalTo
 import zio.test.TestAspect.{timeout, withLiveClock}
 
-object CancellableEffectSpec {
+object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
 
   def listenSparkEvents[R, E, A](zio: ZIO[R, E, A]): ZIO[R with SparkSession, E, (Seq[SparkListenerEvent], A)] =
@@ -41,7 +42,7 @@ object CancellableEffectSpec {
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
 
-  def spec: Spec[Annotations with Live with SparkSession, Throwable] =
+  def spec =
     suite("Test cancellable spark jobs")(
       test("Cancellable jobs should have a specific group Id") {
         CancellableEffect.makeItCancellable(getJobGroup).map(x => assertTrue(x.startsWith("cancellable-group")))

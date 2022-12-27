@@ -111,8 +111,6 @@ lazy val core =
       scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._1,
       scalaMinorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-test"     % zio % Test,
-        "dev.zio" %% "zio-test-sbt" % zio % Test,
         "dev.zio" %% "zio"          % zio,
         "dev.zio" %% "zio-streams"  % zio,
         "dev.zio" %% "zio-prelude"  % zioPrelude
@@ -121,6 +119,23 @@ lazy val core =
       Defaults.itSettings
     )
     .enablePlugins(ZioSparkCodegenPlugin)
+
+lazy val coreTests =
+  (project in file("zio-spark-core-tests"))
+    .settings(crossScalaVersionSettings)
+    .settings(commonSettings)
+    .settings(noPublishingSettings)
+    .settings(
+      name := "zio-spark-tests",
+      scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._1,
+      scalaMinorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio" % zio,
+        "dev.zio" %% "zio-test" % zio % Test,
+        "dev.zio" %% "zio-test-sbt" % zio % Test,
+      ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
+    )
+    .dependsOn(core, test)
 
 lazy val test =
   (project in file("zio-spark-test"))
@@ -141,18 +156,7 @@ lazy val test =
 def example(project: Project): Project =
   project
     .dependsOn(core)
-    // run is forcing the exit of sbt. It could be useful to set fork to true
-    /* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the
-     * project root (./) */
-    /* which lead to errors, eg. Path does not exist:
-     * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
-    .settings(
-      fork           := false,
-      publish / skip := true,
-      // Don't generate documentation for the examples
-      Compile / doc / sources := Seq.empty,
-      Compile / packageDoc / publishArtifact := false
-    )
+    .settings(noPublishingSettings)
 
 lazy val exampleSimpleApp              = (project in file("examples/simple-app")).configure(example)
 lazy val exampleSparkCodeMigration     = (project in file("examples/spark-code-migration")).configure(example)
@@ -298,4 +302,17 @@ lazy val commonSettings = Seq(
   scalaVersion := scala213,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ~= fatalWarningsAsProperties,
+)
+
+// run is forcing the exit of sbt. It could be useful to set fork to true
+/* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the
+ * project root (./) */
+/* which lead to errors, eg. Path does not exist:
+ * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
+lazy val noPublishingSettings = Seq(
+  fork := false,
+  publish / skip := true,
+  // Don't generate documentation for the examples
+  Compile / doc / sources := Seq.empty,
+  Compile / packageDoc / publishArtifact := false
 )

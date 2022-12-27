@@ -5,10 +5,11 @@ import scala3encoders.given // scalafix:ok
 import zio.durationInt
 import zio.spark.sql._
 import zio.spark.sql.implicits._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion._
 
-object DataStreamWriterSpec {
+object DataStreamWriterSpec extends SharedZIOSparkSpecDefault {
   val writerEffect: SIO[DataStreamWriter[Int]] = Seq(1).toDataset.map(_.writeStream)
 
   def testOption(
@@ -26,8 +27,8 @@ object DataStreamWriterSpec {
       } yield assert(writerWithOptions.options)(equalTo(options))
     }
 
-  def dataStreamReaderConfigurationsSpec: Spec[SparkSession with Live, Any] =
-    suite("DataStreamWriter Configurations")(
+  override def spec =
+    suite("DataStreamWriter configurations")(
       test("DataStreamWriter should apply options correctly") {
         val options = Map("a" -> "x", "b" -> "y")
 
