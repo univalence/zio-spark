@@ -1,5 +1,7 @@
 package zio.spark
 
+import scala3encoders.given // scalafix:ok
+
 import zio.Trace
 import zio.spark.parameter._
 import zio.spark.sql.{Dataset => DS, _}
