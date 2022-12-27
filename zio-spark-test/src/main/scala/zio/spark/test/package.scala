@@ -1,7 +1,7 @@
 package zio.spark
 
 import org.apache.spark.sql.Encoder
-import scala3encoders.given
+
 import zio.Trace
 import zio.spark.parameter._
 import zio.spark.rdd.RDD

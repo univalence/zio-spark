@@ -16,8 +16,8 @@ object ZIOSparkSpecDefaultSpec extends ZIOSparkSpecDefault {
       },
       test("It can run RDD job") {
         for {
-          df <- RDD(1, 2, 3)
-          count <- df.count
+          rdd   <- RDD(1, 2, 3)
+          count <- rdd.count
         } yield assertTrue(count == 3L)
       }
     )
