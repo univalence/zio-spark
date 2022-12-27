@@ -4,10 +4,10 @@ import org.apache.spark.sql.Row
 
 import zio.Task
 import zio.spark.helper.Fixture._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
-import zio.spark.test._
 
 object ExtraDatasetFeatureTest extends SharedZIOSparkSpecDefault {
   import scala3encoders.given // scalafix:ok
@@ -15,7 +15,7 @@ object ExtraDatasetFeatureTest extends SharedZIOSparkSpecDefault {
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
   import zio.spark.sql.implicits._
 
-  def spec = suite("ExtraDatasetFeatureTest tests")(dataFrameActionsSpec)
+  def spec: Spec[SparkSession,Any] = suite("ExtraDatasetFeatureTest tests")(dataFrameActionsSpec)
 
   def dataFrameActionsSpec: Spec[SparkSession, Any] =
     suite("ExtraDatatasetFeature actions")(

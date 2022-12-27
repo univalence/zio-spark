@@ -5,9 +5,9 @@ import scala3encoders.given // scalafix:ok
 import zio.durationInt
 import zio.spark.sql._
 import zio.spark.sql.implicits._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion._
-import zio.spark.test._
 
 object DataStreamWriterSpec extends SharedZIOSparkSpecDefault {
   val writerEffect: SIO[DataStreamWriter[Int]] = Seq(1).toDataset.map(_.writeStream)

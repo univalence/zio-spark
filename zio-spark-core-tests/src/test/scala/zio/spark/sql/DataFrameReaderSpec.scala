@@ -1,25 +1,24 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
-import scala3encoders.given
+
 import zio.spark.helper.Fixture._
 import zio.spark.sql.DataFrameReader.WithoutSchema
 import zio.spark.sql.implicits._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
-import zio.spark.test._
 
 object DataFrameReaderSpec extends SharedZIOSparkSpecDefault {
   val reader: DataFrameReader[WithoutSchema] = SparkSession.read
 
-  def spec = {
+  def spec: Spec[SparkSession,Throwable] =
     suite("DataFrameReader tests")(
       dataFrameReaderOptionsSpec,
       dataFrameReaderOptionDefinitionsSpec,
-      dataFrameReaderReadingSpec,
+      dataFrameReaderReadingSpec
     )
-  }
 
   def dataFrameReaderOptionsSpec: Spec[Any, Nothing] =
     suite("DataFrameReader Options")(

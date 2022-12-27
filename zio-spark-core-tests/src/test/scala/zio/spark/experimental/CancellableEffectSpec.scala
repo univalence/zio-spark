@@ -8,10 +8,10 @@ import scala3encoders.given // scalafix:ok
 import zio.{durationInt, durationLong, Chunk, Ref, UIO, Unsafe, ZIO}
 import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion.equalTo
 import zio.test.TestAspect.{timeout, withLiveClock}
-import zio.spark.test._
 
 object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))

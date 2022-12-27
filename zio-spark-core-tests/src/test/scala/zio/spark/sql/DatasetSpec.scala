@@ -2,12 +2,13 @@ package zio.spark.sql
 
 import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.storage.StorageLevel
+
 import zio._
 import zio.spark.helper.Fixture._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
-import zio.spark.test._
 
 import scala.util.Try
 
@@ -334,13 +335,13 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
       }
     )
 
-  override def spec =
+  override def spec: Spec[SparkSession,Any] =
     suite("Dataset tests")(
       datasetActionsSpec,
       datasetTransformationsSpec,
       sqlSpec,
       persistencySpec,
       errorSpec,
-      fromSparkSpec,
+      fromSparkSpec
     )
 }

@@ -6,9 +6,9 @@ import zio.spark.helper.Fixture.{resourcesPath, Person}
 import zio.spark.parameter.append
 import zio.spark.sql._
 import zio.spark.sql.implicits._
+import zio.spark.test._
 import zio.test._
 import zio.test.Assertion._
-import zio.spark.test._
 
 object StreamingSpec extends SharedZIOSparkSpecDefault {
 
@@ -32,7 +32,7 @@ object StreamingSpec extends SharedZIOSparkSpecDefault {
       } yield assert(res)(equalTo(4L))
     }
 
- override def spec =
+  override def spec: Spec[SparkSession,Throwable] =
     suite("Streaming spec")(
       testStreamingPipeline(
         name          = "csv",

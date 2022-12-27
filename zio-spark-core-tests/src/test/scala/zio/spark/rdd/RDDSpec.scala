@@ -1,10 +1,9 @@
 package zio.spark.rdd
 
-import zio.Scope
 import zio.spark.helper.Fixture.readRDD
 import zio.spark.sql._
-import zio.test._
 import zio.spark.test._
+import zio.test._
 
 object RDDSpec extends SharedZIOSparkSpecDefault {
 
@@ -35,8 +34,9 @@ object RDDSpec extends SharedZIOSparkSpecDefault {
       }
     )
 
-  override def spec = suite("RDD tests")(
-    rddActionsSpec,
-    rddTransformationsSpec
-  )
+  override def spec: Spec[SparkSession,Any] =
+    suite("RDD tests")(
+      rddActionsSpec,
+      rddTransformationsSpec
+    )
 }

@@ -1,11 +1,12 @@
 package zio.spark.sql
 
 import scala3encoders.given // scalafix:ok
+
 import zio.spark.helper.Fixture._
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 import zio.spark.sql.implicits._
-import zio.test._
 import zio.spark.test._
+import zio.test._
 
 object RelationalGroupedDatasetSpec extends SharedZIOSparkSpecDefault {
   final case class AggregatePerson(status: String, age: Double)
@@ -40,7 +41,7 @@ object RelationalGroupedDatasetSpec extends SharedZIOSparkSpecDefault {
         Test(
           aggregation = "max",
           f           = col => _.max(col),
-            expected    = Map("teacher" -> 46.0, "student" -> 93.0)
+          expected    = Map("teacher" -> 46.0, "student" -> 93.0)
         ),
         Test(
           aggregation = "min",
@@ -57,5 +58,5 @@ object RelationalGroupedDatasetSpec extends SharedZIOSparkSpecDefault {
     suite("RelationalGroupedDataset Aggregation")(tests.map(_.build): _*)
   }
 
-  override def spec = relationalGroupedDatasetAggregationSpec
+  override def spec: Spec[SparkSession,Any] = relationalGroupedDatasetAggregationSpec
 }

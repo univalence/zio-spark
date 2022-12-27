@@ -5,11 +5,11 @@ import org.apache.spark.sql.{Row, SaveMode}
 
 import zio._
 import zio.spark.helper.Fixture._
+import zio.spark.test._
 import zio.stream.{ZSink, ZStream}
 import zio.test._
 import zio.test.Assertion.equalTo
 import zio.test.TestAspect._
-import zio.spark.test._
 
 import java.nio.file.{Files, Paths}
 
@@ -182,9 +182,10 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
     suite("DataFrameWriter Option Definitions")(tests: _*)
   }
 
-  override def spec = suite("DataFrameWriter tests")(
-    dataFrameWriterBuilderSpec,
-    dataFrameWriterSavingSpec,
-    dataFrameWriterOptionDefinitionsSpec,
-  )
+  override def spec: Spec[Live with SparkSession with Annotations,Any] =
+    suite("DataFrameWriter tests")(
+      dataFrameWriterBuilderSpec,
+      dataFrameWriterSavingSpec,
+      dataFrameWriterOptionDefinitionsSpec
+    )
 }
