@@ -29,7 +29,7 @@ object StreamingSpec extends SharedZIOSparkSpecDefault {
             .test
         memoryDf <- SparkSession.read.table(tableName)
         res      <- memoryDf.count
-      } yield assert(res)(equalTo(4L))
+      } yield assertTrue(res == 4L)
     }
 
   override def spec: Spec[SparkSession, Throwable] =
@@ -62,7 +62,7 @@ object StreamingSpec extends SharedZIOSparkSpecDefault {
               .run
           memoryDf <- SparkSession.read.table("testTxt")
           res      <- memoryDf.count
-        } yield assert(res)(equalTo(4L))
+        } yield assertTrue(res == 4L)
       }
     )
 }

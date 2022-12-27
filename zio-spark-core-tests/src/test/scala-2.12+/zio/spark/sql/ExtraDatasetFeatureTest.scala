@@ -23,24 +23,24 @@ object ExtraDatasetFeatureTest extends SharedZIOSparkSpecDefault {
         val process: DataFrame => Dataset[String]       = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[Seq[String]] = _.takeRight(2)
 
-        read.map(process).flatMap(write).map(assert(_)(equalTo(Seq("Peter", "Cassandra"))))
+        read.map(process).flatMap(write).map(output => assertTrue(output == Seq("Peter", "Cassandra")))
       },
       test("ExtraDatatasetFeature should implement tail/last correctly") {
         val process: DataFrame => Dataset[String]  = _.as[Person].map(_.name)
         val write: Dataset[String] => Task[String] = _.last
 
-        read.map(process).flatMap(write).map(assert(_)(equalTo("Cassandra")))
+        read.map(process).flatMap(write).map(output => assertTrue(output == "Cassandra"))
       },
       test("ExtraDatatasetFeature should implement tailOption/lastOption correctly") {
         val write: DataFrame => Task[Option[Row]] = _.lastOption
 
-        readEmpty.flatMap(write).map(assert(_)(isNone))
+        readEmpty.flatMap(write).map(output => assertTrue(output.isEmpty))
       },
       test("ExtraDatatasetFeature should implement summary correctly") {
         val process: DataFrame => DataFrame    = _.summary(Statistics.Count, Statistics.Max)
         val write: DataFrame => Task[Seq[Row]] = _.collect
 
-        read.map(process).flatMap(write).map(res => assert(res)(hasSize(equalTo(2))))
+        read.map(process).flatMap(write).map(res => assertTrue(res.length == 2))
       },
       test("Dataset should implement explain correctly") {
         for {

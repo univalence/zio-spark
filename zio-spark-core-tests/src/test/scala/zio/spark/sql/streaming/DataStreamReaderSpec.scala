@@ -43,7 +43,7 @@ object DataStreamReaderSpec extends ZIOSpecDefault {
           val readerWithOptions = endo(reader)
           val options           = Map(expectedKey -> expectedValue)
 
-          assert(readerWithOptions.options)(equalTo(options))
+          assertTrue(readerWithOptions.options == options)
         }
     }
 

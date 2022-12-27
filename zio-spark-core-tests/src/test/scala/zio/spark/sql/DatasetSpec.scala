@@ -143,7 +143,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
         val process: DataFrame => DataFrame = _.limit(2)
         val write: DataFrame => Task[Long]  = _.count
 
-        read.map(process).flatMap(write).map(assert(_)(equalTo(2L)))
+        read.map(process).flatMap(write).map(output => assertTrue(output == 2L))
       },
       test("Dataset should implement as correctly") {
         val process: DataFrame => Dataset[Person]  = _.as[Person]
@@ -186,7 +186,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
         val process: DataFrame => Dataset[Person]  = _.as[Person].where(_.name == "Peter")
         val write: Dataset[Person] => Task[Person] = _.head
 
-        read.map(process).flatMap(write).map(res => assert(res.name)(equalTo("Peter")))
+        read.map(process).flatMap(write).map(res => assertTrue(res.name == "Peter"))
       },
       test("Dataset should implement filter/where correctly using sql") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
@@ -194,7 +194,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
         val process: DataFrame => Dataset[Person]  = _.as[Person].where("name == 'Peter'")
         val write: Dataset[Person] => Task[Person] = _.head
 
-        read.map(process).flatMap(write).map(res => assert(res.name)(equalTo("Peter")))
+        read.map(process).flatMap(write).map(res => assertTrue(res.name == "Peter"))
       },
       test("Dataset should implement filter/where correctly using column expression") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
@@ -202,7 +202,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
         val process: DataFrame => Dataset[Person]  = _.as[Person].where($"name" === "Peter")
         val write: Dataset[Person] => Task[Person] = _.head
 
-        read.map(process).flatMap(write).map(res => assert(res.name)(equalTo("Peter")))
+        read.map(process).flatMap(write).map(res => assertTrue(res.name == "Peter"))
       },
       test("Dataset should implement selectExpr correctly") {
         import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
@@ -210,7 +210,7 @@ object DatasetSpec extends SharedZIOSparkSpecDefault {
         val process: DataFrame => Dataset[String]  = _.selectExpr("name").as[String]
         val write: Dataset[String] => Task[String] = _.head
 
-        read.map(process).flatMap(write).map(res => assert(res)(equalTo("Maria")))
+        read.map(process).flatMap(write).map(res => assertTrue(res == "Maria"))
       },
       test("Dataset should implement drop using colname correctly") {
         for {

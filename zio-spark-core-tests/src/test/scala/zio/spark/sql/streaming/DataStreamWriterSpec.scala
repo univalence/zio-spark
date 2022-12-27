@@ -24,7 +24,7 @@ object DataStreamWriterSpec extends SharedZIOSparkSpecDefault {
       for {
         writer <- writerEffect
         writerWithOptions = endo(writer)
-      } yield assert(writerWithOptions.options)(equalTo(options))
+      } yield assertTrue(writerWithOptions.options == options)
     }
 
   override def spec =
@@ -35,25 +35,25 @@ object DataStreamWriterSpec extends SharedZIOSparkSpecDefault {
         for {
           writer <- writerEffect
           writerWithOptions = writer.options(options)
-        } yield assert(writerWithOptions.options)(equalTo(options))
+        } yield assertTrue(writerWithOptions.options == options)
       },
       test("DataStreamWriter should apply processing trigger correctly") {
         for {
           writer <- writerEffect
           writerWithOptions = writer.triggerEvery(1.seconds)
-        } yield assert(writerWithOptions.trigger.toString)(containsString("1000"))
+        } yield assertTrue(writerWithOptions.trigger.toString.contains("1000"))
       },
       test("DataStreamWriter should apply continuous trigger correctly") {
         for {
           writer <- writerEffect
           writerWithOptions = writer.continuouslyWithCheckpointEvery(1.seconds)
-        } yield assert(writerWithOptions.trigger.toString)(containsString("1000"))
+        } yield assertTrue(writerWithOptions.trigger.toString.contains("1000"))
       },
       test("DataStreamWriter should apply partitionColumns correctly") {
         for {
           writer <- writerEffect
           writerWithOptions = writer.partitionBy("test")
-        } yield assert(writerWithOptions.partitioningColumns)(isSome(equalTo(Seq("test"))))
+        } yield assertTrue(writerWithOptions.partitioningColumns.get == Seq("test"))
       },
       testOption(
         testName      = "Any option with a boolean value",
