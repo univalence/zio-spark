@@ -13,10 +13,10 @@ object implicits {
   }
 
   extension [T: Encoder](seq: Seq[T]) {
-    def toDataset(implicit trace: Trace): URIO[SparkSession, Dataset[T]] =
+    def toDataset(implicit trace: Trace): SIO[Dataset[T]] =
       zio.spark.sql.fromSpark(ss => ss.implicits.localSeqToDatasetHolder(seq).toDS().zioSpark).orDie
 
-    def toDS(implicit trace: Trace): URIO[SparkSession, Dataset[T]] = toDataset
+    def toDS(implicit trace: Trace):  SIO[Dataset[T]] = toDataset
   }
 
   extension [T: ClassTag](seq: Seq[T]) {

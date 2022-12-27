@@ -7,6 +7,8 @@ import zio.spark.parameter._
 import zio.spark.sql.{Dataset => DS, _}
 import zio.spark.sql.implicits._
 
+import org.apache.spark.sql.Encoder
+
 package object test {
   val defaultSparkSession: SparkSession.Builder =
     SparkSession.builder

@@ -2,6 +2,8 @@ package zio.spark.test
 
 import zio.spark.sql.implicits._
 import zio.test._
+import scala3encoders.given // scalafix:ok
+
 
 object ZIOSparkSpecDefaultSpec extends ZIOSparkSpecDefault {
   override def sparkSpec =
@@ -10,7 +12,7 @@ object ZIOSparkSpecDefaultSpec extends ZIOSparkSpecDefault {
         for {
           df    <- Dataset(1, 2, 3)
           count <- df.count
-        } yield assertTrue(count == 3)
+        } yield assertTrue(count == 3L)
       }
     )
 }
