@@ -7,7 +7,7 @@ import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
-import zio.test.Assertion._
+import zio.test.Assertion.{containsString, equalTo}
 
 object DataStreamWriterSpec extends SharedZIOSparkSpecDefault {
   val writerEffect: SIO[DataStreamWriter[Int]] = Seq(1).toDataset.map(_.writeStream)
@@ -53,7 +53,7 @@ object DataStreamWriterSpec extends SharedZIOSparkSpecDefault {
         for {
           writer <- writerEffect
           writerWithOptions = writer.partitionBy("test")
-        } yield assert(writerWithOptions.partitioningColumns)(isSome(equalTo(Seq("test"))))
+        } yield assertTrue(writerWithOptions.partitioningColumns == Some(Seq("test")))
       },
       testOption(
         testName      = "Any option with a boolean value",

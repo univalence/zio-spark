@@ -8,7 +8,6 @@ import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
-import zio.test.Assertion._
 
 object StreamingSpec extends SharedZIOSparkSpecDefault {
 
@@ -29,7 +28,7 @@ object StreamingSpec extends SharedZIOSparkSpecDefault {
             .test
         memoryDf <- SparkSession.read.table(tableName)
         res      <- memoryDf.count
-      } yield assert(res)(equalTo(4L))
+      } yield assertTrue(res == 4L)
     }
 
   override def spec: Spec[SparkSession, Throwable] =
@@ -62,7 +61,7 @@ object StreamingSpec extends SharedZIOSparkSpecDefault {
               .run
           memoryDf <- SparkSession.read.table("testTxt")
           res      <- memoryDf.count
-        } yield assert(res)(equalTo(4L))
+        } yield assertTrue(res == 4L)
       }
     )
 }

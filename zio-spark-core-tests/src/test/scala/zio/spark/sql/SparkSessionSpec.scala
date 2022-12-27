@@ -4,7 +4,6 @@ import org.apache.spark.SparkConf
 
 import zio.spark.parameter._
 import zio.test._
-import zio.test.Assertion._
 
 object SparkSessionSpec extends ZIOSpecDefault {
   def spec: Spec[Annotations with Live, TestFailure[Any]] = sparkSessionOptionsSpec + sparkSessionDefinitionsSpec
@@ -15,19 +14,19 @@ object SparkSessionSpec extends ZIOSpecDefault {
         val expected                = Map("a" -> "x", "b" -> "y")
         val sparkSessionWithConfigs = SparkSession.builder.configs(expected)
 
-        assert(sparkSessionWithConfigs.extraConfigs)(equalTo(expected))
+        assertTrue(sparkSessionWithConfigs.extraConfigs == expected)
       },
       test("SparkSession Builder should enable hive support correctly") {
         val sparkSessionWithConfigs = SparkSession.builder.enableHiveSupport
 
-        assert(sparkSessionWithConfigs.hiveSupport)(equalTo(true))
+        assertTrue(sparkSessionWithConfigs.hiveSupport)
       },
       test("SparkSession Builder should read spark configuration") {
         val expected                = Map("spark.app.name" -> "test")
         val conf                    = new SparkConf().setAppName("test")
         val sparkSessionWithConfigs = SparkSession.builder.config(conf)
 
-        assert(sparkSessionWithConfigs.extraConfigs)(equalTo(expected))
+        assertTrue(sparkSessionWithConfigs.extraConfigs == expected)
       }
     )
 
@@ -57,7 +56,7 @@ object SparkSessionSpec extends ZIOSpecDefault {
             val sparkSessionWithConfigs = conftest.f(SparkSession.builder)
             val configs                 = Map(conftest.keyOutput -> conftest.valueOutput)
 
-            assert(sparkSessionWithConfigs.extraConfigs)(equalTo(configs))
+            assertTrue(sparkSessionWithConfigs.extraConfigs == configs)
           }
         )
 

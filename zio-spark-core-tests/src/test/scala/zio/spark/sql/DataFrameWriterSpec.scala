@@ -8,7 +8,7 @@ import zio.spark.helper.Fixture._
 import zio.spark.test._
 import zio.stream.{ZSink, ZStream}
 import zio.test._
-import zio.test.Assertion.equalTo
+import zio.test.Assertion._
 import zio.test.TestAspect._
 
 import java.nio.file.{Files, Paths}
@@ -47,7 +47,7 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
               .run(ZSink.collectAll)
               .map(_.exists(_.getFileName.toString.startsWith(s"$partitionCol=")))
           _ <- deleteGeneratedFolder(path)
-        } yield assert(writer.partitioningColumns)(equalTo(Seq(partitionCol))) && assert(isPartitioned)(equalTo(true))
+        } yield assertTrue(writer.partitioningColumns == Seq(partitionCol), isPartitioned)
       }
     )
 
@@ -61,7 +61,7 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
           df     <- readAgain(path)
           output <- df.count
           _      <- deleteGeneratedFolder(path)
-        } yield assert(output)(equalTo(4L))
+        } yield assertTrue(output == 4L)
 
       }
 
@@ -163,19 +163,19 @@ object DataFrameWriterSpec extends SharedZIOSparkSpecDefault {
             _         <- df.write.copy(mode = SaveMode.Overwrite).saveAsTable(tableName)
             loadDf    <- SparkSession.read.table(tableName)
             assertion <- df.except(loadDf).isEmpty
-          } yield assert(assertion)(equalTo(true))
+          } yield assertTrue(assertion)
         } @@ withLiveRandom,
         test("DataFrameWriter can insert a df into a table") {
           for {
             df   <- read
             uuid <- Random.nextUUID
             tableName = s"insert_into_test_$uuid".replace("-", "_")
-            count     <- df.count
-            _         <- df.write.copy(mode = SaveMode.Overwrite).saveAsTable(tableName)
-            _         <- df.write.insertInto(tableName)
-            loadDf    <- SparkSession.read.table(tableName)
-            loadCount <- loadDf.count
-          } yield assert(loadCount)(equalTo(count * 2))
+            count  <- df.count
+            _      <- df.write.copy(mode = SaveMode.Overwrite).saveAsTable(tableName)
+            _      <- df.write.insertInto(tableName)
+            loadDf <- SparkSession.read.table(tableName)
+            output <- loadDf.count
+          } yield assertTrue(output == count * 2)
         } @@ withLiveRandom
       )
 

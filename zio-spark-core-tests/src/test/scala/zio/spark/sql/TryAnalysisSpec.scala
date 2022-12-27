@@ -1,7 +1,8 @@
 package zio.spark.sql
 
 import zio.test._
-import zio.test.Assertion._
+
+import scala.util.Success
 
 object TryAnalysisSpec extends ZIOSpecDefault {
   val tryAnalysis: TryAnalysis[Int] = TryAnalysis(10)
@@ -9,13 +10,13 @@ object TryAnalysisSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment, Any] =
     suite("TryAnalysis test")(
       test("TryAnalysis can be converted to Either") {
-        assert(tryAnalysis.toEither)(isRight(equalTo(10)))
+        assertTrue(tryAnalysis.toEither == Right(10))
       },
       test("TryAnalysis can be converted to Try") {
-        assert(tryAnalysis.toTry)(isSuccess(equalTo(10)))
+        assertTrue(tryAnalysis.toTry == Success(10))
       },
       test("TryAnalysis can be recovered") {
-        assert(tryAnalysis.recover(_ => -1))(equalTo(10))
+        assertTrue(tryAnalysis.recover(_ => -1) == 10)
       }
     )
 }

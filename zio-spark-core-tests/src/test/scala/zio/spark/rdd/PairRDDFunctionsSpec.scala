@@ -7,7 +7,6 @@ import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
-import zio.test.Assertion._
 
 object PairRDDFunctionsSpec extends SharedZIOSparkSpecDefault {
   def spec: Spec[SparkSession, Throwable] =
@@ -18,7 +17,7 @@ object PairRDDFunctionsSpec extends SharedZIOSparkSpecDefault {
 
         val job = readLorem.map(transformation).flatMap(_.count)
 
-        job.map(assert(_)(equalTo(67L)))
+        job.map(output => assertTrue(output == 67L))
       }
     )
 }
