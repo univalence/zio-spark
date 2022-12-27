@@ -1,5 +1,7 @@
 package zio.spark.sql
 
+import scala3encoders.given // scalafix:ok
+
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 
 import zio.spark.helper.Fixture._
