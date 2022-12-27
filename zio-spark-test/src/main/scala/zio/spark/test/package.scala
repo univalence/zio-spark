@@ -1,13 +1,12 @@
 package zio.spark
 
+import org.apache.spark.sql.Encoder
 import scala3encoders.given // scalafix:ok
 
 import zio.Trace
 import zio.spark.parameter._
 import zio.spark.sql.{Dataset => DS, _}
 import zio.spark.sql.implicits._
-
-import org.apache.spark.sql.Encoder
 
 package object test {
   val defaultSparkSession: SparkSession.Builder =

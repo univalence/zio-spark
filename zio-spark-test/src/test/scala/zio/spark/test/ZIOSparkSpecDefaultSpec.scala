@@ -1,9 +1,9 @@
 package zio.spark.test
 
-import zio.spark.sql.implicits._
-import zio.test._
 import scala3encoders.given // scalafix:ok
 
+import zio.spark.sql.implicits._
+import zio.test._
 
 object ZIOSparkSpecDefaultSpec extends ZIOSparkSpecDefault {
   override def sparkSpec =
