@@ -8,7 +8,6 @@ import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
-import zio.test.Assertion._
 
 object StreamingSpec extends SharedZIOSparkSpecDefault {
 

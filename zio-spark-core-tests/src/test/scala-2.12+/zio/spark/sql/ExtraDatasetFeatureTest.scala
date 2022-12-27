@@ -6,7 +6,6 @@ import zio.Task
 import zio.spark.helper.Fixture._
 import zio.spark.test._
 import zio.test._
-import zio.test.Assertion._
 import zio.test.TestAspect._
 
 object ExtraDatasetFeatureTest extends SharedZIOSparkSpecDefault {
