@@ -133,6 +133,7 @@ jobs:
       max-parallel: 1
       matrix:
         scala: [ "2.11.12", "2.12.17", "2.13.8", "3.2.0" ]
+        project: [ "core", "test" ]
     needs: [check, test-core, test-test, check-codegen, test-codegen]
     if: github.event_name != 'pull_request'
     steps:
@@ -144,8 +145,8 @@ jobs:
         uses: olafurpg/setup-scala@v13
       - name: Download sources
         run: sbt ++${{ matrix.scala }}! "project core" updateClassifiers
-      - name: Publish the library
-        run: sbt ++${{ matrix.scala }}! "project core" ci-release
+      - name: Publish the libraries
+        run: sbt ++${{ matrix.scala }}! "project ${{ matrix.project }}" ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
