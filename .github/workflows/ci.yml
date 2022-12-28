@@ -69,7 +69,7 @@ jobs:
         uses: coursier/cache-action@v6
       - name: Run tests
         if: ${{ !startsWith(matrix.scala, '2.13.') && matrix.project == 'coreTests' }}
-        run: sbt ++${{ matrix.scala }}! "project ${{ matrix.scala }}" testSpecific
+        run: sbt ++${{ matrix.scala }}! "project ${{ matrix.project }}" testSpecific
       - name: Run tests 2.13.X with coverage
         if: ${{ startsWith(matrix.scala, '2.13.') && matrix.project == 'coreTests' }}
         run: sbt ++${{ matrix.scala }}! "project coreTests" testSpecificWithCoverage
