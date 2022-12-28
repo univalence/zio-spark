@@ -55,39 +55,14 @@ jobs:
         working-directory: website
         run: npm run build
 
-  test-core:
+  test:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         scala: ["2.11.12", "2.12.17", "2.13.8", "3.2.0"]
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v2.4.0
-      - name: Setup Scala and Java
-        uses: olafurpg/setup-scala@v13
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v6
-      - name: Download sources
-        run: sbt ++${{ matrix.scala }}! "project coreTests" updateClassifiers
-      - name: Run tests 2.11.X and 2.12.X without coverage
-        if: ${{ !startsWith(matrix.scala, '2.13.') }}
-        run: sbt ++${{ matrix.scala }}! "project coreTests" testSpecific
-      - name: Run tests 2.13.X with coverage
-        if: ${{ startsWith(matrix.scala, '2.13.') }}
-        run: sbt ++${{ matrix.scala }}! "project coreTests" testSpecificWithCoverage
-      - name: Publish coverage to codecov
-        if: ${{ startsWith(matrix.scala, '2.13.') }}
-        uses: codecov/codecov-action@v2
-
-  test-test:
-    runs-on: ubuntu-20.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        scala: ["2.11.12", "2.12.17", "2.13.8", "3.2.0"]
+        project: [ "coreTests", "test" ]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v2.4.0
@@ -96,7 +71,14 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v6
       - name: Run tests
-        run: sbt ++${{ matrix.scala }}! "project test" testSpecific
+        if: ${{ !startsWith(matrix.scala, '2.13.') || matrix.project != 'coreTests' }}
+        run: sbt ++${{ matrix.scala }}! "project ${{ matrix.project }}" testSpecific
+      - name: Run tests 2.13.X with coverage
+        if: ${{ startsWith(matrix.scala, '2.13.') && matrix.project == 'coreTests' }}
+        run: sbt ++${{ matrix.scala }}! "project coreTests" testSpecificWithCoverage
+      - name: Publish coverage to codecov
+        if: ${{ startsWith(matrix.scala, '2.13.') && matrix.project == 'coreTests' }}
+        uses: codecov/codecov-action@v2
 
   check-codegen:
     runs-on: ubuntu-latest
@@ -130,11 +112,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 1
-      matrix:
-        scala: [ "2.11.12", "2.12.17", "2.13.8", "3.2.0" ]
-        project: [ "core", "test" ]
-    needs: [check, test-core, test-test, check-codegen, test-codegen]
+    needs: [check, test, check-codegen, test-codegen]
     if: github.event_name != 'pull_request'
     steps:
       - name: Checkout current branch
@@ -143,10 +121,8 @@ jobs:
           fetch-depth: 0
       - name: Setup Scala and Java
         uses: olafurpg/setup-scala@v13
-      - name: Download sources
-        run: sbt ++${{ matrix.scala }}! "project core" updateClassifiers
       - name: Publish the libraries
-        run: sbt ++${{ matrix.scala }}! "project ${{ matrix.project }}" ci-release
+        run: sbt ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
