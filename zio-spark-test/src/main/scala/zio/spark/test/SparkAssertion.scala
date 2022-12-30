@@ -3,8 +3,8 @@ package zio.spark.test
 import zio.internal.ansi.AnsiStringOps
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.sql.{Dataset, SIO}
-import zio.test.{Assertion, TestArrow, TestResult}
 import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
+import zio.test.{Assertion, TestArrow, TestResult}
 
 /**
  * Todo: instruction is just the content of f as a string such as
@@ -32,8 +32,7 @@ object SparkAssertion {
     )
   }
 
-  def isEmpty[A]: SparkAssertion[Dataset[A], Boolean] =
-    SparkAssertion(_.isEmpty, Assertion.isTrue, "isEmpty")
+  def isEmpty[A]: SparkAssertion[Dataset[A], Boolean] = SparkAssertion(_.isEmpty, Assertion.isTrue, "isEmpty")
   def shouldExist[A](expr: String): SparkAssertion[Dataset[A], Boolean] =
     SparkAssertion(_.filter(expr).isEmpty, Assertion.isFalse, s"""filter("$expr").isEmpty""")
 
