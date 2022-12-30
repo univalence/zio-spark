@@ -141,6 +141,8 @@ lazy val test =
   (project in file("zio-spark-test"))
     .settings(crossScalaVersionSettings)
     .settings(commonSettings)
+    .settings(macroExpansionSettings)
+    .settings(macroDefinitionSettings)
     .settings(
       name := "zio-spark-test",
       scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._1,
@@ -315,4 +317,33 @@ lazy val noPublishingSettings = Seq(
   // Don't generate documentation for the examples
   Compile / doc / sources := Seq.empty,
   Compile / packageDoc / publishArtifact := false
+)
+
+def macroExpansionSettings = Seq(
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, 13)) => Seq("-Ymacro-annotations")
+      case _ => Seq.empty
+    }
+  },
+  libraryDependencies ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, x)) if x <= 12 =>
+        Seq(compilerPlugin(("org.scalamacros" % "paradise" % "2.1.1").cross(CrossVersion.full)))
+      case _ => Seq.empty
+    }
+  }
+)
+
+def macroDefinitionSettings = Seq(
+  scalacOptions += "-language:experimental.macros",
+  libraryDependencies ++= {
+    CrossVersion.partialVersion(scalaVersion.value).get._1 match {
+      case 3 => Seq.empty
+      case _ => Seq(
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
+        "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"
+      )
+    }
+  }
 )
