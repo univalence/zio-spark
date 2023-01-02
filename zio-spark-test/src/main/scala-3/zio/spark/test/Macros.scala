@@ -12,15 +12,24 @@ import zio.spark.test.SparkAssertion
 
 import scala.quoted._
 
-private[test] object Macros {
-
-  // Pilfered (with immense gratitude & minor modifications)
-  // from https://github.com/zio/zio/blob/series/2.x/test/shared/src/main/scala-3/zio/test/Macros.scala
-  def assert_impl[A, B](value: Expr[SIO[A]])(assertion: Expr[SparkAssertion[A, B]], trace: Expr[Trace], sourceLocation: Expr[SourceLocation])(using Quotes, Type[A], Type[B] ): Expr[SIO[TestResult]] = {
+// Pilfered (with immense gratitude & minor modifications)
+// from https://github.com/zio/zio/blob/series/2.x/test/shared/src/main/scala-3/zio/test/Macros.scala
+object Macros {
+  def assert_impl[A: Type, B: Type](value: Expr[SIO[A]])(assertion: Expr[SparkAssertion[A, B]], trace: Expr[Trace], sourceLocation: Expr[SourceLocation])(using Quotes): Expr[SIO[TestResult]] = {
     import quotes.reflect._
-    val code = showExpr(value)
-    val assertionCode = showExpr(assertion)
-    '{_root_.zio.spark.test.assertZIOSparkImpl($value, ${Expr(code)}, ${Expr(assertionCode)})($assertion)($trace, $sourceLocation)
+    val codeString = showExpr(value)
+    val assertionString = showExpr(assertion)
+    '{_root_.zio.spark.test.assertZIOSparkImpl($value, ${Expr(codeString)}, ${Expr(assertionString)})($assertion)($trace, $sourceLocation)
     }
+  }
+
+  def showExpr[A](expr: Expr[A])(using Quotes): String = {
+    import quotes.reflect._
+    expr.asTerm.pos.sourceCode.get
+  }
+
+  def showExpression_impl[A](value: Expr[A])(using Quotes): Expr[String] = {
+    import quotes.reflect._
+    Expr(showExpr(value))
   }
 }

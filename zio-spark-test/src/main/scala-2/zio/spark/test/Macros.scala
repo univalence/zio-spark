@@ -2,10 +2,9 @@ package zio.spark.test
 
 import scala.reflect.macros._
 
+// Pilfered (with immense gratitude & minor modifications)
+// from https://github.com/zio/zio/blob/series/2.x/test/shared/src/main/scala-2/zio/test/Macros.scala
 private[test] object Macros {
-
-  // Pilfered (with immense gratitude & minor modifications)
-  // from https://github.com/zio/zio/blob/series/2.x/test/shared/src/main/scala-2/zio/test/Macros.scala
   def assert_impl(c: blackbox.Context)(value: c.Tree)(assertion: c.Tree): c.Tree = {
     import c.universe._
 
