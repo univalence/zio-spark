@@ -7,7 +7,7 @@ import zio.internal.stacktracer.SourceLocation
 
 trait CompileVariants {
   inline def assertSpark[A, B](inline value: => A) (inline assertion: SparkAssertion[A, B])(implicit trace: Trace, sourceLocation: SourceLocation):SIO[TestResult] =
-  ${Macros.assertZIO_impl('value)('assertion, 'trace, 'sourceLocation)}
+  ${Macros.assert_impl('value)('assertion, 'trace, 'sourceLocation)}
 
   inline def assertZIOSpark[A, B](inline value: SIO[A])(inline assertion: SparkAssertion[A, B])(implicit trace: Trace, sourceLocation: SourceLocation): SIO[TestResult] =
     ${Macros.assertZIO_impl('value)('assertion, 'trace, 'sourceLocation)}
