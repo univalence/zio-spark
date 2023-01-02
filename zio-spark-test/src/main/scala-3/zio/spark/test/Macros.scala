@@ -19,17 +19,12 @@ object Macros {
     import quotes.reflect._
     val codeString = showExpr(value)
     val assertionString = showExpr(assertion)
-    '{_root_.zio.spark.test.assertZIOSparkImpl($value, ${Expr(codeString)}, ${Expr(assertionString)})($assertion)($trace, $sourceLocation)
+    '{_root_.zio.spark.test.CompileVariants.assertZIOSparkProxy($value, ${Expr(codeString)}, ${Expr(assertionString)})($assertion)($trace, $sourceLocation)
     }
   }
 
   def showExpr[A](expr: Expr[A])(using Quotes): String = {
     import quotes.reflect._
     expr.asTerm.pos.sourceCode.get
-  }
-
-  def showExpression_impl[A](value: Expr[A])(using Quotes): Expr[String] = {
-    import quotes.reflect._
-    Expr(showExpr(value))
   }
 }

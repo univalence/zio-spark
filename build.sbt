@@ -94,9 +94,9 @@ lazy val zioPrelude = "1.0.0-RC16"
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.17"
 lazy val scala213 = "2.13.8"
-lazy val scala31  = "3.2.1"
+lazy val scala3   = "3.2.1"
 
-lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala31)
+lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala3)
 
 lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
 lazy val scalaMinorVersion: SettingKey[Long] = SettingKey("scala minor version")
@@ -107,13 +107,13 @@ lazy val core =
     .settings(crossScalaVersionSettings)
     .settings(commonSettings)
     .settings(
-      name := "zio-spark",
-      scalaMajorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._1,
-      scalaMinorVersion  := CrossVersion.partialVersion(scalaVersion.value).get._2,
+      name              := "zio-spark",
+      scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._1,
+      scalaMinorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"          % zio,
-        "dev.zio" %% "zio-streams"  % zio,
-        "dev.zio" %% "zio-prelude"  % zioPrelude
+        "dev.zio" %% "zio"         % zio,
+        "dev.zio" %% "zio-streams" % zio,
+        "dev.zio" %% "zio-prelude" % zioPrelude
       ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
         ++ generateMagnoliaDependency(scalaMajorVersion.value, scalaMinorVersion.value),
       Defaults.itSettings
@@ -126,13 +126,13 @@ lazy val coreTests =
     .settings(commonSettings)
     .settings(noPublishingSettings)
     .settings(
-      name := "zio-spark-tests",
+      name              := "zio-spark-tests",
       scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._1,
       scalaMinorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio" % zio,
-        "dev.zio" %% "zio-test" % zio % Test,
-        "dev.zio" %% "zio-test-sbt" % zio % Test,
+        "dev.zio" %% "zio"          % zio,
+        "dev.zio" %% "zio-test"     % zio % Test,
+        "dev.zio" %% "zio-test-sbt" % zio % Test
       ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
     )
     .dependsOn(core, test)
@@ -144,12 +144,12 @@ lazy val test =
     .settings(macroExpansionSettings)
     .settings(macroDefinitionSettings)
     .settings(
-      name := "zio-spark-test",
+      name              := "zio-spark-test",
       scalaMajorVersion := CrossVersion.partialVersion(scalaVersion.value).get._1,
       scalaMinorVersion := CrossVersion.partialVersion(scalaVersion.value).get._2,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio" % zio,
-        "dev.zio" %% "zio-test" % zio,
+        "dev.zio" %% "zio"          % zio,
+        "dev.zio" %% "zio-test"     % zio,
         "dev.zio" %% "zio-test-sbt" % zio % Test
       ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
     )
@@ -209,7 +209,7 @@ def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[Mo
       Seq(
         ("org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources ()).cross(CrossVersion.for3Use2_13),
         ("org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()).cross(CrossVersion.for3Use2_13),
-        "io.github.vincenzobaz" %% "spark-scala3" % "0.1.3"
+        "io.github.vincenzobaz" %% "spark-scala3" % "0.1.5"
       )
     case _ => throw new Exception("It should be unreachable.")
   }
@@ -221,8 +221,8 @@ def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[Mo
 def sparkScalaVersionMapping(scalaMinor: Long): String =
   scalaMinor match {
     case 11 => "2.4.8"
-    case 12 => "3.2.0"
-    case 13 => "3.2.0"
+    case 12 => "3.3.1"
+    case 13 => "3.3.1"
     case _  => throw new Exception("It should be unreachable.")
   }
 
@@ -298,17 +298,18 @@ lazy val crossScalaVersionSettings =
     }
   )
 
-lazy val commonSettings = Seq(
-  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
-  crossScalaVersions := supportedScalaVersions,
-  scalaVersion := scala213,
-  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-  scalacOptions ~= fatalWarningsAsProperties,
-)
+lazy val commonSettings =
+  Seq(
+    resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
+    crossScalaVersions := supportedScalaVersions,
+    scalaVersion       := scala213,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    scalacOptions ~= fatalWarningsAsProperties
+  )
 
 // run is forcing the exit of sbt. It could be useful to set fork to true
-/* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the
- * project root (./) */
+/* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the project
+ * root (./) */
 /* which lead to errors, eg. Path does not exist:
  * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
 lazy val noPublishingSettings = Seq(

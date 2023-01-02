@@ -4,6 +4,8 @@ import scala.reflect.macros._
 
 // Pilfered (with immense gratitude & minor modifications)
 // from https://github.com/zio/zio/blob/series/2.x/test/shared/src/main/scala-2/zio/test/Macros.scala
+
+// scalafix:off
 private[test] object Macros {
   def assert_impl(c: blackbox.Context)(value: c.Tree)(assertion: c.Tree): c.Tree = {
     import c.universe._
@@ -12,6 +14,7 @@ private[test] object Macros {
     // from https://github.com/com-lihaoyi/sourcecode
     def text[T: c.WeakTypeTag](tree: c.Tree): (Int, Int, String) = {
       val fileContent = new String(tree.pos.source.content)
+
       var start =
         tree.collect { case treeVal =>
           treeVal.pos match {
