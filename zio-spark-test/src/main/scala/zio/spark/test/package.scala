@@ -35,4 +35,18 @@ package object test extends CompileVariants {
     value.flatMap(assertion.f).map { a =>
       SparkAssertion.smartAssert(a, codePart, assertionPart, assertion.instruction)(assertion.assertion)
     }
+
+  private[test] def assertSparkImpl[A, B](
+      value: => A,
+      codePart: String,
+      assertionPart: String
+  )(
+      assertion: SparkAssertion[A, B]
+  )(implicit
+      trace: Trace,
+      sourceLocation: SourceLocation
+  ) =
+    assertion.f(value).map { a =>
+      SparkAssertion.smartAssert(a, codePart, assertionPart, assertion.instruction)(assertion.assertion)
+    }
 }

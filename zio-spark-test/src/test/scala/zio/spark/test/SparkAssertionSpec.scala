@@ -10,6 +10,12 @@ object SparkAssertionSpec extends SharedZIOSparkSpecDefault {
 
   override def spec =
     suite("SparkAssertion spec")(
+      test("Assertions should work with assertSpark") {
+        for {
+          df     <- Dataset[Int]()
+          result <- assertSpark(df)(isEmpty)
+        } yield result
+      },
       test("It should assert that a dataset is empty") {
         assertZIOSpark(Dataset[Int]())(isEmpty)
       },
