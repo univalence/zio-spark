@@ -43,10 +43,14 @@ case object DatasetTemplate extends Template.Default {
         case ScalaBinaryVersion.V2_13 | ScalaBinaryVersion.V3 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.ExplainMode
+             |import org.apache.spark.sql.Observation
+             |import org.apache.spark.sql.types.Metadata
              |import scala.jdk.CollectionConverters._""".stripMargin
         case ScalaBinaryVersion.V2_12 =>
           s"""$baseImports
              |import org.apache.spark.sql.execution.ExplainMode
+             |import org.apache.spark.sql.Observation
+             |import org.apache.spark.sql.types.Metadata
              |import scala.collection.JavaConverters._""".stripMargin
         case ScalaBinaryVersion.V2_11 =>
           s"""$baseImports
