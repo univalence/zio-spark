@@ -94,9 +94,9 @@ lazy val zioPrelude = "1.0.0-RC16"
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.17"
 lazy val scala213 = "2.13.8"
-lazy val scala31  = "3.2.1"
+lazy val scala3   = "3.2.1"
 
-lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala31)
+lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala3)
 
 lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
 lazy val scalaMinorVersion: SettingKey[Long] = SettingKey("scala minor version")
@@ -219,8 +219,8 @@ def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[Mo
 def sparkScalaVersionMapping(scalaMinor: Long): String =
   scalaMinor match {
     case 11 => "2.4.8"
-    case 12 => "3.2.0"
-    case 13 => "3.2.0"
+    case 12 => "3.3.1"
+    case 13 => "3.3.1"
     case _  => throw new Exception("It should be unreachable.")
   }
 
