@@ -41,6 +41,8 @@ object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
 
+  // This test seems to be flaky and make the whole specs failed.
+  // See: https://github.com/univalence/zio-spark/issues/304.
   def spec =
     suite("Test cancellable spark jobs")(
       test("Cancellable jobs should have a specific group Id") {
