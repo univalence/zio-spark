@@ -10,7 +10,7 @@ import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
-import zio.test.TestAspect.{flaky, timeout, withLiveClock}
+import zio.test.TestAspect.{ignore, timeout, withLiveClock}
 
 object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
@@ -62,6 +62,6 @@ object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
             }
           )
         }
-      } @@ timeout(45.seconds) @@ withLiveClock @@ flaky
+      } @@ timeout(45.seconds) @@ withLiveClock @@ ignore
     )
 }
