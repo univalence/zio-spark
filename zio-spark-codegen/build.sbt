@@ -1,5 +1,8 @@
 ThisBuild / organization := "io.univalence"
 
+// Spark still uses 1.X.X version of scala-xml
+ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+
 // Aliases
 addCommandAlias("fmt", "scalafmt")
 addCommandAlias("fmtCheck", "scalafmtCheckAll")
