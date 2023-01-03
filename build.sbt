@@ -192,25 +192,24 @@ def generateMagnoliaDependency(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID
   }
 
 /** Generates required libraries for spark. */
-def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
+def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] = {
+  val mappingVersion = if (scalaMajor == 2) scalaMinor else 13
+  val sparkVersion: String = sparkScalaVersionMapping(mappingVersion)
+  val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources ()
+  val sparkSql =  "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()
+
+
   scalaMajor match {
-    case 2 =>
-      val sparkVersion: String = sparkScalaVersionMapping(scalaMinor)
-
-      Seq(
-        "org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources (),
-        "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()
-      )
+    case 2 => Seq(sparkCore, sparkSql)
     case 3 =>
-      val sparkVersion: String = sparkScalaVersionMapping(13)
-
       Seq(
-        ("org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources ()).cross(CrossVersion.for3Use2_13),
-        ("org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()).cross(CrossVersion.for3Use2_13),
+        sparkCore.cross(CrossVersion.for3Use2_13),
+        sparkSql.cross(CrossVersion.for3Use2_13),
         "io.github.vincenzobaz" %% "spark-scala3" % "0.1.5"
       )
     case _ => throw new Exception("It should be unreachable.")
   }
+}
 
 /**
  * Returns the correct spark version depending of the current scala
