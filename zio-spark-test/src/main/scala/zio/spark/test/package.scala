@@ -1,13 +1,13 @@
 package zio.spark
 
 import org.apache.spark.sql.Encoder
-
 import zio._
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
+import zio.test.TestResult
 
 import scala.reflect.ClassTag
 
@@ -31,7 +31,7 @@ package object test extends CompileVariants {
   )(implicit
       trace: Trace,
       sourceLocation: SourceLocation
-  ) =
+  ): ZIO[SparkSession, Throwable, TestResult] =
     value.flatMap(assertion.f).map { a =>
       SparkAssertion.smartAssert(a, codePart, assertionPart, assertion.instruction)(assertion.assertion)
     }
@@ -45,7 +45,7 @@ package object test extends CompileVariants {
   )(implicit
       trace: Trace,
       sourceLocation: SourceLocation
-  ) =
+  ): ZIO[SparkSession, Throwable, TestResult] =
     assertion.f(value).map { a =>
       SparkAssertion.smartAssert(a, codePart, assertionPart, assertion.instruction)(assertion.assertion)
     }
