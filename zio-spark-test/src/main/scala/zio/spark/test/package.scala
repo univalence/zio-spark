@@ -1,6 +1,7 @@
 package zio.spark
 
 import org.apache.spark.sql.Encoder
+
 import zio._
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._

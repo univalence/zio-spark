@@ -14,7 +14,6 @@ private[zio] object MacrosZioSpark {
     q"_root_.zio.spark.test.assertSparkImpl($value, $codeString, $assertionString)($assertion)"
   }
 
-
   def assertZIO_impl(c: blackbox.Context)(value: c.Tree)(assertion: c.Tree): c.Tree = {
     import c.universe._
 

@@ -17,22 +17,21 @@ import scala.quoted._
 object Macros {
   def assert_impl[A: Type, B: Type](value: Expr[A])(assertion: Expr[SparkAssertion[A, B]], trace: Expr[Trace], sourceLocation: Expr[SourceLocation])(using Quotes): Expr[SIO[TestResult]] = {
     import quotes.reflect._
+
     val codeString = showExpr(value)
     val assertionString = showExpr(assertion)
+
     '{_root_.zio.spark.test.CompileVariants.assertSparkProxy($value, ${Expr(codeString)}, ${Expr(assertionString)})($assertion)($trace, $sourceLocation)
     }
   }
 
   def assertZIO_impl[A: Type, B: Type](value: Expr[SIO[A]])(assertion: Expr[SparkAssertion[A, B]], trace: Expr[Trace], sourceLocation: Expr[SourceLocation])(using Quotes): Expr[SIO[TestResult]] = {
     import quotes.reflect._
+
     val codeString = showExpr(value)
     val assertionString = showExpr(assertion)
+
     '{_root_.zio.spark.test.CompileVariants.assertZIOSparkProxy($value, ${Expr(codeString)}, ${Expr(assertionString)})($assertion)($trace, $sourceLocation)
     }
-  }
-
-  def showExpr[A](expr: Expr[A])(using Quotes): String = {
-    import quotes.reflect._
-    expr.asTerm.pos.sourceCode.get
   }
 }
