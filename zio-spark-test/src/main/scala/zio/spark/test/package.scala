@@ -40,6 +40,8 @@ package object test {
       }
   }
 
+  val __ = Anything
+
   object row {
     def apply[T](predicate: T => Boolean): ConditionalMatcher[T] = ConditionalMatcher(predicate)
     def apply[T](value: T): DataMatcher[T]                       = DataMatcher(value)

@@ -24,39 +24,24 @@ object ExpectSpec extends SharedZIOSparkSpecDefault { // scalafix.ok
         Dataset(1, 2, 3).flatMap(_.expectAll(row(_ > 1)))
       } @@ failing,
       test("Dataframe should validate expect all with exact row match") {
-        val people =
-          Dataset(
-            Person("Louis", 50),
-            Person("Oliver", 26),
-            Person("Lara", 43)
-          )
+        val people = Dataset(Person("Louis", 50), Person("Lara", 26))
 
-        people
-          .map(_.toDF)
-          .flatMap { df =>
-            df.expectAll(
-              row("Louis", 50),
-              row("Oliver", 26),
-              row("Lara", 43)
-            )
-          }
+        people.map(_.toDF).flatMap(_.expectAll(row("Louis", 50), row("Lara", 26)))
       },
       test("Dataframe should fail expect all with if missing row match") {
-        val people =
-          Dataset(
-            Person("Louis", 50),
-            Person("Oliver", 26),
-            Person("Lara", 43)
-          )
+        val people = Dataset(Person("Louis", 50), Person("Lara", 26))
 
-        people
-          .map(_.toDF)
-          .flatMap { df =>
-            df.expectAll(
-              row("Louis", 50),
-              row("Oliver", 26)
-            )
-          }
-      } @@ failing
+        people.map(_.toDF).flatMap(_.expectAll(row("Louis", 50)))
+      } @@ failing,
+      test("Dataframe should validate expect all with __ in it") {
+        val people = Dataset(Person("Louis", 50), Person("Lara", 50))
+
+        people.map(_.toDF).flatMap(_.expectAll(row(__, 50)))
+      },
+      test("Dataframe should fail expect all with __ in it but wrong row match") {
+        val people = Dataset(Person("Louis", 50), Person("Lara", 25))
+
+        people.map(_.toDF).flatMap(_.expectAll(row(__, 50)))
+      } @@ failing,
     )
 }
