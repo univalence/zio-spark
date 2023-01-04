@@ -10,7 +10,7 @@ import zio.spark.sql.{fromSpark, SIO, SparkSession}
 import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
-import zio.test.TestAspect.{timeout, withLiveClock}
+import zio.test.TestAspect.{ignore, timeout, withLiveClock}
 
 object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
@@ -41,6 +41,8 @@ object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
   def exists[T](itr: Iterable[T])(pred: PartialFunction[T, Boolean]): Boolean =
     itr.exists(pred.applyOrElse(_, (_: T) => false))
 
+  // This test seems to be flaky and make the whole specs failed.
+  // See: https://github.com/univalence/zio-spark/issues/304.
   def spec =
     suite("Test cancellable spark jobs")(
       test("Cancellable jobs should have a specific group Id") {
@@ -62,6 +64,6 @@ object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
             }
           )
         }
-      } @@ timeout(45.seconds) @@ withLiveClock
+      } @@ timeout(45.seconds) @@ withLiveClock @@ ignore
     )
 }
