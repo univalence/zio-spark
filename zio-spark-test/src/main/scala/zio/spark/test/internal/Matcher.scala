@@ -1,29 +1,26 @@
 package zio.spark.test.internal
 
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.StructType
+import zio.spark.test.internal.ValueMatcher.{GlobalValueMatcher, PositionalValueMatcher}
 
-sealed trait Matcher[T]
+sealed trait Matcher
 
 object Matcher {
+  case object SchemaMatcher extends Matcher
+  sealed trait RowMatcher extends Matcher
 
-  case object Anything {
-    override def equals(obj: Any): Boolean = true
-  }
+  object RowMatcher {
+    case class PositionalRowMatcher(matchers: Seq[PositionalValueMatcher]) extends RowMatcher
+    case class GlobalRowMatcher(matchers: Seq[GlobalValueMatcher]) extends RowMatcher
 
-  sealed trait SchemaMatcher extends Matcher[Nothing]
-  sealed trait LineMatcher[T] extends Matcher[T] {
-    def respect(current: T): Boolean
-  }
-
-  object LineMatcher {
-    final case class RowMatcher(expected: Row) extends LineMatcher[Row] {
-      override def respect(current: Row): Boolean = expected.toSeq.sameElements(current.toSeq)
-    }
-    final case class DataMatcher[T](value: T) extends LineMatcher[T] {
-      override def respect(current: T): Boolean = value == current
-    }
-    final case class ConditionalMatcher[T](predicate: T => Boolean) extends LineMatcher[T] {
-      override def respect(current: T): Boolean = predicate(current)
+    def process[T](matcher: RowMatcher, current: T, maybeSchema: Option[StructType]) = matcher match {
+      case PositionalRowMatcher(matchers) =>
+        current match {
+          case current: Row => ???
+        }
+      case GlobalRowMatcher(matchers) =>
+        matchers.exists(matcher => ValueMatcher.process(current, maybeSchema, matcher))
     }
   }
 }

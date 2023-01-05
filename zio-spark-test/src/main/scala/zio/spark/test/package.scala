@@ -1,15 +1,15 @@
 package zio.spark
 
 import org.apache.spark.sql.Row
-
 import zio.{Task, Trace}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
+import zio.spark.test.internal.Matcher.RowMatcher._
 import zio.spark.test.internal.Matcher._
-import zio.spark.test.internal.Matcher.LineMatcher._
+import zio.spark.test.internal.ValueMatcher._
 import zio.test.{ErrorMessage, TestArrow, TestResult, TestTrace}
 
 import scala.reflect.ClassTag
@@ -26,12 +26,12 @@ package object test {
   def RDD[T: ClassTag](values: T*)(implicit trace: Trace): SIO[RDD[T]] = values.toRDD
 
   implicit class ExpectOps[T](dataset: Dataset[T]) {
-    def expectAll(matchers: LineMatcher[T]*)(implicit trace: Trace, sourceLocation: SourceLocation): Task[TestResult] =
+    def expectAll(matchers: RowMatcher*)(implicit trace: Trace, sourceLocation: SourceLocation): Task[TestResult] =
       dataset.collect.map { rows =>
         TestResult(
           TestArrow
             .make[Any, Boolean] { _ =>
-              val boolean = rows.forall(row => matchers.exists(_.respect(row)))
+              val boolean = rows.forall(row => matchers.exists(matcher => RowMatcher.process(matcher, row, Some(dataset.schema))))
               TestTrace.boolean(boolean)(ErrorMessage.text("One of the row does not respect any matcher"))
             }
             .withCode("Placeholder")
@@ -40,11 +40,18 @@ package object test {
       }
   }
 
-  val __ = Anything
+  val __ = PositionalValueMatcher.Anything
+  implicit def valueConversion[T](t: T): PositionalValueMatcher.Value[T] = 
+    PositionalValueMatcher.Value(t)
+    
+  implicit def predicateConversion[T](predicate: T => Boolean): GlobalValueMatcher.Predicate[T] =
+    GlobalValueMatcher.Predicate(predicate)
 
   object row {
-    def apply[T](predicate: T => Boolean): ConditionalMatcher[T] = ConditionalMatcher(predicate)
-    def apply[T](value: T): DataMatcher[T]                       = DataMatcher(value)
-    def apply(value: Any, values: Any*): RowMatcher              = RowMatcher(Row(value +: values: _*))
+    def apply(first: PositionalValueMatcher, others: PositionalValueMatcher*): PositionalRowMatcher = 
+      PositionalRowMatcher(first +: others)
+
+    def apply(first: GlobalValueMatcher, others: GlobalValueMatcher*): GlobalRowMatcher =
+      GlobalRowMatcher(first +: others)
   }
 }

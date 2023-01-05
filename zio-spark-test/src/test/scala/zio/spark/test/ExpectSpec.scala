@@ -3,7 +3,9 @@ import zio.Scope
 import zio.spark.sql.SparkSession
 import zio.test.{Spec, TestEnvironment}
 import zio.test.TestAspect.failing
-object ExpectSpec extends SharedZIOSparkSpecDefault { // scalafix.ok
+
+// scalafix.ok
+object ExpectSpec extends SharedZIOSparkSpecDefault {
 
   import zio.spark.sql.implicits._
 
@@ -18,10 +20,10 @@ object ExpectSpec extends SharedZIOSparkSpecDefault { // scalafix.ok
         Dataset(1, 2, 3).flatMap(_.expectAll(row(1), row(2)))
       } @@ failing,
       test("Dataset should validate expect all with conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row(_ > 0)))
+        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 0)))
       },
       test("Dataset should fail expect all if wrong conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row(_ > 1)))
+        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 1)))
       } @@ failing,
       test("Dataframe should validate expect all with exact row match") {
         for {
