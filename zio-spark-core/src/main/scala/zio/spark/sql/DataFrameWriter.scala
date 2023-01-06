@@ -20,8 +20,7 @@ final case class DataFrameWriter[T] private[sql] (
   }
 
   /** Saves a DataFrame using one of the dataframe saver. */
-  def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit)(implicit trace: Trace): Task[Unit] =
-    ZIO.attempt(f(construct))
+  def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit)(implicit trace: Trace): Task[Unit] = ZIO.attempt(f(construct))
 
   /**
    * Saves the DataFrame using the JSON format.
