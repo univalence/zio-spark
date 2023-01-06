@@ -20,7 +20,7 @@ final case class DataFrameWriter[T] private[sql] (
   }
 
   /** Saves a DataFrame using one of the dataframe saver. */
-  private def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit)(implicit trace: Trace): Task[Unit] =
+  def saveUsing(f: UnderlyingDataFrameWriter[T] => Unit)(implicit trace: Trace): Task[Unit] =
     ZIO.attempt(f(construct))
 
   /**
