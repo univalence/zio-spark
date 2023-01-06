@@ -297,7 +297,6 @@ lazy val crossScalaVersionSettings =
 
 lazy val commonSettings =
   Seq(
-    resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
     crossScalaVersions := supportedScalaVersions,
     ThisBuild / scalaVersion := scala213,
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
