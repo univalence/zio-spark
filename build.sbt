@@ -2,6 +2,7 @@
 inThisBuild(
   List(
     version ~= addVersionPadding,
+    scalaVersion := scala213,
     organization  := "io.univalence",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
     licenses      := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
@@ -175,6 +176,7 @@ lazy val exampleZIOEcosystem =
 lazy val examples =
   (project in file("examples"))
     .settings(noPublishingSettings)
+    .settings(crossScalaVersions := Nil)
     .aggregate(
     exampleSimpleApp,
     exampleSparkCodeMigration,
@@ -301,7 +303,6 @@ lazy val commonSettings =
   Seq(
     resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
     crossScalaVersions := supportedScalaVersions,
-    ThisBuild / scalaVersion := scala213,
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     scalacOptions ~= fatalWarningsAsProperties
   )
@@ -315,7 +316,6 @@ lazy val noPublishingSettings =
   Seq(
     fork           := false,
     publish / skip := true,
-    // Don't generate documentation for the examples
     Compile / doc / sources                := Seq.empty,
     Compile / packageDoc / publishArtifact := false
   )
