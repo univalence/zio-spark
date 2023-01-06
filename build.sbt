@@ -173,7 +173,9 @@ lazy val exampleZIOEcosystem =
     )
 
 lazy val examples =
-  (project in file("examples")).aggregate(
+  (project in file("examples"))
+    .settings(noPublishingSettings)
+    .aggregate(
     exampleSimpleApp,
     exampleSparkCodeMigration,
     exampleUsingOlderSparkVersion,
