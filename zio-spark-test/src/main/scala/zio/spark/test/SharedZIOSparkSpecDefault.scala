@@ -8,7 +8,5 @@ abstract class SharedZIOSparkSpecDefault extends ZIOSpec[SparkSession] {
   def ss = defaultSparkSession
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.valInAbstract"))
-  override val bootstrap: TaskLayer[SparkSession] =
-    ss.asLayer
-      .tap(_.get.sparkContext.setLogLevel("ERROR"))
+  override val bootstrap: TaskLayer[SparkSession] = ss.asLayer.tap(_.get.sparkContext.setLogLevel("ERROR"))
 }
