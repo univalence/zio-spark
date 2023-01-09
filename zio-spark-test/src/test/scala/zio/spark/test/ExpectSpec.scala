@@ -48,6 +48,6 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
           people <- Dataset(Person("Louis", 50), Person("Lara", 25))
           result <- people.toDF.expectAll(row(__, 50))
         } yield result
-      } @@ failing,
+      } @@ failing
     )
 }

@@ -1,14 +1,13 @@
 package zio.spark
 
-import org.apache.spark.sql.Row
 import zio.{Task, Trace}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
-import zio.spark.test.internal.Matcher.RowMatcher._
 import zio.spark.test.internal.Matcher._
+import zio.spark.test.internal.Matcher.RowMatcher._
 import zio.spark.test.internal.ValueMatcher._
 import zio.test.{ErrorMessage, TestArrow, TestResult, TestTrace}
 
@@ -31,7 +30,7 @@ package object test {
         TestResult(
           TestArrow
             .make[Any, Boolean] { _ =>
-              val boolean = rows.forall(row => matchers.exists(matcher => RowMatcher.process(matcher, row, Some(dataset.schema))))
+              val boolean = rows.forall(row => matchers.exists(_.process(row, Some(dataset.schema))))
               TestTrace.boolean(boolean)(ErrorMessage.text("One of the row does not respect any matcher"))
             }
             .withCode("Placeholder")
@@ -40,15 +39,17 @@ package object test {
       }
   }
 
-  val __ = PositionalValueMatcher.Anything
-  implicit def valueConversion[T](t: T): PositionalValueMatcher.Value[T] = 
-    PositionalValueMatcher.Value(t)
-    
+  val __ : PositionalValueMatcher.Anything.type = PositionalValueMatcher.Anything
+
+  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
+  implicit def valueConversion[T](t: T): PositionalValueMatcher.Value[T] = PositionalValueMatcher.Value(t)
+
+  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
   implicit def predicateConversion[T](predicate: T => Boolean): GlobalValueMatcher.Predicate[T] =
     GlobalValueMatcher.Predicate(predicate)
 
   object row {
-    def apply(first: PositionalValueMatcher, others: PositionalValueMatcher*): PositionalRowMatcher = 
+    def apply(first: PositionalValueMatcher, others: PositionalValueMatcher*): PositionalRowMatcher =
       PositionalRowMatcher(first +: others)
 
     def apply(first: GlobalValueMatcher, others: GlobalValueMatcher*): GlobalRowMatcher =
