@@ -11,6 +11,7 @@ import zio.spark.test.internal.Matcher.RowMatcher._
 import zio.spark.test.internal.ValueMatcher._
 import zio.test.{ErrorMessage, TestArrow, TestResult, TestTrace}
 
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 package object test {
@@ -25,18 +26,29 @@ package object test {
   def RDD[T: ClassTag](values: T*)(implicit trace: Trace): SIO[RDD[T]] = values.toRDD
 
   implicit class ExpectOps[T](dataset: Dataset[T]) {
-    def expectAll(matchers: RowMatcher*)(implicit trace: Trace, sourceLocation: SourceLocation): Task[TestResult] =
+    def expectAll(matchers: RowMatcher*)(implicit trace: Trace, sourceLocation: SourceLocation): Task[TestResult] = {
+      val availableMatchers = mutable.ListBuffer(matchers: _*)
+
       dataset.collect.map { rows =>
         TestResult(
           TestArrow
             .make[Any, Boolean] { _ =>
-              val boolean = rows.forall(row => matchers.exists(_.process(row, Some(dataset.schema))))
+              val boolean = rows.forall { row =>
+                availableMatchers.find(_.process(row, Some(dataset.schema))) match {
+                  case Some(matcher) if matcher.isUnique =>
+                      availableMatchers -= matcher
+                      true
+                  case Some(_) => true
+                  case None => false
+                }
+              }
               TestTrace.boolean(boolean)(ErrorMessage.text("One of the row does not respect any matcher"))
             }
             .withCode("Placeholder")
             .withLocation(sourceLocation)
         )
       }
+    }
   }
 
   val __ : PositionalValueMatcher.Anything.type = PositionalValueMatcher.Anything
@@ -50,9 +62,9 @@ package object test {
 
   object row {
     def apply(first: PositionalValueMatcher, others: PositionalValueMatcher*): PositionalRowMatcher =
-      PositionalRowMatcher(first +: others)
+      PositionalRowMatcher(first +: others, true)
 
     def apply(first: GlobalValueMatcher, others: GlobalValueMatcher*): GlobalRowMatcher =
-      GlobalRowMatcher(first +: others)
+      GlobalRowMatcher(first +: others, true)
   }
 }

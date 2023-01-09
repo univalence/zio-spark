@@ -10,7 +10,7 @@ sealed trait Matcher {
 
   def process[T](current: T, maybeSchema: Option[StructType]): Boolean =
     this match {
-      case PositionalRowMatcher(matchers) =>
+      case PositionalRowMatcher(matchers, _) =>
         current match {
           case current: Row =>
             if (matchers.length == current.length)
@@ -21,17 +21,32 @@ sealed trait Matcher {
             else ??? // ERROR
           case _ => ??? // ERROR
         }
-      case GlobalRowMatcher(matchers) =>
+      case GlobalRowMatcher(matchers, _) =>
         matchers.exists(_.process(current, maybeSchema))
     }
 }
 
 object Matcher {
   case object SchemaMatcher extends Matcher
-  sealed trait RowMatcher   extends Matcher
+  sealed trait RowMatcher extends Matcher {
+    def isUnique: Boolean
+
+    def allowMultipleMatches: RowMatcher
+  }
 
   object RowMatcher {
-    final case class PositionalRowMatcher(matchers: Seq[PositionalValueMatcher]) extends RowMatcher
-    final case class GlobalRowMatcher(matchers: Seq[GlobalValueMatcher])         extends RowMatcher
+    final case class PositionalRowMatcher(
+        matchers: Seq[PositionalValueMatcher],
+        isUnique: Boolean
+    ) extends RowMatcher {
+      override def allowMultipleMatches: RowMatcher = copy(isUnique = false)
+    }
+
+    final case class GlobalRowMatcher(
+        matchers: Seq[GlobalValueMatcher],
+        isUnique: Boolean
+    ) extends RowMatcher {
+      override def allowMultipleMatches: RowMatcher = copy(isUnique = false)
+    }
   }
 }

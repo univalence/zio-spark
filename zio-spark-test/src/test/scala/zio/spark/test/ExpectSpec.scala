@@ -20,10 +20,10 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
         Dataset(1, 2, 3).flatMap(_.expectAll(row(1), row(2)))
       } @@ failing,
       test("Dataset should validate expect all with conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 0)))
+        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 0).allowMultipleMatches))
       },
       test("Dataset should fail expect all if wrong conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 1)))
+        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 1).allowMultipleMatches))
       } @@ failing,
       test("Dataframe should validate expect all with exact row match") {
         for {
@@ -40,7 +40,7 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
       test("Dataframe should validate expect all with __ in it") {
         for {
           people <- Dataset(Person("Louis", 50), Person("Lara", 50))
-          result <- people.toDF.expectAll(row(__, 50))
+          result <- people.toDF.expectAll(row(__, 50).allowMultipleMatches)
         } yield result
       },
       test("Dataframe should fail expect all with __ in it but wrong row match") {
