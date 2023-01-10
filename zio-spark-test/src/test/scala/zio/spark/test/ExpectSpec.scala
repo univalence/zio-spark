@@ -20,10 +20,20 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
         Dataset(1, 2, 3).flatMap(_.expectAll(row(1), row(2)))
       } @@ failing,
       test("Dataset should validate expect all with conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 0).allowMultipleMatches))
+        Dataset(1, 2, 3).flatMap(_.expectAll(row((_: Int) > 0).allowMultipleMatches))
+      },
+      test("Dataset should validate expect all with or conditional match") {
+        val condition1: Int => Boolean = _ > 1
+        val condition2: Int => Boolean = _ == 1
+        Dataset(1, 2, 3).flatMap(_.expectAll(row(condition1 || condition2).allowMultipleMatches))
+      },
+      test("Dataset should validate expect all with and conditional match") {
+        val condition1: Int => Boolean = _ > 0
+        val condition2: Int => Boolean = _ <= 3
+        Dataset(1, 2, 3).flatMap(_.expectAll(row(condition1 && condition2).allowMultipleMatches))
       },
       test("Dataset should fail expect all if wrong conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row((v: Int) => v > 1).allowMultipleMatches))
+        Dataset(1, 2, 3).flatMap(_.expectAll(row((_: Int) > 1).allowMultipleMatches))
       } @@ failing,
       test("Dataframe should validate expect all with exact row match") {
         for {

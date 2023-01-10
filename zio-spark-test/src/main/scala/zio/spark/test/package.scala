@@ -26,6 +26,7 @@ package object test {
   def RDD[T: ClassTag](values: T*)(implicit trace: Trace): SIO[RDD[T]] = values.toRDD
 
   implicit class ExpectOps[T](dataset: Dataset[T]) {
+    @SuppressWarnings(Array("scalafix:Disable.ListBuffer", "scalafix:Disable.-="))
     def expectAll(matchers: RowMatcher*)(implicit trace: Trace, sourceLocation: SourceLocation): Task[TestResult] = {
       val availableMatchers = mutable.ListBuffer(matchers: _*)
 
@@ -33,15 +34,17 @@ package object test {
         TestResult(
           TestArrow
             .make[Any, Boolean] { _ =>
-              val boolean = rows.forall { row =>
-                availableMatchers.find(_.process(row, Some(dataset.schema))) match {
-                  case Some(matcher) if matcher.isUnique =>
+              val boolean =
+                rows.forall { row =>
+                  availableMatchers.find(_.process(row, Some(dataset.schema))) match {
+                    case Some(matcher) if matcher.isUnique =>
                       availableMatchers -= matcher
                       true
-                  case Some(_) => true
-                  case None => false
+                    case Some(_) => true
+                    case None    => false
+                  }
                 }
-              }
+
               TestTrace.boolean(boolean)(ErrorMessage.text("One of the row does not respect any matcher"))
             }
             .withCode("Placeholder")

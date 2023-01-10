@@ -43,6 +43,10 @@ sealed trait ValueMatcher {
               case predicate: (T => Boolean) => predicate(current)
               case _                         => false
             }
+          case GlobalValueMatcher.Or(left, right) =>
+            left.process(current, maybeSchema) || right.process(current, maybeSchema)
+          case GlobalValueMatcher.And(left, right) =>
+            left.process(current, maybeSchema) && right.process(current, maybeSchema)
         }
     }
 
@@ -51,18 +55,22 @@ sealed trait ValueMatcher {
 object ValueMatcher {
   sealed trait PositionalValueMatcher extends ValueMatcher
 
-  sealed trait GlobalValueMatcher extends ValueMatcher
+  sealed trait GlobalValueMatcher extends ValueMatcher {
+    def &&(that: GlobalValueMatcher) = GlobalValueMatcher.And(this, that)
+
+    def ||(that: GlobalValueMatcher) = GlobalValueMatcher.Or(this, that)
+  }
 
   object PositionalValueMatcher {
     final case class Value[T](value: T) extends PositionalValueMatcher
-
-    case object Anything extends PositionalValueMatcher
+    case object Anything                extends PositionalValueMatcher
   }
 
   object GlobalValueMatcher {
-    final case class KeyValue[T](key: String, value: T) extends GlobalValueMatcher
-
-    final case class Predicate[T](predicate: T => Boolean) extends GlobalValueMatcher
+    final case class KeyValue[T](key: String, value: T)                       extends GlobalValueMatcher
+    final case class Predicate[T](predicate: T => Boolean)                    extends GlobalValueMatcher
+    final case class Or(left: GlobalValueMatcher, right: GlobalValueMatcher)  extends GlobalValueMatcher
+    final case class And(left: GlobalValueMatcher, right: GlobalValueMatcher) extends GlobalValueMatcher
   }
 
   private def compareUnknownTypes[A, B: ClassTag](a: A, b: B) =
