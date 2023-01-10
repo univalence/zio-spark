@@ -58,6 +58,18 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
           people <- Dataset(Person("Louis", 50), Person("Lara", 25))
           result <- people.toDF.expectAll(row(__, 50))
         } yield result
-      } @@ failing
+      } @@ failing,
+      test("Dataframe should handle schema") {
+        for {
+          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          result <- people.toDF.expectAll(schema("age"), row(50).allowMultipleMatches)
+        } yield result
+      },
+      test("Dataframe should handle schema permutations") {
+        for {
+          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          result <- people.toDF.expectAll(schema("age", "name"), row(50, __).allowMultipleMatches)
+        } yield result
+      }
     )
 }
