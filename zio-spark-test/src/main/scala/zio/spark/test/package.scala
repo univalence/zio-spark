@@ -6,10 +6,11 @@ import zio.spark.parameter._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
+import zio.spark.test.ExpectError._
 import zio.spark.test.internal.{ColumnDescription, RowMatcher, SchemaMatcher}
 import zio.spark.test.internal.RowMatcher._
 import zio.spark.test.internal.ValueMatcher._
-import zio.test.{ErrorMessage, TestArrow, TestResult, TestTrace}
+import zio.test.{TestArrow, TestResult, TestTrace}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -38,7 +39,17 @@ package object test {
 
       maybeIndexMapping match {
         case Right(indexMapping) => expectAllInternal(indexMapping, matchers: _*)
-        case Left(error)         => ZIO.succeed(error.toTestResult)
+        case Left(error) =>
+          ZIO.succeed {
+            TestResult(
+              TestArrow
+                .make[Any, Boolean] { _ =>
+                  error.toTestTrace
+                }
+                .withLocation
+                .withCode("Spark Expect System")
+            )
+          }
       }
     }
 
@@ -53,21 +64,36 @@ package object test {
         TestResult(
           TestArrow
             .make[Any, Boolean] { _ =>
-              val boolean =
-                rows.forall { row =>
-                  availableMatchers.find(_.process(row, Some(dataset.schema), indexMapping)) match {
-                    case Some(matcher) if matcher.isUnique =>
-                      availableMatchers -= matcher
-                      true
-                    case Some(_) => true
-                    case None    => false
+              val acc: Either[NoMatch[T], Unit] = Right(())
+
+              val result: Either[NoMatch[T], Unit] =
+                rows.foldLeft(acc) { case (curr, row) =>
+                  val isMatched =
+                    availableMatchers.find(_.process(row, Some(dataset.schema), indexMapping)) match {
+                      case Some(matcher) if matcher.isUnique =>
+                        availableMatchers -= matcher
+                        true
+                      case Some(_) => true
+                      case None    => false
+                    }
+
+                  curr match {
+                    case Left(error) =>
+                      if (isMatched) Left(error)
+                      else Left(error.add(row))
+                    case Right(_) =>
+                      if (isMatched) Right(())
+                      else Left(NoMatch(row))
                   }
                 }
 
-              TestTrace.boolean(boolean)(ErrorMessage.text("One of the row does not respect any matcher"))
+              result match {
+                case Left(error) => error.toTestTrace
+                case Right(_)    => TestTrace.succeed(true)
+              }
             }
-            .withCode("Placeholder")
-            .withLocation(sourceLocation)
+            .withCode("Spark Expect System")
+            .withLocation
         )
       }
     }

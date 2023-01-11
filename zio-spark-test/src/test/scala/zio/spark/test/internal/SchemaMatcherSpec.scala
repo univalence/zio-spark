@@ -48,7 +48,7 @@ object SchemaMatcherSpec extends ZIOSpecDefault {
               StructField("name", StringType)
             )
           )
-        val expected = WrongSchemaDefinition(List(ColumnDescription("unknown", None)))
+        val expected = WrongSchemaDefinition(ColumnDescription("unknown", None))
 
         assertTrue(matcher.definitionToSchemaIndex(structType) == Left(expected))
       }
