@@ -1,14 +1,13 @@
 package zio.spark
 
-import zio.{Task, Trace}
+import zio.{Task, Trace, ZIO}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
-import zio.spark.test.internal.{RowMatcher, SchemaMatcher}
+import zio.spark.test.internal.{ColumnDescription, RowMatcher, SchemaMatcher}
 import zio.spark.test.internal.RowMatcher._
-import zio.spark.test.internal.SchemaMatcher.ColumnDescription
 import zio.spark.test.internal.ValueMatcher._
 import zio.test.{ErrorMessage, TestArrow, TestResult, TestTrace}
 
@@ -36,9 +35,10 @@ package object test {
         sourceLocation: SourceLocation
     ): Task[TestResult] = {
       val maybeIndexMapping = schema.definitionToSchemaIndex(dataset.schema)
+
       maybeIndexMapping match {
-        case Some(indexMapping) => expectAllInternal(indexMapping, matchers: _*)
-        case None               => ???
+        case Right(indexMapping) => expectAllInternal(indexMapping, matchers: _*)
+        case Left(error)         => ZIO.succeed(error.toTestResult)
       }
     }
 

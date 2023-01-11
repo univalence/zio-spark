@@ -1,27 +1,28 @@
 package zio.spark.test.internal
 
-import SchemaMatcher._
-import org.apache.spark.sql.types.{DataType, StructType}
+import org.apache.spark.sql.types.StructType
+
+import zio.spark.test.ExpectError.WrongSchemaDefinition
 
 final case class SchemaMatcher(columns: Seq[ColumnDescription]) {
-  def definitionToSchemaIndex(schema: StructType): Option[Map[Int, Int]] =
-    columns.zipWithIndex.foldLeft(Option(Map.empty[Int, Int])) {
-      case (acc, (ColumnDescription(name, _), definitionIndex)) =>
-        acc match {
-          case None => None
-          case Some(currentMap) =>
-            val matchingFieldWithIndex = schema.zipWithIndex.find(_._1.name == name)
+  def definitionToSchemaIndex(schema: StructType): Either[WrongSchemaDefinition, Map[Int, Int]] = {
+    val acc: Either[WrongSchemaDefinition, Map[Int, Int]] = Right(Map.empty)
 
-            matchingFieldWithIndex match {
-              case Some((_, schemaIndex)) => Some(currentMap + (definitionIndex -> schemaIndex))
-              case None                   => None // TODO: Better error management
-            }
-        }
+    columns.zipWithIndex.foldLeft(acc) { case (acc, (description, definitionIndex)) =>
+      val matchingFieldWithIndex = schema.zipWithIndex.find(_._1.name == description.name)
+
+      acc match {
+        case Left(error) =>
+          matchingFieldWithIndex match {
+            case Some(_) => Left(error)
+            case None    => Left(error.add(description))
+          }
+        case Right(currentMap) =>
+          matchingFieldWithIndex match {
+            case Some((_, schemaIndex)) => Right(currentMap + (definitionIndex -> schemaIndex))
+            case None                   => Left(WrongSchemaDefinition(List(description)))
+          }
+      }
     }
-}
-
-object SchemaMatcher {
-  final case class ColumnDescription(name: String, dataType: Option[DataType]) {
-    def as(dataType: DataType): ColumnDescription = copy(dataType = Some(dataType))
   }
 }

@@ -148,7 +148,8 @@ lazy val test =
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio"          % zio,
         "dev.zio" %% "zio-test"     % zio,
-        "dev.zio" %% "zio-test-sbt" % zio % Test
+        "dev.zio" %% "zio-test-sbt" % zio % Test,
+        "dev.zio" %% "zio-prelude" % zioPrelude
       ) ++ generateSparkLibraryDependencies(scalaMajorVersion.value, scalaMinorVersion.value)
     )
     .dependsOn(core)

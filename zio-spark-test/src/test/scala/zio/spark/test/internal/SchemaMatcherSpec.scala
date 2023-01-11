@@ -3,7 +3,8 @@ package zio.spark.test.internal
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 
 import zio.Scope
-import zio.spark.test.schema
+import zio.spark.test._
+import zio.spark.test.ExpectError.WrongSchemaDefinition
 import zio.test._
 
 object SchemaMatcherSpec extends ZIOSpecDefault {
@@ -21,7 +22,7 @@ object SchemaMatcherSpec extends ZIOSpecDefault {
           )
         val expected = Map(0 -> 2, 1 -> 1, 2 -> 0)
 
-        assertTrue(matcher.definitionToSchemaIndex(structType) == Some(expected))
+        assertTrue(matcher.definitionToSchemaIndex(structType) == Right(expected))
       },
       test("SchemaMatcher should generate a partial mapping from a schema") {
         val matcher = schema("name", "age")
@@ -35,7 +36,7 @@ object SchemaMatcherSpec extends ZIOSpecDefault {
           )
         val expected = Map(0 -> 2, 1 -> 1)
 
-        assertTrue(matcher.definitionToSchemaIndex(structType) == Some(expected))
+        assertTrue(matcher.definitionToSchemaIndex(structType) == Right(expected))
       },
       test("SchemaMatcher should fail if we need an unknown column name") {
         val matcher = schema("name", "age", "unknown")
@@ -47,8 +48,9 @@ object SchemaMatcherSpec extends ZIOSpecDefault {
               StructField("name", StringType)
             )
           )
+        val expected = WrongSchemaDefinition(List(ColumnDescription("unknown", None)))
 
-        assertTrue(matcher.definitionToSchemaIndex(structType) == None)
+        assertTrue(matcher.definitionToSchemaIndex(structType) == Left(expected))
       }
     )
 }
