@@ -1,10 +1,14 @@
 package zio.spark
 
+import org.apache.spark.sql.Encoder
+import scala3encoders.given // scalafix:ok
+
 import zio.{Task, Trace, ZIO}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
+import zio.spark.sql.implicits._
 import zio.spark.test.ExpectError._
 import zio.spark.test.internal.{ColumnDescription, RowMatcher, SchemaMatcher}
 import zio.spark.test.internal.RowMatcher._
@@ -15,10 +19,6 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 
 package object test {
-  import scala3encoders.given // scalafix:ok
-
-  import zio.spark.sql.implicits._
-
   val defaultSparkSession: SparkSession.Builder =
     SparkSession.builder
       .master(localAllNodes)
