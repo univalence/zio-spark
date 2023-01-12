@@ -25,6 +25,15 @@ sealed trait ValueMatcher {
               case _           => false
             }
           case PositionalValueMatcher.Anything => true
+          case PositionalValueMatcher.Predicate(predicate) =>
+            predicate match {
+              case predicate: (T => Boolean) => predicate(current)
+              case _ => false
+            }
+          case PositionalValueMatcher.Or(left, right) =>
+            left.process(current, maybeSchema) || right.process(current, maybeSchema)
+          case PositionalValueMatcher.And(left, right) =>
+            left.process(current, maybeSchema) && right.process(current, maybeSchema)
         }
       case matcher: GlobalValueMatcher =>
         matcher match {
@@ -38,39 +47,33 @@ sealed trait ValueMatcher {
               case t: T if key == "value" => current == t // TODO
               case _                      => false
             }
-          case GlobalValueMatcher.Predicate(predicate) =>
-            predicate match {
-              case predicate: (T => Boolean) => predicate(current)
-              case _                         => false
-            }
-          case GlobalValueMatcher.Or(left, right) =>
-            left.process(current, maybeSchema) || right.process(current, maybeSchema)
-          case GlobalValueMatcher.And(left, right) =>
-            left.process(current, maybeSchema) && right.process(current, maybeSchema)
         }
     }
 
 }
 
 object ValueMatcher {
-  sealed trait PositionalValueMatcher extends ValueMatcher
+  sealed trait PositionalValueMatcher extends ValueMatcher {
+    def &&(that: PositionalValueMatcher) = PositionalValueMatcher.And(this, that)
 
-  sealed trait GlobalValueMatcher extends ValueMatcher {
-    def &&(that: GlobalValueMatcher) = GlobalValueMatcher.And(this, that)
-
-    def ||(that: GlobalValueMatcher) = GlobalValueMatcher.Or(this, that)
+    def ||(that: PositionalValueMatcher) = PositionalValueMatcher.Or(this, that)
   }
+
+  sealed trait GlobalValueMatcher extends ValueMatcher
 
   object PositionalValueMatcher {
     final case class Value[T](value: T) extends PositionalValueMatcher
     case object Anything                extends PositionalValueMatcher
+
+    final case class Predicate[T](predicate: T => Boolean) extends PositionalValueMatcher
+
+    final case class Or(left: PositionalValueMatcher, right: PositionalValueMatcher) extends PositionalValueMatcher
+
+    final case class And(left: PositionalValueMatcher, right: PositionalValueMatcher) extends PositionalValueMatcher
   }
 
   object GlobalValueMatcher {
     final case class KeyValue[T](key: String, value: T)                       extends GlobalValueMatcher
-    final case class Predicate[T](predicate: T => Boolean)                    extends GlobalValueMatcher
-    final case class Or(left: GlobalValueMatcher, right: GlobalValueMatcher)  extends GlobalValueMatcher
-    final case class And(left: GlobalValueMatcher, right: GlobalValueMatcher) extends GlobalValueMatcher
   }
 
   private def compareUnknownTypes[A, B: ClassTag](a: A, b: B) =

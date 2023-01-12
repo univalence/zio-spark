@@ -106,8 +106,8 @@ package object test {
   implicit def valueConversion[T](t: T): PositionalValueMatcher.Value[T] = PositionalValueMatcher.Value(t)
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def predicateConversion[T](predicate: T => Boolean): GlobalValueMatcher.Predicate[T] =
-    GlobalValueMatcher.Predicate(predicate)
+  implicit def predicateConversion[T](predicate: T => Boolean): PositionalValueMatcher.Predicate[T] =
+    PositionalValueMatcher.Predicate(predicate)
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
   implicit def columnConversion(name: String): ColumnDescription = ColumnDescription(name, None)
