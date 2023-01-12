@@ -5,7 +5,6 @@ import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
 import zio.spark.rdd.RDD
 import zio.spark.sql._
-import zio.spark.sql.implicits._
 import zio.spark.test.ExpectError._
 import zio.spark.test.internal.{ColumnDescription, RowMatcher, SchemaMatcher}
 import zio.spark.test.internal.RowMatcher._
@@ -16,6 +15,10 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 
 package object test {
+  import scala3encoders.given // scalafix:ok
+
+  import zio.spark.sql.implicits._
+
   val defaultSparkSession: SparkSession.Builder =
     SparkSession.builder
       .master(localAllNodes)
@@ -82,7 +85,7 @@ package object test {
                       else Left(error.add(row))
                     case Right(_) =>
                       if (isMatched) Right(())
-                      else Left(NoMatch(row))
+                      else Left(NoMatch(List(row)))
                   }
                 }
 

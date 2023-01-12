@@ -29,10 +29,6 @@ object ExpectError {
     }
   }
 
-  object WrongSchemaDefinition {
-    def apply(missingColumn: ColumnDescription): WrongSchemaDefinition = WrongSchemaDefinition(List(missingColumn))
-  }
-
   final case class NoMatch[T](values: List[T], isShortened: Boolean = false) extends ExpectError {
     def add(value: T): NoMatch[T] = copy(values = values :+ value)
 
@@ -48,9 +44,5 @@ object ExpectError {
       s"""Can't find a matcher for all values. $theFollowingValue:
          |${values.map(_.toString).map(s => s" - $s").mkString("\n")}$shortenString""".stripMargin
     }
-  }
-
-  object NoMatch {
-    def apply[T](value: T): NoMatch[T] = NoMatch(List(value))
   }
 }

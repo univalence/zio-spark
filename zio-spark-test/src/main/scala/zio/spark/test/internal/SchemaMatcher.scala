@@ -21,7 +21,7 @@ final case class SchemaMatcher(columns: Seq[ColumnDescription]) {
         case Right(currentMap) =>
           matchingFieldWithIndex match {
             case Some((_, schemaIndex)) => Right(currentMap + (definitionIndex -> schemaIndex))
-            case None                   => Left(WrongSchemaDefinition(description))
+            case None                   => Left(WrongSchemaDefinition(List(description)))
           }
       }
     }

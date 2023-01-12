@@ -7,8 +7,6 @@ import zio.test.TestAspect.failing
 // scalafix.ok
 object ExpectSpec extends SharedZIOSparkSpecDefault {
 
-  import scala3encoders.given // scalafix:ok
-
   import zio.spark.sql.implicits._
 
   final case class Person(name: String, age: Int)
