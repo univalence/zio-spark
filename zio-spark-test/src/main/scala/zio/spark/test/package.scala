@@ -43,7 +43,7 @@ package object test {
           ZIO.succeed {
             TestResult(
               TestArrow
-                .make[Any, Boolean] { _ => error.toTestTrace}
+                .make[Any, Boolean](_ => error.toTestTrace)
                 .withLocation
                 .withCode("Spark Expect System")
             )
@@ -78,10 +78,8 @@ package object test {
                   curr match {
                     case Left(error) =>
                       if (isMatched) Left(error)
-                      else {
-                        if (error.values.length >= 10) Left(error.shorten)
-                        else Left(error.add(row))
-                      }
+                      else if (error.values.length >= 10) Left(error.shorten)
+                      else Left(error.add(row))
                     case Right(_) =>
                       if (isMatched) Right(())
                       else Left(NoMatch(row))

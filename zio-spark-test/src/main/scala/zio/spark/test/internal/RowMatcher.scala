@@ -21,11 +21,10 @@ sealed trait RowMatcher {
               matchers.zipWithIndex.forall { case (matcher, index) =>
                 matcher.process(current.get(indexMapping(index)), maybeSchema)
               }
-            else ??? // ERROR
-          case _: T =>
+            else false
+          case _ =>
             if (matchers.length == 1) matchers.head.process(current, maybeSchema)
-            else ??? // ERROR
-          case _ => ??? // ERROR
+            else false
         }
       case GlobalRowMatcher(matchers, _) =>
         matchers.exists(_.process(current, maybeSchema))

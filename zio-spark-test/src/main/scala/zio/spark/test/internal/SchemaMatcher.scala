@@ -14,8 +14,9 @@ final case class SchemaMatcher(columns: Seq[ColumnDescription]) {
       acc match {
         case Left(error) =>
           matchingFieldWithIndex match {
-            case Some(_) => Left(error)
-            case None    => Left(error.add(description))
+            case Some(_)                                  => Left(error)
+            case None if error.missingColumns.length < 10 => Left(error.add(description))
+            case None                                     => Left(error.shorten)
           }
         case Right(currentMap) =>
           matchingFieldWithIndex match {

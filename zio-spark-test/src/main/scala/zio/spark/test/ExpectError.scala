@@ -1,27 +1,31 @@
 package zio.spark.test
 
-import zio.internal.stacktracer.SourceLocation
 import zio.spark.test.internal.ColumnDescription
 import zio.test.{ErrorMessage, TestTrace}
 
 sealed trait ExpectError {
   def explain: String
 
-  def toTestTrace(implicit sourceLocation: SourceLocation): TestTrace[Nothing] =
-    TestTrace.fail(ErrorMessage.custom(explain))
+  def toTestTrace: TestTrace[Nothing] = TestTrace.fail(ErrorMessage.custom(explain))
 }
 
 object ExpectError {
-  final case class WrongSchemaDefinition(missingColumns: List[ColumnDescription]) extends ExpectError {
+  final case class WrongSchemaDefinition(missingColumns: List[ColumnDescription], isShortened: Boolean = false)
+      extends ExpectError {
     def add(missingColumn: ColumnDescription): WrongSchemaDefinition =
       copy(missingColumns = missingColumns :+ missingColumn)
+
+    def shorten: WrongSchemaDefinition = copy(isShortened = true)
+
     override def explain: String = {
       val theFollowingColumn =
         if (missingColumns.length == 1) "The following column description is missing"
         else "The following column descriptions are missing"
 
+      val shortenString = if (isShortened) "\n - ..." else ""
+
       s"""Can't match the given schema. $theFollowingColumn:
-         |${missingColumns.map(_.toString).map(s => s" - $s").mkString("\n")}""".stripMargin
+         |${missingColumns.map(_.toString).map(s => s" - $s").mkString("\n")}$shortenString""".stripMargin
     }
   }
 

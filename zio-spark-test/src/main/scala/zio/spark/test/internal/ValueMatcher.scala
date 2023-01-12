@@ -28,7 +28,7 @@ sealed trait ValueMatcher {
           case PositionalValueMatcher.Predicate(predicate) =>
             predicate match {
               case predicate: (T => Boolean) => predicate(current)
-              case _ => false
+              case _                         => false
             }
           case PositionalValueMatcher.Or(left, right) =>
             left.process(current, maybeSchema) || right.process(current, maybeSchema)
@@ -73,7 +73,7 @@ object ValueMatcher {
   }
 
   object GlobalValueMatcher {
-    final case class KeyValue[T](key: String, value: T)                       extends GlobalValueMatcher
+    final case class KeyValue[T](key: String, value: T) extends GlobalValueMatcher
   }
 
   private def compareUnknownTypes[A, B: ClassTag](a: A, b: B) =
