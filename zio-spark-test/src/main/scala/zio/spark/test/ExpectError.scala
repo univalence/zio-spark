@@ -29,16 +29,20 @@ object ExpectError {
     def apply(missingColumn: ColumnDescription): WrongSchemaDefinition = WrongSchemaDefinition(List(missingColumn))
   }
 
-  final case class NoMatch[T](values: List[T]) extends ExpectError {
+  final case class NoMatch[T](values: List[T], isShortened: Boolean = false) extends ExpectError {
     def add(value: T): NoMatch[T] = copy(values = values :+ value)
+
+    def shorten: NoMatch[T] = copy(isShortened = true)
 
     override def explain: String = {
       val theFollowingValue =
         if (values.length == 1) "The following value has no match"
         else "The following values have no match"
 
+      val shortenString = if (isShortened) "\n - ..." else ""
+
       s"""Can't find a matcher for all values. $theFollowingValue:
-         |${values.map(_.toString).map(s => s" - $s").mkString("\n")}""".stripMargin
+         |${values.map(_.toString).map(s => s" - $s").mkString("\n")}$shortenString""".stripMargin
     }
   }
 
