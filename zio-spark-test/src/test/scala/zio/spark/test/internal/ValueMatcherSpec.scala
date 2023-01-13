@@ -6,6 +6,7 @@ import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructT
 import zio._
 import zio.spark.test.internal.ValueMatcher.GlobalValueMatcher._
 import zio.spark.test.internal.ValueMatcher.PositionalValueMatcher._
+import zio.spark.test.positional
 import zio.test._
 
 object ValueMatcherSpec extends ZIOSpecDefault {
