@@ -3,7 +3,6 @@ package zio.spark.test.internal
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 
-
 sealed trait ValueMatcher {
   def process[T](current: T, schema: StructType): Boolean
 }

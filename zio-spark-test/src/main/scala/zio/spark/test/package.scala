@@ -1,7 +1,7 @@
 package zio.spark
 
 import org.apache.spark.sql.Encoder
-import scala3encoders.given
+
 import zio.{Task, Trace, ZIO}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
@@ -9,7 +9,13 @@ import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.spark.test.ExpectError._
-import zio.spark.test.internal.{ColumnDescription, RowMatcher, SchemaMatcher, ToGlobalValueMatcher, ToPositionalValueMatcher}
+import zio.spark.test.internal.{
+  ColumnDescription,
+  RowMatcher,
+  SchemaMatcher,
+  ToGlobalValueMatcher,
+  ToPositionalValueMatcher
+}
 import zio.spark.test.internal.RowMatcher._
 import zio.spark.test.internal.ValueMatcher._
 import zio.test.{TestArrow, TestResult, TestTrace}
@@ -100,11 +106,10 @@ package object test {
     }
   }
 
-  val __ = PositionalValueMatcher.Anything
+  val __ : PositionalValueMatcher.Anything.type = PositionalValueMatcher.Anything
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def global[T: ToGlobalValueMatcher](t: T): GlobalValueMatcher =
-    implicitly[ToGlobalValueMatcher[T]].apply(t)
+  implicit def global[T: ToGlobalValueMatcher](t: T): GlobalValueMatcher = implicitly[ToGlobalValueMatcher[T]].apply(t)
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
   implicit def positional[T: ToPositionalValueMatcher](t: T): PositionalValueMatcher =

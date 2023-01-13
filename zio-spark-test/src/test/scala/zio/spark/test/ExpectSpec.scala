@@ -1,8 +1,8 @@
 package zio.spark.test
 import zio.Scope
 import zio.spark.sql.SparkSession
-import zio.test.TestAspect.failing
 import zio.test.{Spec, TestEnvironment}
+import zio.test.TestAspect.failing
 
 // scalafix.ok
 object ExpectSpec extends SharedZIOSparkSpecDefault {

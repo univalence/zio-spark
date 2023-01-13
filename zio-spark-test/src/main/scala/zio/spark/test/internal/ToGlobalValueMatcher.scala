@@ -1,7 +1,7 @@
 package zio.spark.test.internal
 
+import zio.spark.test.internal.ValueMatcher.GlobalValueMatcher
 import zio.spark.test.internal.ValueMatcher.GlobalValueMatcher._
-import zio.spark.test.internal.ValueMatcher.{GlobalValueMatcher, PositionalValueMatcher}
 trait ToGlobalValueMatcher[T] {
   def apply(t: T): GlobalValueMatcher
 }
