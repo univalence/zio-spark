@@ -9,7 +9,13 @@ final case class SchemaMatcher(columns: Seq[ColumnDescription]) {
     val acc: Either[WrongSchemaDefinition, Map[Int, Int]] = Right(Map.empty)
 
     columns.zipWithIndex.foldLeft(acc) { case (acc, (description, definitionIndex)) =>
-      val matchingFieldWithIndex = schema.zipWithIndex.find(_._1.name == description.name)
+      val matchingFieldWithIndex =
+        schema.zipWithIndex.find { case (column, _) =>
+          description.dataType match {
+            case Some(dataType) => column.name == description.name && column.dataType == dataType
+            case None           => column.name == description.name
+          }
+        }
 
       acc match {
         case Left(error) =>

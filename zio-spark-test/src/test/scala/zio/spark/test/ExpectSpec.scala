@@ -1,10 +1,11 @@
 package zio.spark.test
+import org.apache.spark.sql.types.{IntegerType, StringType}
+
 import zio.Scope
 import zio.spark.sql.SparkSession
 import zio.test.{Spec, TestEnvironment}
 import zio.test.TestAspect.failing
 
-// scalafix.ok
 object ExpectSpec extends SharedZIOSparkSpecDefault {
 
   import scala3encoders.given // scalafix:ok
@@ -77,6 +78,26 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
             )
         } yield result
       },
+      test("Dataframe should handle schema with data type") {
+        for {
+          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          result <-
+            people.toDF.expectAll(
+              schema("age".as(IntegerType)),
+              row(50).allowMultipleMatches
+            )
+        } yield result
+      },
+      test("Dataframe should fail with schema with wrong data type") {
+        for {
+          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          result <-
+            people.toDF.expectAll(
+              schema("age".as(StringType)),
+              row(50).allowMultipleMatches
+            )
+        } yield result
+      } @@ failing,
       test("Dataframe should handle schema permutations") {
         for {
           people <- Dataset(Person("Louis", 50), Person("Lara", 50))
