@@ -11,7 +11,6 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
 
   final case class Person(name: String, age: Int)
 
-
   override def spec: Spec[SparkSession with TestEnvironment with Scope, Any] =
     suite("Expect spec")(
       test("Dataset should validate expect all with exact data match") {

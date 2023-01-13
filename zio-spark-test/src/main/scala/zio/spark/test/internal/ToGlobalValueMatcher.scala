@@ -8,5 +8,8 @@ trait ToGlobalValueMatcher[T] {
 
 object ToGlobalValueMatcher {
   implicit def kv[T: ToPositionalValueMatcher]: ToGlobalValueMatcher[(String, T)] =
-    kv => KeyValue(kv._1, implicitly[ToPositionalValueMatcher[T]].apply(kv._2))
+    new ToGlobalValueMatcher[(String, T)] {
+      override def apply(t: (String, T)): GlobalValueMatcher =
+        KeyValue(t._1, implicitly[ToPositionalValueMatcher[T]].apply(t._2))
+    }
 }
