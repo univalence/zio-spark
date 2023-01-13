@@ -1,8 +1,7 @@
 package zio.spark
 
 import org.apache.spark.sql.Encoder
-import scala3encoders.given // scalafix:ok
-
+import scala3encoders.given // scalafix: ok
 import zio.{Task, Trace, ZIO}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
@@ -18,7 +17,7 @@ import zio.test.{TestArrow, TestResult, TestTrace}
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-package object test {
+package object test extends LowPriorityImplicits{
   val defaultSparkSession: SparkSession.Builder =
     SparkSession.builder
       .master(localAllNodes)
@@ -34,7 +33,7 @@ package object test {
     def expectAll(matchers: RowMatcher*)(implicit trace: Trace, sourceLocation: SourceLocation): Task[TestResult] =
       expectAllInternal(dataset.schema.indices.map(i => i -> i).toMap, matchers: _*)
 
-    def expectAll(schema: SchemaMatcher, matchers: RowMatcher*)(implicit
+    def expectAll(schema: SchemaMatcher, matchers: PositionalRowMatcher*)(implicit
         trace: Trace,
         sourceLocation: SourceLocation
     ): Task[TestResult] = {
@@ -59,7 +58,10 @@ package object test {
         trace: Trace,
         sourceLocation: SourceLocation
     ): Task[TestResult] = {
+
       val availableMatchers = mutable.ListBuffer(matchers: _*)
+
+      println(matchers)
 
       dataset.collect.map { rows =>
         TestResult(
@@ -70,7 +72,7 @@ package object test {
               val result: Either[NoMatch[T], Unit] =
                 rows.foldLeft(acc) { case (curr, row) =>
                   val isMatched =
-                    availableMatchers.find(_.process(row, Some(dataset.schema), indexMapping)) match {
+                    availableMatchers.find(_.process(row, dataset.schema, indexMapping)) match {
                       case Some(matcher) if matcher.isUnique =>
                         availableMatchers -= matcher
                         true
@@ -104,24 +106,30 @@ package object test {
   val __ : PositionalValueMatcher.Anything.type = PositionalValueMatcher.Anything
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def valueConversion[T](t: T): PositionalValueMatcher.Value[T] = PositionalValueMatcher.Value(t)
-
-  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def predicateConversion[T](predicate: T => Boolean): PositionalValueMatcher.Predicate[T] =
-    PositionalValueMatcher.Predicate(predicate)
+  implicit def keyValueConversion(kv: (String, PositionalValueMatcher)): GlobalValueMatcher.KeyValue =
+    GlobalValueMatcher.KeyValue(kv._1, kv._2)
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
   implicit def columnConversion(name: String): ColumnDescription = ColumnDescription(name, None)
 
   object row {
-    def apply(first: PositionalValueMatcher, others: PositionalValueMatcher*): PositionalRowMatcher =
-      PositionalRowMatcher(first +: others, true)
-
     def apply(first: GlobalValueMatcher, others: GlobalValueMatcher*): GlobalRowMatcher =
       GlobalRowMatcher(first +: others, true)
+
+    def apply(first: PositionalValueMatcher, others: PositionalValueMatcher*): PositionalRowMatcher =
+      PositionalRowMatcher(first +: others, true)
   }
 
   object schema {
     def apply(first: ColumnDescription, others: ColumnDescription*): SchemaMatcher = SchemaMatcher(first +: others)
   }
+}
+
+trait LowPriorityImplicits {
+  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
+  implicit def valueConversion[T](t: T): PositionalValueMatcher.Value[T] = PositionalValueMatcher.Value(t)
+
+  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
+  implicit def predicateConversion[T](predicate: T => Boolean): PositionalValueMatcher.Predicate[T] =
+    PositionalValueMatcher.Predicate(predicate)
 }

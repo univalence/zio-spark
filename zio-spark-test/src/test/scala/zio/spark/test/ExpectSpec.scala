@@ -1,6 +1,7 @@
 package zio.spark.test
 import zio.Scope
 import zio.spark.sql.SparkSession
+import zio.spark.test.internal.ValueMatcher.PositionalValueMatcher
 import zio.test.{Spec, TestEnvironment}
 import zio.test.TestAspect.failing
 
@@ -12,6 +13,7 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
   import zio.spark.sql.implicits._
 
   final case class Person(name: String, age: Int)
+
 
   override def spec: Spec[SparkSession with TestEnvironment with Scope, Any] =
     suite("Expect spec")(
@@ -61,6 +63,13 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
           result <- people.toDF.expectAll(row(__, 50))
         } yield result
       } @@ failing,
+      test("Dataframe should validate expect all with key value in it") {
+        for {
+          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          // TODO: implicit conversion not working
+          result <- people.toDF.expectAll(row("age" -> (_: Int) == 50).allowMultipleMatches)
+        } yield result
+      },
       test("Dataframe should handle schema") {
         for {
           people <- Dataset(Person("Louis", 50), Person("Lara", 50))
