@@ -17,7 +17,7 @@ import zio.test.{TestArrow, TestResult, TestTrace}
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-package object test extends LowImplicitsPriority{
+package object test {
   val defaultSparkSession: SparkSession.Builder =
     SparkSession.builder
       .master(localAllNodes)
@@ -107,6 +107,10 @@ package object test extends LowImplicitsPriority{
     implicitly[ToGlobalValueMatcher[T]].apply(t)
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
+  implicit def positional[T: ToPositionalValueMatcher](t: T): PositionalValueMatcher =
+    implicitly[ToPositionalValueMatcher[T]].apply(t)
+
+  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
   implicit def column(name: String): ColumnDescription = ColumnDescription(name, None)
 
   object row {
@@ -120,10 +124,4 @@ package object test extends LowImplicitsPriority{
   object schema {
     def apply(first: ColumnDescription, others: ColumnDescription*): SchemaMatcher = SchemaMatcher(first +: others)
   }
-}
-
-trait LowImplicitsPriority {
-  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def positional[T: ToPositionalValueMatcher](t: T): PositionalValueMatcher =
-    implicitly[ToPositionalValueMatcher[T]].apply(t)
 }
