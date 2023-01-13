@@ -1,14 +1,11 @@
 package zio.spark.test
 import zio.Scope
 import zio.spark.sql.SparkSession
-import zio.spark.test.internal.ValueMatcher.PositionalValueMatcher
-import zio.test.{Spec, TestEnvironment}
 import zio.test.TestAspect.failing
+import zio.test.{Spec, TestEnvironment}
 
 // scalafix.ok
 object ExpectSpec extends SharedZIOSparkSpecDefault {
-
-  import scala3encoders.given // scalafix:ok
 
   import zio.spark.sql.implicits._
 
@@ -66,8 +63,7 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
       test("Dataframe should validate expect all with key value in it") {
         for {
           people <- Dataset(Person("Louis", 50), Person("Lara", 50))
-          // TODO: implicit conversion not working
-          result <- people.toDF.expectAll(row("age" -> (_: Int) == 50).allowMultipleMatches)
+          result <- people.toDF.expectAll(row("age" -> ((_: Int) == 50)).allowMultipleMatches)
         } yield result
       },
       test("Dataframe should handle schema") {

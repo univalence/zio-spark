@@ -1,7 +1,7 @@
 package zio.spark
 
 import org.apache.spark.sql.Encoder
-import scala3encoders.given // scalafix: ok
+import scala3encoders.given
 import zio.{Task, Trace, ZIO}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
@@ -9,7 +9,7 @@ import zio.spark.rdd.RDD
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 import zio.spark.test.ExpectError._
-import zio.spark.test.internal.{ColumnDescription, RowMatcher, SchemaMatcher}
+import zio.spark.test.internal.{ColumnDescription, RowMatcher, SchemaMatcher, ToGlobalValueMatcher, ToPositionalValueMatcher}
 import zio.spark.test.internal.RowMatcher._
 import zio.spark.test.internal.ValueMatcher._
 import zio.test.{TestArrow, TestResult, TestTrace}
@@ -17,7 +17,7 @@ import zio.test.{TestArrow, TestResult, TestTrace}
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-package object test extends LowPriorityImplicits{
+package object test extends LowImplicitsPriority{
   val defaultSparkSession: SparkSession.Builder =
     SparkSession.builder
       .master(localAllNodes)
@@ -58,10 +58,7 @@ package object test extends LowPriorityImplicits{
         trace: Trace,
         sourceLocation: SourceLocation
     ): Task[TestResult] = {
-
       val availableMatchers = mutable.ListBuffer(matchers: _*)
-
-      println(matchers)
 
       dataset.collect.map { rows =>
         TestResult(
@@ -103,14 +100,14 @@ package object test extends LowPriorityImplicits{
     }
   }
 
-  val __ : PositionalValueMatcher.Anything.type = PositionalValueMatcher.Anything
+  val __ = PositionalValueMatcher.Anything
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def keyValueConversion(kv: (String, PositionalValueMatcher)): GlobalValueMatcher.KeyValue =
-    GlobalValueMatcher.KeyValue(kv._1, kv._2)
+  implicit def global[T: ToGlobalValueMatcher](t: T): GlobalValueMatcher =
+    implicitly[ToGlobalValueMatcher[T]].apply(t)
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def columnConversion(name: String): ColumnDescription = ColumnDescription(name, None)
+  implicit def column(name: String): ColumnDescription = ColumnDescription(name, None)
 
   object row {
     def apply(first: GlobalValueMatcher, others: GlobalValueMatcher*): GlobalRowMatcher =
@@ -125,11 +122,8 @@ package object test extends LowPriorityImplicits{
   }
 }
 
-trait LowPriorityImplicits {
+trait LowImplicitsPriority {
   @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def valueConversion[T](t: T): PositionalValueMatcher.Value[T] = PositionalValueMatcher.Value(t)
-
-  @SuppressWarnings(Array("scalafix:DisableSyntax.implicitConversion"))
-  implicit def predicateConversion[T](predicate: T => Boolean): PositionalValueMatcher.Predicate[T] =
-    PositionalValueMatcher.Predicate(predicate)
+  implicit def positional[T: ToPositionalValueMatcher](t: T): PositionalValueMatcher =
+    implicitly[ToPositionalValueMatcher[T]].apply(t)
 }
