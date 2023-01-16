@@ -2,12 +2,12 @@ package zio.spark.test
 
 import scala3encoders.given // scalafix:ok
 
+import zio.spark.sql.SparkSession
 import zio.spark.sql.implicits._
 import zio.test._
-import zio.spark.sql.SparkSession
 
 object ZIOSparkSpecDefaultSpec extends ZIOSparkSpecDefault {
-  override def sparkSpec: Spec[SparkSession,Throwable] =
+  override def sparkSpec: Spec[SparkSession, Throwable] =
     suite("ZIOSparkSpecDefault can run spark job without providing layer")(
       test("It can run Dataset job") {
         for {
