@@ -1,9 +1,7 @@
 package zio.spark
 
-
 import zio.spark.parameter._
 import zio.spark.sql._
-
 
 package object test {
   val defaultSparkSession: SparkSession.Builder =
