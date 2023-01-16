@@ -9,6 +9,7 @@ import org.apache.spark.sql.{
 
 import zio._
 
+
 package object sql {
   type DataFrame = Dataset[Row]
 
