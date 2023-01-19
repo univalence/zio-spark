@@ -30,6 +30,51 @@ final case class SparkSession(underlyingSparkSession: UnderlyingSparkSession)
   def emptyDataset[T: Encoder]: Dataset[T] = Dataset(underlyingSparkSession.emptyDataset[T])
 
   /**
+   * Creates a [[Dataset]] from a local Seq of data of a given type.
+   * This method requires an encoder (to convert a JVM object of type
+   * `T` to and from the internal Spark SQL representation) that is
+   * generally created automatically through implicits from a
+   * `SparkSession`, or can be created explicitly by calling static
+   * methods on [[Encoders]].
+   *
+   * ==Example==
+   *
+   * {{{
+   *
+   *   import spark.implicits._
+   *   case class Person(name: String, age: Long)
+   *   val data = Seq(Person("Michael", 29), Person("Andy", 30), Person("Justin", 19))
+   *   val ds = spark.createDataset(data)
+   *
+   *   ds.show()
+   *   // +-------+---+
+   *   // |   name|age|
+   *   // +-------+---+
+   *   // |Michael| 29|
+   *   // |   Andy| 30|
+   *   // | Justin| 19|
+   *   // +-------+---+
+   * }}}
+   *
+   * @since 2.0.0
+   */
+  def createDataset[T: Encoder](data: Seq[T]): Task[Dataset[T]] =
+    ZIO.attempt(Dataset(underlyingSparkSession.createDataset(data)))
+
+  /**
+   * Creates a [[Dataset]] from an RDD of a given type. This method
+   * requires an encoder (to convert a JVM object of type `T` to and
+   * from the internal Spark SQL representation) that is generally
+   * created automatically through implicits from a `SparkSession`, or
+   * can be created explicitly by calling static methods on
+   * [[Encoders]].
+   *
+   * @since 2.0.0
+   */
+  def createDataset[T: Encoder](data: RDD[T]): Task[Dataset[T]] =
+    ZIO.attempt(Dataset(underlyingSparkSession.createDataset(data.underlying)))
+
+  /**
    * Creates a `DataFrame` from an RDD of Product (e.g. case classes,
    * tuples).
    *
@@ -100,6 +145,51 @@ object SparkSession {
 
   /** Creates a new [[Dataset]] of type T containing zero elements. */
   def emptyDataset[T: Encoder]: RIO[SparkSession, Dataset[T]] = ZIO.service[SparkSession].map(_.emptyDataset[T])
+
+  /**
+   * Creates a [[Dataset]] from a local Seq of data of a given type.
+   * This method requires an encoder (to convert a JVM object of type
+   * `T` to and from the internal Spark SQL representation) that is
+   * generally created automatically through implicits from a
+   * `SparkSession`, or can be created explicitly by calling static
+   * methods on [[Encoders]].
+   *
+   * ==Example==
+   *
+   * {{{
+   *
+   *   import spark.implicits._
+   *   case class Person(name: String, age: Long)
+   *   val data = Seq(Person("Michael", 29), Person("Andy", 30), Person("Justin", 19))
+   *   val ds = spark.createDataset(data)
+   *
+   *   ds.show()
+   *   // +-------+---+
+   *   // |   name|age|
+   *   // +-------+---+
+   *   // |Michael| 29|
+   *   // |   Andy| 30|
+   *   // | Justin| 19|
+   *   // +-------+---+
+   * }}}
+   *
+   * @since 2.0.0
+   */
+  def createDataset[T: Encoder](data: Seq[T]): RIO[SparkSession, Dataset[T]] =
+    ZIO.service[SparkSession].flatMap(_.createDataset(data))
+
+  /**
+   * Creates a [[Dataset]] from an RDD of a given type. This method
+   * requires an encoder (to convert a JVM object of type `T` to and
+   * from the internal Spark SQL representation) that is generally
+   * created automatically through implicits from a `SparkSession`, or
+   * can be created explicitly by calling static methods on
+   * [[Encoders]].
+   *
+   * @since 2.0.0
+   */
+  def createDataset[T: Encoder](data: RDD[T]): RIO[SparkSession, Dataset[T]] =
+    ZIO.service[SparkSession].flatMap(_.createDataset(data))
 
   /**
    * Creates a `DataFrame` from an RDD of Product (e.g. case classes,
