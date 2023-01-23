@@ -2,6 +2,7 @@
 inThisBuild(
   List(
     version ~= addVersionPadding,
+    scalaVersion  := scala213,
     organization  := "io.univalence",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
     licenses      := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
@@ -174,31 +175,33 @@ lazy val exampleZIOEcosystem =
     )
 
 lazy val examples =
-  (project in file("examples")).aggregate(
-    exampleSimpleApp,
-    exampleSparkCodeMigration,
-    exampleUsingOlderSparkVersion,
-    exampleWordCount,
-    exampleZparkio,
-    exampleZIOEcosystem
-  )
+  (project in file("examples"))
+    .settings(noPublishingSettings)
+    .settings(crossScalaVersions := Nil)
+    .aggregate(
+      exampleSimpleApp,
+      exampleSparkCodeMigration,
+      exampleUsingOlderSparkVersion,
+      exampleWordCount,
+      exampleZparkio,
+      exampleZIOEcosystem
+    )
 
 /** Generates required libraries for magnolia. */
 def generateMagnoliaDependency(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
   scalaMinor match {
     case _ if scalaMajor == 3 => Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.2.6")
     case 11                   => Seq("me.lyh" %% "magnolia" % "0.12.1.0-b575bf3")
-    case 12 | 13              => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.2")
+    case 12 | 13              => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.3")
     case _                    => throw new Exception("It should be unreachable.")
   }
 
 /** Generates required libraries for spark. */
 def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] = {
-  val mappingVersion = if (scalaMajor == 2) scalaMinor else 13
+  val mappingVersion       = if (scalaMajor == 2) scalaMinor else 13
   val sparkVersion: String = sparkScalaVersionMapping(mappingVersion)
-  val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources ()
-  val sparkSql =  "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()
-
+  val sparkCore            = "org.apache.spark" %% "spark-core" % sparkVersion % Provided withSources ()
+  val sparkSql             = "org.apache.spark" %% "spark-sql"  % sparkVersion % Provided withSources ()
 
   scalaMajor match {
     case 2 => Seq(sparkCore, sparkSql)
@@ -300,7 +303,6 @@ lazy val commonSettings =
   Seq(
     resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
     crossScalaVersions := supportedScalaVersions,
-    scalaVersion       := scala213,
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     scalacOptions ~= fatalWarningsAsProperties
   )
@@ -312,9 +314,8 @@ lazy val commonSettings =
  * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
 lazy val noPublishingSettings =
   Seq(
-    fork           := false,
-    publish / skip := true,
-    // Don't generate documentation for the examples
+    fork                                   := false,
+    publish / skip                         := true,
     Compile / doc / sources                := Seq.empty,
     Compile / packageDoc / publishArtifact := false
   )

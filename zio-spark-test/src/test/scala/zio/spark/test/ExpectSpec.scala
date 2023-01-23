@@ -17,60 +17,60 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
   override def spec: Spec[SparkSession with TestEnvironment with Scope, Any] =
     suite("Expect spec")(
       test("Dataset should validate expect all with exact data match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row(1), row(2), row(3)))
+        Seq(1, 2, 3).toDS.flatMap(_.expectAll(row(1), row(2), row(3)))
       },
       test("Dataset should fail expect all if missing data match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row(1), row(2)))
+        Seq(1, 2, 3).toDS.flatMap(_.expectAll(row(1), row(2)))
       } @@ failing,
       test("Dataset should validate expect all with conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row((_: Int) > 0).allowMultipleMatches))
+        Seq(1, 2, 3).toDS.flatMap(_.expectAll(row((_: Int) > 0).allowMultipleMatches))
       },
       test("Dataset should validate expect all with or conditional match") {
         val condition1: Int => Boolean = _ > 1
         val condition2: Int => Boolean = _ == 1
-        Dataset(1, 2, 3).flatMap(_.expectAll(row(condition1 || condition2).allowMultipleMatches))
+        Seq(1, 2, 3).toDS.flatMap(_.expectAll(row(condition1 || condition2).allowMultipleMatches))
       },
       test("Dataset should validate expect all with and conditional match") {
         val condition1: Int => Boolean = _ > 0
         val condition2: Int => Boolean = _ <= 3
-        Dataset(1, 2, 3).flatMap(_.expectAll(row(condition1 && condition2).allowMultipleMatches))
+        Seq(1, 2, 3).toDS.flatMap(_.expectAll(row(condition1 && condition2).allowMultipleMatches))
       },
       test("Dataset should fail expect all if wrong conditional match") {
-        Dataset(1, 2, 3).flatMap(_.expectAll(row((_: Int) > 1).allowMultipleMatches))
+        Seq(1, 2, 3).toDS.flatMap(_.expectAll(row((_: Int) > 1).allowMultipleMatches))
       } @@ failing,
       test("Dataframe should validate expect all with exact row match") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 26))
+          people <- Seq(Person("Louis", 50), Person("Lara", 26)).toDS
           result <- people.toDF.expectAll(row("Louis", 50), row("Lara", 26))
         } yield result
       },
       test("Dataframe should fail expect all with if missing row match") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 26))
+          people <- Seq(Person("Louis", 50), Person("Lara", 26)).toDS
           result <- people.toDF.expectAll(row("Louis", 50))
         } yield result
       } @@ failing,
       test("Dataframe should validate expect all with __ in it") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          people <- Seq(Person("Louis", 50), Person("Lara", 50)).toDS
           result <- people.toDF.expectAll(row(__, 50).allowMultipleMatches)
         } yield result
       },
       test("Dataframe should fail expect all with __ in it but wrong row match") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 25), Person("Lora", 25))
+          people <- Seq(Person("Louis", 50), Person("Lara", 25), Person("Lora", 25)).toDS
           result <- people.toDF.expectAll(row(__, 50))
         } yield result
       } @@ failing,
       test("Dataframe should validate expect all with key value in it") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          people <- Seq(Person("Louis", 50), Person("Lara", 50)).toDS
           result <- people.toDF.expectAll(row("age" -> ((_: Int) == 50)).allowMultipleMatches)
         } yield result
       },
       test("Dataframe should handle schema") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          people <- Seq(Person("Louis", 50), Person("Lara", 50)).toDS
           result <-
             people.toDF.expectAll(
               schema("age"),
@@ -80,7 +80,7 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
       },
       test("Dataframe should handle schema with data type") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          people <- Seq(Person("Louis", 50), Person("Lara", 50)).toDS
           result <-
             people.toDF.expectAll(
               schema("age".as(IntegerType)),
@@ -90,7 +90,7 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
       },
       test("Dataframe should fail with schema with wrong data type") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          people <- Seq(Person("Louis", 50), Person("Lara", 50)).toDS
           result <-
             people.toDF.expectAll(
               schema("age".as(StringType)),
@@ -100,7 +100,7 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
       } @@ failing,
       test("Dataframe should handle schema permutations") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          people <- Seq(Person("Louis", 50), Person("Lara", 50)).toDS
           result <-
             people.toDF.expectAll(
               schema("age", "name"),
@@ -110,7 +110,7 @@ object ExpectSpec extends SharedZIOSparkSpecDefault {
       },
       test("Dataframe should fail schema permutations with unknown column") {
         for {
-          people <- Dataset(Person("Louis", 50), Person("Lara", 50))
+          people <- Seq(Person("Louis", 50), Person("Lara", 50)).toDS
           result <-
             people.toDF.expectAll(
               schema("age", "unknown"),

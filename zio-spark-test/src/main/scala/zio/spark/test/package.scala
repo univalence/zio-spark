@@ -1,13 +1,10 @@
 package zio.spark
 
-import org.apache.spark.sql.Encoder
 
 import zio.{Task, Trace, ZIO}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
-import zio.spark.rdd.RDD
 import zio.spark.sql._
-import zio.spark.sql.implicits._
 import zio.spark.test.ExpectError._
 import zio.spark.test.internal.{
   ColumnDescription,
@@ -21,7 +18,6 @@ import zio.spark.test.internal.ValueMatcher._
 import zio.test.{TestArrow, TestResult, TestTrace}
 
 import scala.collection.mutable
-import scala.reflect.ClassTag
 
 package object test {
   val defaultSparkSession: SparkSession.Builder =
@@ -29,10 +25,6 @@ package object test {
       .master(localAllNodes)
       .config("spark.sql.shuffle.partitions", 1)
       .config("spark.ui.enabled", value = false)
-
-  def Dataset[T: Encoder](values: T*)(implicit trace: Trace): SIO[Dataset[T]] = values.toDataset
-
-  def RDD[T: ClassTag](values: T*)(implicit trace: Trace): SIO[RDD[T]] = values.toRDD
 
   implicit class ExpectOps[T](dataset: Dataset[T]) {
 
