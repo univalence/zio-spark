@@ -1,6 +1,5 @@
 package zio.spark
 
-
 import zio.{Task, Trace, ZIO}
 import zio.internal.stacktracer.SourceLocation
 import zio.spark.parameter._
