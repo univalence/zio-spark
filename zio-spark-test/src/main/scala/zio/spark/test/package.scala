@@ -30,7 +30,7 @@ package object test {
     def expectAll(matchers: RowMatcher*)(implicit trace: Trace, sourceLocation: SourceLocation): Task[TestResult] =
       expectAllInternal(dataset.schema.indices.map(i => i -> i).toMap, matchers: _*)
 
-    def expectAll(schema: SchemaMatcher, matchers: PositionalRowMatcher*)(implicit
+    def expectAll(schema: SchemaMatcher, matchers: RowMatcher*)(implicit
         trace: Trace,
         sourceLocation: SourceLocation
     ): Task[TestResult] = {
