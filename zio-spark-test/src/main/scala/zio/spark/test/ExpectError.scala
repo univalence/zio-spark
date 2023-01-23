@@ -1,6 +1,6 @@
 package zio.spark.test
 
-import zio.spark.test.internal.ColumnDescription
+import zio.spark.test.internal.{ColumnDescription, PrettyPrint}
 import zio.test.{ErrorMessage, TestTrace}
 
 sealed trait ExpectError {
@@ -42,7 +42,7 @@ object ExpectError {
       val shortenString = if (isShortened) "\n - ..." else ""
 
       s"""Can't find a matcher for all values. $theFollowingValue:
-         |${values.map(_.toString).map(s => s" - $s").mkString("\n")}$shortenString""".stripMargin
+         |${values.map(PrettyPrint.apply).map(s => s" - $s").mkString("\n")}$shortenString""".stripMargin
     }
   }
 }
