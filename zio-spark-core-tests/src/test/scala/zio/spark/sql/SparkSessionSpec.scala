@@ -3,10 +3,25 @@ package zio.spark.sql
 import org.apache.spark.SparkConf
 
 import zio.spark.parameter._
+import zio.spark.test.defaultSparkSession
 import zio.test._
 
 object SparkSessionSpec extends ZIOSpecDefault {
-  def spec: Spec[Annotations with Live, TestFailure[Any]] = sparkSessionOptionsSpec + sparkSessionDefinitionsSpec
+  def spec: Spec[Annotations with Live, Any] = sparkSessionOptionsSpec + sparkSessionDefinitionsSpec + sparkSessionSpec
+
+  def sparkSessionSpec: Spec[Annotations with Live, Throwable] =
+    suite("Spark Session") {
+      test("Spark Session should be properly closed") {
+        val customSessionScope =
+          zio.Scope.make.flatMap { s =>
+            s.extend(defaultSparkSession.acquireRelease)
+              .onExit(e => s.close(e))
+              .map(x => x.underlyingSparkSession.sparkContext.isStopped)
+          }
+
+        assertZIO(customSessionScope)(Assertion.isTrue)
+      }
+    }
 
   def sparkSessionOptionsSpec: Spec[Annotations with Live, TestFailure[Any]] =
     suite("SparkSession Builder Options")(
