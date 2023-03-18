@@ -12,7 +12,7 @@ import zio.spark.test._
 import zio.test._
 import zio.test.TestAspect.{ignore, timeout, withLiveClock}
 
-object CancellableEffectSpec extends SharedZIOSparkSpecDefault {
+object CancellableEffectSpec extends ZIOSparkSpecDefault {
   val getJobGroup: SIO[String] = zio.spark.sql.fromSpark(_.sparkContext.getLocalProperty("spark.jobGroup.id"))
 
   def listenSparkEvents[R, E, A](zio: ZIO[R, E, A]): ZIO[R with SparkSession, E, (Seq[SparkListenerEvent], A)] =

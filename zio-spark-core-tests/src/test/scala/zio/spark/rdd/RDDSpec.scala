@@ -5,7 +5,7 @@ import zio.spark.sql._
 import zio.spark.test._
 import zio.test._
 
-object RDDSpec extends SharedZIOSparkSpecDefault {
+object RDDSpec extends ZIOSparkSpecDefault {
 
   def rddActionsSpec: Spec[SparkSession, Any] =
     suite("RDD actions")(

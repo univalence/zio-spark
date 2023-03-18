@@ -298,7 +298,7 @@ object SparkSession {
      * information.
      */
     def acquireRelease(implicit trace: Trace): ZIO[Scope, Throwable, SparkSession] =
-      ZIO.acquireRelease(getOrCreate)(ss => ZIO.attempt(ss.close).orDie)
+      ZIO.acquireRelease(getOrCreate)(ss => ss.close.orDie)
 
     /** Adds a spark configuration to the Builder. */
     def config(conf: SparkConf): Builder = configs(conf.getAll.toMap)

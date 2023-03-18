@@ -8,7 +8,7 @@ import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
 
-object RelationalGroupedDatasetSpec extends SharedZIOSparkSpecDefault {
+object RelationalGroupedDatasetSpec extends ZIOSparkSpecDefault {
   final case class AggregatePerson(status: String, age: Double)
 
   def relationalGroupedDatasetAggregationSpec: Spec[SparkSession, Any] = {
