@@ -9,7 +9,7 @@ import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
 
-object StreamingSpec extends SharedZIOSparkSpecDefault {
+object StreamingSpec extends ZIOSparkSpecDefault {
 
   def testStreamingPipeline(
       name: String,

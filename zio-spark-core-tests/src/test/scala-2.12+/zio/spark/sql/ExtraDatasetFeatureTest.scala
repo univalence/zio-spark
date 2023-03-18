@@ -8,7 +8,7 @@ import zio.spark.test._
 import zio.test._
 import zio.test.TestAspect._
 
-object ExtraDatasetFeatureTest extends SharedZIOSparkSpecDefault {
+object ExtraDatasetFeatureTest extends ZIOSparkSpecDefault {
   import scala3encoders.given // scalafix:ok
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException

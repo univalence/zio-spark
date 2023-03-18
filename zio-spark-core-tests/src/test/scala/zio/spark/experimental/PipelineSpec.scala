@@ -6,7 +6,7 @@ import zio.spark.sql._
 import zio.spark.test._
 import zio.test._
 
-object PipelineSpec extends SharedZIOSparkSpecDefault {
+object PipelineSpec extends ZIOSparkSpecDefault {
   override def spec: Spec[SparkSession, Throwable] =
     suite("Pipeline spec")(
       test("Pipeline can be build without transformations") {

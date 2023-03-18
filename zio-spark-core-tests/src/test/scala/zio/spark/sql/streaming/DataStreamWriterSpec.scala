@@ -9,7 +9,7 @@ import zio.spark.test._
 import zio.test._
 import zio.test.Assertion.{containsString, equalTo}
 
-object DataStreamWriterSpec extends SharedZIOSparkSpecDefault {
+object DataStreamWriterSpec extends ZIOSparkSpecDefault {
   val writerEffect: SIO[DataStreamWriter[Int]] = Seq(1).toDataset.map(_.writeStream)
 
   def testOption(
