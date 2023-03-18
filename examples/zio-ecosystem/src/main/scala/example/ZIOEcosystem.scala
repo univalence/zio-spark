@@ -107,6 +107,6 @@ object ZIOEcosystem extends ZIOAppDefault {
     for {
       args <- ZIOAppArgs.getArgs
       _    <- Console.printLine("no args supplied, running all examples (`example all`)").when(args.isEmpty).ignore
-      _    <- app.run(if (args.isEmpty) List("example", "all") else args.toList).provide(session).orDie
+      _    <- app.run(if (args.isEmpty) List("example", "all") else args.toList).provide(session).logError.ignore
     } yield ()
 }
