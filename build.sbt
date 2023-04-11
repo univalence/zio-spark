@@ -208,7 +208,7 @@ def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[Mo
       Seq(
         sparkCore.cross(CrossVersion.for3Use2_13),
         sparkSql.cross(CrossVersion.for3Use2_13),
-        "io.github.vincenzobaz" %% "spark-scala3" % "0.1.6"
+        "io.github.vincenzobaz" %% "spark-scala3" % "0.2.0"
       )
     case _ => throw new Exception("It should be unreachable.")
   }
