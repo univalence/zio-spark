@@ -8,7 +8,7 @@ import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
 
-object PairRDDFunctionsSpec extends SharedZIOSparkSpecDefault {
+object PairRDDFunctionsSpec extends ZIOSparkSpecDefault {
   def spec: Spec[SparkSession, Throwable] =
     suite("PairRDDFunctionsTest transformations")(
       test("PairRDDFunctionsTest should add reduce by key correctly") {

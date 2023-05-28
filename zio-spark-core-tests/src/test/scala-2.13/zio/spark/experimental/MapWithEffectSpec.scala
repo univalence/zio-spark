@@ -10,7 +10,7 @@ import zio.spark.sql.implicits._
 import zio.spark.test._
 import zio.test._
 
-object MapWithEffectSpec extends SharedZIOSparkSpecDefault {
+object MapWithEffectSpec extends ZIOSparkSpecDefault {
   def spec: Spec[SparkSession, Throwable] =
     suite("smoke")(
       test("basic smoke test") {

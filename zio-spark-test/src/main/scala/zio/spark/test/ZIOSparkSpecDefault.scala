@@ -4,14 +4,9 @@ import zio._
 import zio.spark.sql._
 import zio.test._
 
-abstract class ZIOSparkSpecDefault extends ZIOSpecDefault {
-  def ss = defaultSparkSession
+abstract class ZIOSparkSpecDefault extends ZIOSpec[TestEnvironment with SparkSession] {
 
-  def sparkSpec: Spec[SparkSession with TestEnvironment with Scope, Any]
+  override def bootstrap: ZLayer[Any, Any, TestEnvironment with SparkSession] =
+    testEnvironment ++ defaultSparkSession.asLayer.tap(_.get.sparkContext.setLogLevel("ERROR"))
 
-  override def spec: Spec[TestEnvironment with Scope, Any] =
-    sparkSpec.provideSomeLayer[TestEnvironment with Scope](
-      ss.asLayer
-        .tap(_.get.sparkContext.setLogLevel("ERROR"))
-    )
 }

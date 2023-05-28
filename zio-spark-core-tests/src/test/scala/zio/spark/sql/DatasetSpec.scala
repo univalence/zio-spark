@@ -12,7 +12,7 @@ import zio.test.TestAspect._
 
 import scala.util.Try
 
-object DatasetSpec extends SharedZIOSparkSpecDefault {
+object DatasetSpec extends ZIOSparkSpecDefault {
 
   import scala3encoders.given // scalafix:ok
 
