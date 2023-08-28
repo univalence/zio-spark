@@ -4,12 +4,12 @@ import org.apache.spark.sql.Row
 
 import zio._
 import zio.spark.experimental
-import zio.spark.experimental.Pipeline
+import zio.spark.experimental.{Pipeline, ZIOSparkAppDefault}
 import zio.spark.parameter._
 import zio.spark.sql._
 import zio.spark.sql.implicits._
 
-object UsingOlderSparkVersion extends ZIOAppDefault {
+object UsingOlderSparkVersion extends ZIOSparkAppDefault {
 
   import zio.spark.sql.TryAnalysis.syntax.throwAnalysisException
 
