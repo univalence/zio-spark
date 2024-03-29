@@ -95,7 +95,7 @@ lazy val zioPrelude = "1.0.0-RC19"
 lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.19"
 lazy val scala213 = "2.13.13"
-lazy val scala3   = "3.3.3"
+lazy val scala3   = "3.4.1"
 
 lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala3)
 
