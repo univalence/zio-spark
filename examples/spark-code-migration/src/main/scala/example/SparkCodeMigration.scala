@@ -1,10 +1,11 @@
 package example
 
 import zio._
+import zio.spark.experimental.ZIOSparkAppDefault
 import zio.spark.parameter._
 import zio.spark.sql._
 
-object SparkCodeMigration extends ZIOAppDefault {
+object SparkCodeMigration extends ZIOSparkAppDefault {
   val NUM_SAMPLES: Int = 100000
 
   val computePiJob: SIO[Long] =

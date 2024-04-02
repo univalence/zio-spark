@@ -8,10 +8,11 @@ import org.apache.log4j.{Level, Logger}
 import zio._
 import zio.cli.{Args, CliApp, Command, Options}
 import zio.cli.HelpDoc.Span.text
+import zio.spark.experimental.ZIOSparkAppDefault
 import zio.spark.parameter._
 import zio.spark.sql._
 
-object ZIOEcosystem extends ZIOAppDefault {
+object ZIOEcosystem extends ZIOSparkAppDefault {
   // A more sophisticated layer to add middleware logs
   private val session: ZLayer[Any, Throwable, SparkSession] =
     ZLayer.scoped {
