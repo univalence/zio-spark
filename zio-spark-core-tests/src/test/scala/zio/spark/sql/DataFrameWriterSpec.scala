@@ -79,7 +79,7 @@ object DataFrameWriterSpec extends ZIOSparkSpecDefault {
           extension = "parquet",
           readAgain = path => SparkSession.read.parquet(path),
           write     = path => _.write.parquet(path)
-        ) @@ scala211(os(!_.isMac)),
+        ),
         writerTest(
           extension = "orc",
           readAgain = path => SparkSession.read.orc(path),

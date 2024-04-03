@@ -90,6 +90,10 @@ final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupe
    *   df.groupBy("year").pivot("course").sum("earnings")
    * }}}
    *
+   * @see
+   *   `org.apache.spark.sql.Dataset.unpivot` for the reverse operation,
+   *   except for the aggregation.
+   *
    * @param pivotColumn
    *   Name of the column to pivot.
    * @since 1.6.0
@@ -123,6 +127,10 @@ final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupe
    *     .agg(sum($"earnings"))
    * }}}
    *
+   * @see
+   *   `org.apache.spark.sql.Dataset.unpivot` for the reverse operation,
+   *   except for the aggregation.
+   *
    * @param pivotColumn
    *   Name of the column to pivot.
    * @param values
@@ -143,6 +151,10 @@ final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupe
    *   df.groupBy($"year").pivot($"course").sum($"earnings");
    * }}}
    *
+   * @see
+   *   `org.apache.spark.sql.Dataset.unpivot` for the reverse operation,
+   *   except for the aggregation.
+   *
    * @param pivotColumn
    *   he column to pivot.
    * @since 2.4.0
@@ -159,6 +171,10 @@ final case class RelationalGroupedDataset(underlying: UnderlyingRelationalGroupe
    *   // Compute the sum of earnings for each year by course with each course as a separate column
    *   df.groupBy($"year").pivot($"course", Seq("dotNET", "Java")).sum($"earnings")
    * }}}
+   *
+   * @see
+   *   `org.apache.spark.sql.Dataset.unpivot` for the reverse operation,
+   *   except for the aggregation.
    *
    * @param pivotColumn
    *   the column to pivot.

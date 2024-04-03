@@ -12,6 +12,8 @@ import zio.spark.experimental.ZIOSparkAppDefault
 import zio.spark.parameter._
 import zio.spark.sql._
 
+import scala.annotation.nowarn
+
 object ZIOEcosystem extends ZIOSparkAppDefault {
   // A more sophisticated layer to add middleware logs
   private val session: ZLayer[Any, Throwable, SparkSession] =
@@ -88,10 +90,11 @@ object ZIOEcosystem extends ZIOSparkAppDefault {
       }
 
     // operator style
-    logInfo(command.example) *> job(command.example).timed.tap { case (duration, _) =>
-      val seconds: Float = duration.toMillis.toFloat / 1000
-      ZIO.logInfo(s"Example (${command.example.name}) correctly finished, it took $seconds seconds!")
-    }
+    @nowarn val prg =
+      logInfo(command.example) *> job(command.example).timed.tap { case (duration, _) =>
+        val seconds: Float = duration.toMillis.toFloat / 1000
+        ZIO.logInfo(s"Example (${command.example.name}) correctly finished, it took $seconds seconds!")
+      }
 
     // for-comprehension style
     for {

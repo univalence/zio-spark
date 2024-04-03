@@ -249,7 +249,7 @@ object DatasetSpec extends ZIOSparkSpecDefault {
           df <- read
           transformedDf = df.repartition(10).coalesce(2)
         } yield assertTrue(transformedDf.rdd.partitions.length == 2)
-      } @@ scala211(ignore)
+      }
     )
 
   def sqlSpec: Spec[SparkSession, Any] =
