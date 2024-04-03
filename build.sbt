@@ -89,15 +89,14 @@ addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
 
 // -- Lib versions
-lazy val zio        = "2.0.10"
-lazy val zioPrelude = "1.0.0-RC19"
+lazy val zio        = "2.0.21"
+lazy val zioPrelude = "1.0.0-RC23"
 
-lazy val scala211 = "2.11.12"
 lazy val scala212 = "2.12.19"
 lazy val scala213 = "2.13.13"
-lazy val scala3   = "3.4.1"
+lazy val scala3   = "3.3.3"
 
-lazy val supportedScalaVersions = List(scala211, scala212, scala213, scala3)
+lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
 lazy val scalaMajorVersion: SettingKey[Long] = SettingKey("scala major version")
 lazy val scalaMinorVersion: SettingKey[Long] = SettingKey("scala minor version")
@@ -190,7 +189,6 @@ lazy val examples =
 def generateMagnoliaDependency(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
   scalaMinor match {
     case _ if scalaMajor == 3 => Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.4")
-    case 11                   => Seq("me.lyh" %% "magnolia" % "0.12.1.0-b575bf3")
     case 12 | 13              => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.8")
     case _                    => throw new Exception("It should be unreachable.")
   }
@@ -208,7 +206,7 @@ def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[Mo
       Seq(
         sparkCore.cross(CrossVersion.for3Use2_13),
         sparkSql.cross(CrossVersion.for3Use2_13),
-        "io.github.vincenzobaz" %% "spark-scala3" % "0.2.0"
+        "io.github.vincenzobaz" %% "spark-scala3-encoders" % "0.2.6"
       )
     case _ => throw new Exception("It should be unreachable.")
   }
@@ -220,9 +218,8 @@ def generateSparkLibraryDependencies(scalaMajor: Long, scalaMinor: Long): Seq[Mo
  */
 def sparkScalaVersionMapping(scalaMinor: Long): String =
   scalaMinor match {
-    case 11 => "2.4.8"
-    case 12 => "3.3.1"
-    case 13 => "3.3.1"
+    case 12 => "3.5.1"
+    case 13 => "3.5.1"
     case _  => throw new Exception("It should be unreachable.")
   }
 

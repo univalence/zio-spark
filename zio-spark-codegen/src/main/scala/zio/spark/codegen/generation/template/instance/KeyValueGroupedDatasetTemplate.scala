@@ -19,7 +19,8 @@ case object KeyValueGroupedDatasetTemplate extends Template.Default {
         |  Encoder, 
         |  TypedColumn, 
         |  Dataset => UnderlyingDataset, 
-        |  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset
+        |  KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
+        |  Column
         |}
         |""".stripMargin
     }

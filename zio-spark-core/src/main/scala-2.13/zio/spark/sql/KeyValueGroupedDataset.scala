@@ -8,6 +8,7 @@
 package zio.spark.sql
 
 import org.apache.spark.sql.{
+  Column,
   Dataset => UnderlyingDataset,
   Encoder,
   KeyValueGroupedDataset => UnderlyingKeyValueGroupedDataset,
@@ -432,6 +433,58 @@ final case class KeyValueGroupedDataset[K, V](underlying: UnderlyingKeyValueGrou
       col8: TypedColumn[V, U8]
   ): TryAnalysis[Dataset[(K, U1, U2, U3, U4, U5, U6, U7, U8)]] =
     unpackWithAnalysis(_.agg[U1, U2, U3, U4, U5, U6, U7, U8](col1, col2, col3, col4, col5, col6, col7, col8))
+
+  /**
+   * (Scala-specific) Applies the given function to each sorted
+   * cogrouped data. For each unique group, the function will be passed
+   * the grouping key and 2 sorted iterators containing all elements in
+   * the group from [[Dataset]] `this` and `other`. The function can
+   * return an iterator containing elements of an arbitrary type which
+   * will be returned as a new [[Dataset]].
+   *
+   * This is equivalent to [[KeyValueGroupedDataset#cogroup]], except
+   * for the iterators to be sorted according to the given sort
+   * expressions. That sorting does not add computational complexity.
+   *
+   * @see
+   *   [[org.apache.spark.sql.KeyValueGroupedDataset#cogroup]]
+   * @since 3.4.0
+   */
+  def cogroupSorted[U, R: Encoder](other: KeyValueGroupedDataset[K, U])(
+      thisSortExprs: Column*
+  )(otherSortExprs: Column*)(f: (K, Iterator[V], Iterator[U]) => IterableOnce[R]): TryAnalysis[Dataset[R]] =
+    unpackWithAnalysis(_.cogroupSorted[U, R](other.underlying)(thisSortExprs: _*)(otherSortExprs: _*)(f))
+
+  /**
+   * (Scala-specific) Applies the given function to each group of data.
+   * For each unique group, the function will be passed the group key
+   * and a sorted iterator that contains all of the elements in the
+   * group. The function can return an iterator containing elements of
+   * an arbitrary type which will be returned as a new [[Dataset]].
+   *
+   * This function does not support partial aggregation, and as a result
+   * requires shuffling all the data in the [[Dataset]]. If an
+   * application intends to perform an aggregation over each key, it is
+   * best to use the reduce function or an
+   * `org.apache.spark.sql.expressions#Aggregator`.
+   *
+   * Internally, the implementation will spill to disk if any given
+   * group is too large to fit into memory. However, users must take
+   * care to avoid materializing the whole iterator for a group (for
+   * example, by calling `toList`) unless they are sure that this is
+   * possible given the memory constraints of their cluster.
+   *
+   * This is equivalent to [[KeyValueGroupedDataset#flatMapGroups]],
+   * except for the iterator to be sorted according to the given sort
+   * expressions. That sorting does not add computational complexity.
+   *
+   * @see
+   *   [[org.apache.spark.sql.KeyValueGroupedDataset#flatMapGroups]]
+   * @since 3.4.0
+   */
+  def flatMapSortedGroups[U: Encoder](sortExprs: Column*)(
+      f: (K, Iterator[V]) => IterableOnce[U]
+  ): TryAnalysis[Dataset[U]] = unpackWithAnalysis(_.flatMapSortedGroups[U](sortExprs: _*)(f))
 
   // ===============
 

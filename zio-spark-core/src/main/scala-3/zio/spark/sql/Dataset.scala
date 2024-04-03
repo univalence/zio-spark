@@ -861,6 +861,68 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * This method can only be used to drop top level columns. the colName
    * string is treated literally without further interpretation.
    *
+   * Note: `drop(colName)` has different semantic with
+   * `drop(col(colName))`, for example: 1, multi column have the same
+   * colName:
+   * {{{
+   *   val df1 = spark.range(0, 2).withColumn("key1", lit(1))
+   *   val df2 = spark.range(0, 2).withColumn("key2", lit(2))
+   *   val df3 = df1.join(df2)
+   *
+   *   df3.show
+   *   // +---+----+---+----+
+   *   // | id|key1| id|key2|
+   *   // +---+----+---+----+
+   *   // |  0|   1|  0|   2|
+   *   // |  0|   1|  1|   2|
+   *   // |  1|   1|  0|   2|
+   *   // |  1|   1|  1|   2|
+   *   // +---+----+---+----+
+   *
+   *   df3.drop("id").show()
+   *   // output: the two 'id' columns are both dropped.
+   *   // |key1|key2|
+   *   // +----+----+
+   *   // |   1|   2|
+   *   // |   1|   2|
+   *   // |   1|   2|
+   *   // |   1|   2|
+   *   // +----+----+
+   *
+   *   df3.drop(col("id")).show()
+   *   // ...AnalysisException: [AMBIGUOUS_REFERENCE] Reference `id` is ambiguous...
+   * }}}
+   *
+   * 2, colName contains special characters, like dot.
+   * {{{
+   *   val df = spark.range(0, 2).withColumn("a.b.c", lit(1))
+   *
+   *   df.show()
+   *   // +---+-----+
+   *   // | id|a.b.c|
+   *   // +---+-----+
+   *   // |  0|    1|
+   *   // |  1|    1|
+   *   // +---+-----+
+   *
+   *   df.drop("a.b.c").show()
+   *   // +---+
+   *   // | id|
+   *   // +---+
+   *   // |  0|
+   *   // |  1|
+   *   // +---+
+   *
+   *   df.drop(col("a.b.c")).show()
+   *   // no column match the expression 'a.b.c'
+   *   // +---+-----+
+   *   // | id|a.b.c|
+   *   // +---+-----+
+   *   // |  0|    1|
+   *   // |  1|    1|
+   *   // +---+-----+
+   * }}}
+   *
    * @group untypedrel
    * @since 2.0.0
    */
@@ -879,14 +941,31 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   def drop(colNames: String*): DataFrame = transformation(_.drop(colNames: _*))
 
   /**
-   * Returns a new Dataset with a column dropped. This version of drop
-   * accepts a [[Column]] rather than a name. This is a no-op if the
-   * Dataset doesn't have a column with an equivalent expression.
+   * Returns a new Dataset with column dropped.
+   *
+   * This method can only be used to drop top level column. This version
+   * of drop accepts a [[Column]] rather than a name. This is a no-op if
+   * the Dataset doesn't have a column with an equivalent expression.
+   *
+   * Note: `drop(col(colName))` has different semantic with
+   * `drop(colName)`, please refer to `Dataset#drop(colName: String)`.
    *
    * @group untypedrel
    * @since 2.0.0
    */
   def drop(col: Column): DataFrame = transformation(_.drop(col))
+
+  /**
+   * Returns a new Dataset with columns dropped.
+   *
+   * This method can only be used to drop top level columns. This is a
+   * no-op if the Dataset doesn't have a columns with an equivalent
+   * expression.
+   *
+   * @group untypedrel
+   * @since 3.4.0
+   */
+  def drop(col: Column, cols: Column*): DataFrame = transformation(_.drop(col, cols: _*))
 
   /**
    * Returns a new Dataset that contains only the unique rows from this
@@ -904,6 +983,28 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @since 2.0.0
    */
   def dropDuplicates: Dataset[T] = transformation(_.dropDuplicates())
+
+  /**
+   * Returns a new Dataset with duplicates rows removed, within
+   * watermark.
+   *
+   * This only works with streaming [[Dataset]], and watermark for the
+   * input [[Dataset]] must be set via [[withWatermark]].
+   *
+   * For a streaming [[Dataset]], this will keep all data across
+   * triggers as intermediate state to drop duplicated rows. The state
+   * will be kept to guarantee the semantic, "Events are deduplicated as
+   * long as the time distance of earliest and latest events are smaller
+   * than the delay threshold of watermark." Users are encouraged to set
+   * the delay threshold of watermark longer than max timestamp
+   * differences among duplicated events.
+   *
+   * Note: too late data older than watermark will be dropped.
+   *
+   * @group typedrel
+   * @since 3.5.0
+   */
+  def dropDuplicatesWithinWatermark: Dataset[T] = transformation(_.dropDuplicatesWithinWatermark())
 
   /**
    * Returns a new Dataset containing rows in this Dataset but not in
@@ -1070,6 +1171,14 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @since 1.6.0
    */
   def mapPartitions[U: Encoder](func: Iterator[T] => Iterator[U]): Dataset[U] = transformation(_.mapPartitions[U](func))
+
+  /**
+   * Returns a new Dataset by skipping the first `n` rows.
+   *
+   * @group typedrel
+   * @since 3.4.0
+   */
+  def offset(n: Int): Dataset[T] = transformation(_.offset(n))
 
   /**
    * Returns a new Dataset that has exactly `numPartitions` partitions.
@@ -1291,6 +1400,28 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    * @since 2.3.0
    */
   def summary(statistics: String*): DataFrame = transformation(_.summary(statistics: _*))
+
+  /**
+   * Returns a new DataFrame where each row is reconciled to match the
+   * specified schema. Spark will: <ul> <li>Reorder columns and/or inner
+   * fields by name to match the specified schema.</li> <li>Project away
+   * columns and/or inner fields that are not needed by the specified
+   * schema. Missing columns and/or inner fields (present in the
+   * specified schema but not input DataFrame) lead to failures.</li>
+   * <li>Cast the columns and/or inner fields to match the data types in
+   * the specified schema, if the types are compatible, e.g., numeric to
+   * numeric (error if overflows), but not string to int.</li> <li>Carry
+   * over the metadata from the specified schema, while the columns
+   * and/or inner fields still keep their own metadata if not
+   * overwritten by the specified schema.</li> <li>Fail if the
+   * nullability is not compatible. For example, the column and/or inner
+   * field is nullable but the specified schema requires them to be not
+   * nullable.</li> </ul>
+   *
+   * @group basic
+   * @since 3.4.0
+   */
+  def to(schema: StructType): DataFrame = transformation(_.to(schema))
 
   /**
    * Converts this strongly typed collection of data to generic
@@ -1577,6 +1708,52 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
     transformationWithAnalysis(_.dropDuplicates(col1, cols: _*))
 
   /**
+   * Returns a new Dataset with duplicates rows removed, considering
+   * only the subset of columns, within watermark.
+   *
+   * This only works with streaming [[Dataset]], and watermark for the
+   * input [[Dataset]] must be set via [[withWatermark]].
+   *
+   * For a streaming [[Dataset]], this will keep all data across
+   * triggers as intermediate state to drop duplicated rows. The state
+   * will be kept to guarantee the semantic, "Events are deduplicated as
+   * long as the time distance of earliest and latest events are smaller
+   * than the delay threshold of watermark." Users are encouraged to set
+   * the delay threshold of watermark longer than max timestamp
+   * differences among duplicated events.
+   *
+   * Note: too late data older than watermark will be dropped.
+   *
+   * @group typedrel
+   * @since 3.5.0
+   */
+  def dropDuplicatesWithinWatermark(colNames: Seq[String]): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.dropDuplicatesWithinWatermark(colNames))
+
+  /**
+   * Returns a new Dataset with duplicates rows removed, considering
+   * only the subset of columns, within watermark.
+   *
+   * This only works with streaming [[Dataset]], and watermark for the
+   * input [[Dataset]] must be set via [[withWatermark]].
+   *
+   * For a streaming [[Dataset]], this will keep all data across
+   * triggers as intermediate state to drop duplicated rows. The state
+   * will be kept to guarantee the semantic, "Events are deduplicated as
+   * long as the time distance of earliest and latest events are smaller
+   * than the delay threshold of watermark." Users are encouraged to set
+   * the delay threshold of watermark longer than max timestamp
+   * differences among duplicated events.
+   *
+   * Note: too late data older than watermark will be dropped.
+   *
+   * @group typedrel
+   * @since 3.5.0
+   */
+  def dropDuplicatesWithinWatermark(col1: String, cols: String*): TryAnalysis[Dataset[T]] =
+    transformationWithAnalysis(_.dropDuplicatesWithinWatermark(col1, cols: _*))
+
+  /**
    * Returns a new Dataset where a single column has been expanded to
    * zero or more rows by the provided function. This is similar to a
    * `LATERAL VIEW` in HiveQL. All columns of the input row are
@@ -1688,6 +1865,39 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
     transformationWithAnalysis(_.join(right.underlying, usingColumns))
 
   /**
+   * Equi-join with another `DataFrame` using the given column. A cross
+   * join with a predicate is specified as an inner join. If you would
+   * explicitly like to perform a cross join use the `crossJoin` method.
+   *
+   * Different from other join functions, the join column will only
+   * appear once in the output,
+   * i.e. similar to SQL's `JOIN USING` syntax.
+   *
+   * @param right
+   *   Right side of the join operation.
+   * @param usingColumn
+   *   Name of the column to join on. This column must exist on both
+   *   sides.
+   * @param joinType
+   *   Type of join to perform. Default `inner`. Must be one of:
+   *   `inner`, `cross`, `outer`, `full`, `fullouter`, `full_outer`,
+   *   `left`, `leftouter`, `left_outer`, `right`, `rightouter`,
+   *   `right_outer`, `semi`, `leftsemi`, `left_semi`, `anti`,
+   *   `leftanti`, left_anti`.
+   *
+   * @note
+   *   If you perform a self-join using this function without aliasing
+   *   the input `DataFrame`s, you will NOT be able to reference any
+   *   columns after the join, since there is no way to disambiguate
+   *   which side of the join you would like to reference.
+   *
+   * @group untypedrel
+   * @since 3.4.0
+   */
+  def join(right: Dataset[_], usingColumn: String, joinType: String): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.join(right.underlying, usingColumn, joinType))
+
+  /**
    * Equi-join with another `DataFrame` using the given columns. A cross
    * join with a predicate is specified as an inner join. If you would
    * explicitly like to perform a cross join use the `crossJoin` method.
@@ -1706,7 +1916,7 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *   `inner`, `cross`, `outer`, `full`, `fullouter`, `full_outer`,
    *   `left`, `leftouter`, `left_outer`, `right`, `rightouter`,
    *   `right_outer`, `semi`, `leftsemi`, `left_semi`, `anti`,
-   *   `leftanti`, left_anti`.
+   *   `leftanti`, `left_anti`.
    *
    * @note
    *   If you perform a self-join using this function without aliasing
@@ -2110,8 +2320,8 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *   // +----+----+----+----+
    *   // |col0|col1|col2|col3|
    *   // +----+----+----+----+
-   *   // |   1|   2|   3|null|
-   *   // |   5|   4|null|   6|
+   *   // |   1|   2|   3|NULL|
+   *   // |   5|   4|NULL|   6|
    *   // +----+----+----+----+
    *
    *   df2.unionByName(df1, true).show
@@ -2120,8 +2330,8 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
    *   // +----+----+----+----+
    *   // |col1|col0|col3|col2|
    *   // +----+----+----+----+
-   *   // |   4|   5|   6|null|
-   *   // |   2|   1|null|   3|
+   *   // |   4|   5|   6|NULL|
+   *   // |   2|   1|NULL|   3|
    *   // +----+----+----+----+
    * }}}
    *
@@ -2198,6 +2408,21 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
     transformationWithAnalysis(_.withColumns(colsMap))
 
   /**
+   * (Scala-specific) Returns a new Dataset with a columns renamed. This
+   * is a no-op if schema doesn't contain existingName.
+   *
+   * `colsMap` is a map of existing column name and new column name.
+   *
+   * @throws AnalysisException
+   *   if there are duplicate names in resulting projection
+   *
+   * @group untypedrel
+   * @since 3.4.0
+   */
+  def withColumnsRenamed(colsMap: Map[String, String]): TryAnalysis[DataFrame] =
+    transformationWithAnalysis(_.withColumnsRenamed(colsMap))
+
+  /**
    * Returns a new Dataset by updating an existing column with metadata.
    *
    * @group untypedrel
@@ -2242,4 +2467,18 @@ final case class Dataset[T](underlying: UnderlyingDataset[T]) { self =>
   // [[org.apache.spark.sql.Dataset.takeAsList]]
   // [[org.apache.spark.sql.Dataset.toJavaRDD]]
   // [[org.apache.spark.sql.Dataset.toString]]
+
+  // ===============
+
+  /**
+   * Selects a metadata column based on its logical column name, and
+   * returns it as a [[Column]].
+   *
+   * A metadata column can be accessed this way even if the underlying
+   * data source defines a data column with a conflicting name.
+   *
+   * @group untypedrel
+   * @since 3.5.0
+   */
+  def metadataColumn(colName: String): Column = get(_.metadataColumn(colName))
 }

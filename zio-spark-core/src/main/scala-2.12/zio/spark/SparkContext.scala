@@ -456,6 +456,16 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def addJar(path: => String)(implicit trace: Trace): Task[Unit] = action(_.addJar(path))
 
+  /**
+   * Add a tag to be assigned to all the jobs started by this thread.
+   *
+   * @param tag
+   *   The tag to be added. Cannot contain ',' (comma) character.
+   *
+   * @since 3.5.0
+   */
+  def addJobTag(tag: => String)(implicit trace: Trace): Task[Unit] = action(_.addJobTag(tag))
+
   def archives(implicit trace: Trace): Task[Seq[String]] = action(_.archives)
 
   /**
@@ -531,7 +541,7 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   /**
    * Broadcast a read-only variable to the cluster, returning a
    * [[org.apache.spark.broadcast.Broadcast]] object for reading it in
-   * distributed functions. The variable will be sent to each cluster
+   * distributed functions. The variable will be sent to each executor
    * only once.
    *
    * @param value
@@ -576,6 +586,17 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def cancelJobGroup(groupId: => String)(implicit trace: Trace): Task[Unit] = action(_.cancelJobGroup(groupId))
 
   /**
+   * Cancel active jobs that have the specified tag. See
+   * `org.apache.spark.SparkContext.addJobTag`.
+   *
+   * @param tag
+   *   The tag to be cancelled. Cannot contain ',' (comma) character.
+   *
+   * @since 3.5.0
+   */
+  def cancelJobsWithTag(tag: => String)(implicit trace: Trace): Task[Unit] = action(_.cancelJobsWithTag(tag))
+
+  /**
    * Cancel a given stage and all jobs associated with it.
    *
    * @param stageId
@@ -608,6 +629,13 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
 
   /** Clear the current thread's job group ID and its description. */
   def clearJobGroup(implicit trace: Trace): Task[Unit] = action(_.clearJobGroup())
+
+  /**
+   * Clear the current thread's job tags.
+   *
+   * @since 3.5.0
+   */
+  def clearJobTags(implicit trace: Trace): Task[Unit] = action(_.clearJobTags())
 
   /**
    * Create and register a `CollectionAccumulator`, which starts with
@@ -644,6 +672,14 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def getExecutorMemoryStatus(implicit trace: Trace): Task[Map[String, (Long, Long)]] =
     action(_.getExecutorMemoryStatus)
+
+  /**
+   * Get the tags that are currently set to be assigned to all the jobs
+   * started by this thread.
+   *
+   * @since 3.5.0
+   */
+  def getJobTags(implicit trace: Trace): Task[Set[String]] = action(_.getJobTags())
 
   /**
    * Get a local property set in this thread, or null if it is missing.
@@ -853,6 +889,17 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def register(acc: => AccumulatorV2[_, _], name: => String)(implicit trace: Trace): Task[Unit] =
     action(_.register(acc, name))
 
+  /**
+   * Remove a tag previously added to be assigned to all the jobs
+   * started by this thread. Noop if such a tag was not added earlier.
+   *
+   * @param tag
+   *   The tag to be removed. Cannot contain ',' (comma) character.
+   *
+   * @since 3.5.0
+   */
+  def removeJobTag(tag: => String)(implicit trace: Trace): Task[Unit] = action(_.removeJobTag(tag))
+
   def resources(implicit trace: Trace): Task[Map[String, ResourceInformation]] = action(_.resources)
 
   /**
@@ -998,6 +1045,22 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
    */
   def setCheckpointDir(directory: => String)(implicit trace: Trace): Task[Unit] = action(_.setCheckpointDir(directory))
 
+  /**
+   * Set the behavior of job cancellation from jobs started in this
+   * thread.
+   *
+   * @param interruptOnCancel
+   *   If true, then job cancellation will result in
+   *   `Thread.interrupt()` being called on the job's executor threads.
+   *   This is useful to help ensure that the tasks are actually stopped
+   *   in a timely manner, but is off by default due to HDFS-1208, where
+   *   HDFS may respond to Thread.interrupt() by marking nodes as dead.
+   *
+   * @since 3.5.0
+   */
+  def setInterruptOnCancel(interruptOnCancel: => Boolean)(implicit trace: Trace): Task[Unit] =
+    action(_.setInterruptOnCancel(interruptOnCancel))
+
   /** Set a human readable description of the current job. */
   def setJobDescription(value: => String)(implicit trace: Trace): Task[Unit] = action(_.setJobDescription(value))
 
@@ -1049,6 +1112,10 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
   def setLocalProperty(key: => String, value: => String)(implicit trace: Trace): Task[Unit] =
     action(_.setLocalProperty(key, value))
 
+  /* ------------------------------------------------------------------------------------- * Initialization. This code
+   * initializes the context in a manner that is exception-safe. | All internal fields holding state are initialized
+   * here, and any error prompts the | stop() method to be called. |
+   * ------------------------------------------------------------------------------------- */
   /**
    * Control our logLevel. This overrides any user-defined log settings.
    * @param logLevel
@@ -1059,6 +1126,23 @@ final case class SparkContext(underlying: UnderlyingSparkContext) { self =>
 
   /** Shut down the SparkContext. */
   def stop(implicit trace: Trace): Task[Unit] = action(_.stop())
+
+  /**
+   * Shut down the SparkContext with exit code that will passed to
+   * scheduler backend. In client mode, client side may call
+   * `SparkContext.stop()` to clean up but exit with code not equal to
+   * 0. This behavior cause resource scheduler such as
+   * `ApplicationMaster` exit with success status but client side exited
+   * with failed status. Spark can call this method to stop SparkContext
+   * and pass client side correct exit code to scheduler backend. Then
+   * scheduler backend should send the exit code to corresponding
+   * resource scheduler to keep consistent.
+   *
+   * @param exitCode
+   *   Specified exit code that will passed to scheduler backend in
+   *   client mode.
+   */
+  def stop(exitCode: => Int)(implicit trace: Trace): Task[Unit] = action(_.stop(exitCode))
 
   /**
    * Submit a job for execution and return a FutureJob holding the
