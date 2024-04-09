@@ -52,7 +52,7 @@ inThisBuild(
 ThisBuild / scalafixScalaBinaryVersion := "2.13"
 ThisBuild / semanticdbEnabled          := true
 ThisBuild / semanticdbVersion          := scalafixSemanticdb.revision
-ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "0.1.21")
+ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "0.1.23")
 
 // SCoverage configuration
 val excludedPackages: Seq[String] =
