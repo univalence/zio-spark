@@ -1,7 +1,7 @@
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 
 addSbtPlugin("ch.epfl.scala"                     % "sbt-scalafix"     % "0.11.1")
-addSbtPlugin("com.github.sbt"                    % "sbt-ci-release"   % "1.5.12")
+addSbtPlugin("com.github.sbt"                    % "sbt-ci-release"   % "1.8.0")
 addSbtPlugin("org.typelevel"                     % "sbt-tpolecat"     % "0.5.2")
 addSbtPlugin("org.scalameta"                     % "sbt-scalafmt"     % "2.5.2")
 addSbtPlugin("org.scoverage"                     % "sbt-scoverage"    % "2.0.10")
