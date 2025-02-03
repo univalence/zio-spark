@@ -22,8 +22,10 @@ jobs:
           java-version: 11
           check-latest: true
 
-      - name: debug
+      - name: Publish package
         run: |
+          sbt compile
+          
           echo
           echo "===================="
           echo "Version of sbt:"
@@ -34,9 +36,8 @@ jobs:
           git status
           echo
           echo "===================="
-
-      - name: Publish package
-        run: sbt ci-release
+          
+          sbt ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
