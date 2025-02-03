@@ -22,6 +22,19 @@ jobs:
           java-version: 11
           check-latest: true
 
+      - name: debug
+        run: |
+          echo
+          echo "===================="
+          echo "Version of sbt:"
+          sbt 'show version'
+          echo
+          echo "===================="
+          echo "git status"
+          git status
+          echo
+          echo "===================="
+
       - name: Publish package
         run: sbt ci-release
         env:
