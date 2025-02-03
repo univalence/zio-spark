@@ -1,7 +1,6 @@
 // Common configuration
 inThisBuild(
   List(
-    version ~= addVersionPadding,
     scalaVersion  := scala213,
     organization  := "com.guizmaii",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
@@ -240,27 +239,6 @@ def sparkScalaVersionMapping(scalaMinor: Long): String =
 def fatalWarningsAsProperties(options: Seq[String]): Seq[String] =
   if (sys.props.getOrElse("fatal-warnings", "false") == "true") options
   else options.filterNot(Set("-Xfatal-warnings"))
-
-/**
- * Add padding to change: 0.1.0+48-bfcea99ap20220317-1157-SNAPSHOT into
- * 0.1.0+0048-bfcea99ap20220317-1157-SNAPSHOT. It helps to retrieve the
- * latest snapshots from
- * https://oss.sonatype.org/#nexus-search;gav~io.univalence~zio-spark_2.13~~~~kw,versionexpand.
- */
-def addVersionPadding(baseVersion: String): String = {
-  import scala.util.matching.Regex
-
-  val paddingSize    = 5
-  val counter: Regex = "\\+([0-9]+)-".r
-
-  counter.findFirstMatchIn(baseVersion) match {
-    case Some(regex) =>
-      val count          = regex.group(1)
-      val snapshotNumber = "0" * (paddingSize - count.length) + count
-      counter.replaceFirstIn(baseVersion, s"+$snapshotNumber-")
-    case None => baseVersion
-  }
-}
 
 def scalaVersionSpecificSources(environment: String, baseDirectory: File)(versions: String*) =
   for {
