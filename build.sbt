@@ -1,3 +1,4 @@
+
 // Common configuration
 inThisBuild(
   List(
@@ -48,11 +49,11 @@ inThisBuild(
   )
 )
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 // Scalafix configuration
-ThisBuild / scalafixScalaBinaryVersion := "2.13"
 ThisBuild / semanticdbEnabled          := true
 ThisBuild / semanticdbVersion          := scalafixSemanticdb.revision
-ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "0.1.23")
 
 // SCoverage configuration
 val excludedPackages: Seq[String] =
@@ -89,12 +90,12 @@ addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
 
 // -- Lib versions
-lazy val zio        = "2.1.9"
-lazy val zioPrelude = "1.0.0-RC31"
+lazy val zio        = "2.1.14"
+lazy val zioPrelude = "1.0.0-RC37"
 
-lazy val scala212 = "2.12.19"
-lazy val scala213 = "2.13.13"
-lazy val scala3   = "3.3.4"
+lazy val scala212 = "2.12.20"
+lazy val scala213 = "2.13.16"
+lazy val scala3   = "3.3.5"
 
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 

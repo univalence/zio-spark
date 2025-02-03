@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala: ["2.12.19", "2.13.9", "3.3.3"]
+        scala: ["2.12.x", "2.13.x", "3.x"]
         project: [ "coreTests", "test" ]
     steps:
       - name: Checkout current branch

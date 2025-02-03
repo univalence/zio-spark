@@ -1,5 +1,5 @@
 name         := "zparkio-comparaison"
-scalaVersion := "2.13.8"
+scalaVersion := "2.13.16"
 
 libraryDependencies ++= Seq(
   // "io.univalence"    %% "zio-spark"  % "0.10.0", //https://index.scala-lang.org/univalence/zio-spark/zio-spark
