@@ -2,7 +2,7 @@
 inThisBuild(
   List(
     scalaVersion  := scala213,
-    organization  := "com.guizmaii",
+    organization  := "io.univalence",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
     licenses      := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
     versionScheme := Some("early-semver"),
