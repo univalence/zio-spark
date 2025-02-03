@@ -3,7 +3,7 @@ inThisBuild(
   List(
     version ~= addVersionPadding,
     scalaVersion  := scala213,
-    organization  := "io.univalence",
+    organization  := "com.guizmaii",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
     licenses      := List("Apache-2.0" -> url("https://github.com/univalence/zio-spark/blob/master/LICENSE")),
     versionScheme := Some("early-semver"),

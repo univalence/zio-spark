@@ -1,4 +1,4 @@
-ThisBuild / organization := "io.univalence"
+ThisBuild / organization := "com.guizmaii"
 
 // Spark still uses 1.X.X version of scala-xml
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
