@@ -66,8 +66,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala: [ "2.12.x", "2.13.x", "3.x" ]
+        scala: [ "2.12.20", "2.13.16", "3.3.5" ]
         project: [ "coreTests", "test" ]
+        java: [ "11", "17", "21" ]
     steps:
       - uses: actions/checkout@v4
       - uses: sbt/setup-sbt@v1
@@ -75,15 +76,15 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 11
+          java-version: ${{ matrix.java }}
           check-latest: true
 
       - name: Run tests
         if: ${{ !startsWith(matrix.scala, '2.13.') || matrix.project != 'coreTests' }}
-        run: sbt ++${{ matrix.scala }}! "project ${{ matrix.project }}" testSpecific
+        run: sbt ++${{ matrix.scala }} "project ${{ matrix.project }}" testSpecific
       - name: Run tests 2.13.X with coverage
         if: ${{ startsWith(matrix.scala, '2.13.') && matrix.project == 'coreTests' }}
-        run: sbt ++${{ matrix.scala }}! "project coreTests" testSpecificWithCoverage
+        run: sbt ++${{ matrix.scala }} "project coreTests" testSpecificWithCoverage
       - name: Publish coverage to codecov
         if: ${{ startsWith(matrix.scala, '2.13.') && matrix.project == 'coreTests' }}
         uses: codecov/codecov-action@v2

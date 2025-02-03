@@ -1,4 +1,3 @@
-
 // Common configuration
 inThisBuild(
   List(
@@ -52,8 +51,17 @@ inThisBuild(
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 // Scalafix configuration
-ThisBuild / semanticdbEnabled          := true
-ThisBuild / semanticdbVersion          := scalafixSemanticdb.revision
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "0.1.23")
+
+// Java 17+ stuff
+ThisBuild / Test / javaOptions ++= Seq("--add-exports", "java.base/sun.nio.ch=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.nio=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.util=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.lang=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED")
+ThisBuild / Test / fork := true // Needed otherwise the javaOptions are not taken into account
 
 // SCoverage configuration
 val excludedPackages: Seq[String] =
@@ -304,14 +312,8 @@ lazy val commonSettings =
     scalacOptions ~= fatalWarningsAsProperties
   )
 
-// run is forcing the exit of sbt. It could be useful to set fork to true
-/* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the project
- * root (./) */
-/* which lead to errors, eg. Path does not exist:
- * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
 lazy val noPublishingSettings =
   Seq(
-    fork                                   := false,
     publish / skip                         := true,
     Compile / doc / sources                := Seq.empty,
     Compile / packageDoc / publishArtifact := false
