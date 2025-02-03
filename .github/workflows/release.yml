@@ -24,7 +24,7 @@ jobs:
 
       - name: Publish package
         run: |
-          sbt compile
+          sbt 'clean;+Test/compile'
           
           echo
           echo "===================="
