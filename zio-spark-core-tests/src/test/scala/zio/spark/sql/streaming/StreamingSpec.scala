@@ -35,23 +35,23 @@ object StreamingSpec extends ZIOSparkSpecDefault {
     suite("Streaming spec")(
       testStreamingPipeline(
         name          = "csv",
-        readingEffect = _.option("header", value = true).option("delimiter", ";").csv(s"$resourcesPath/data-csv")
+        readingEffect = _.option("header", value = true).option("delimiter", ";").csv(resourcesPath("data-csv"))
       ),
       testStreamingPipeline(
         name          = "json",
-        readingEffect = _.option("multiline", "true").json(s"$resourcesPath/data-json")
+        readingEffect = _.option("multiline", "true").json(resourcesPath("data-json"))
       ),
       testStreamingPipeline(
         name          = "parquet",
-        readingEffect = _.parquet(s"$resourcesPath/data-parquet")
+        readingEffect = _.parquet(resourcesPath("data-parquet"))
       ),
       testStreamingPipeline(
         name          = "orc",
-        readingEffect = _.orc(s"$resourcesPath/data-orc")
+        readingEffect = _.orc(resourcesPath("data-orc"))
       ),
       test(s"Streaming using once trigger is the same as test") {
         for {
-          df <- SparkSession.readStream.textFile(s"$resourcesPath/data-txt")
+          df <- SparkSession.readStream.textFile(resourcesPath("data-txt"))
           _ <-
             df.flatMap(_.split(" "))
               .writeStream

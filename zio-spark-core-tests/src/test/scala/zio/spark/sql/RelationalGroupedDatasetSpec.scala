@@ -20,7 +20,7 @@ object RelationalGroupedDatasetSpec extends ZIOSparkSpecDefault {
       def build: Spec[SparkSession, Any] =
         test(s"DataFrameWriter should implement $aggregation correctly") {
           for {
-            df <- readCsv(s"$resourcesPath/group.csv")
+            df <- readCsv(resourcesPath("group.csv"))
             transformedDf =
               f("age")(df.groupBy($"status"))
                 .withColumnRenamed(s"$aggregation(age)", "age")

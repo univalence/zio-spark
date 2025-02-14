@@ -29,5 +29,5 @@ object Size {
 
   final case class PebiByte(amount: Int) extends Size
 
-  final case object Unlimited extends Size
+  case object Unlimited extends Size
 }

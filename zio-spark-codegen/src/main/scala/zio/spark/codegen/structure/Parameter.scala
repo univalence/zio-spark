@@ -51,7 +51,7 @@ case class Parameter(underlying: Term.Param, scalaVersion: ScalaBinaryVersion) {
 object Parameter {
   sealed trait Modifier
   object Modifier {
-    final case object Implicit extends Modifier
+    case object Implicit extends Modifier
   }
 
   def fromScalaMeta(param: Term.Param, scalaVersion: ScalaBinaryVersion): Parameter = Parameter(param, scalaVersion)
