@@ -1,7 +1,6 @@
 // Common configuration
 inThisBuild(
   List(
-    version ~= addVersionPadding,
     scalaVersion  := scala213,
     organization  := "io.univalence",
     homepage      := Some(url("https://github.com/univalence/zio-spark")),
@@ -48,11 +47,20 @@ inThisBuild(
   )
 )
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 // Scalafix configuration
-ThisBuild / scalafixScalaBinaryVersion := "2.13"
-ThisBuild / semanticdbEnabled          := true
-ThisBuild / semanticdbVersion          := scalafixSemanticdb.revision
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 ThisBuild / scalafixDependencies ++= Seq("com.github.vovapolu" %% "scaluzzi" % "0.1.23")
+
+// Java 17+ stuff
+ThisBuild / Test / javaOptions ++= Seq("--add-exports", "java.base/sun.nio.ch=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.nio=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.util=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.lang=ALL-UNNAMED")
+ThisBuild / Test / javaOptions ++= Seq("--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED")
+ThisBuild / Test / fork := true // Needed otherwise the javaOptions are not taken into account
 
 // SCoverage configuration
 val excludedPackages: Seq[String] =
@@ -89,12 +97,12 @@ addCommandAlias("testSpecific", "; clean; test;")
 addCommandAlias("testSpecificWithCoverage", "; clean; coverage; test; coverageReport;")
 
 // -- Lib versions
-lazy val zio        = "2.1.9"
-lazy val zioPrelude = "1.0.0-RC31"
+lazy val zio        = "2.1.14"
+lazy val zioPrelude = "1.0.0-RC37"
 
-lazy val scala212 = "2.12.19"
-lazy val scala213 = "2.13.13"
-lazy val scala3   = "3.3.4"
+lazy val scala212 = "2.12.20"
+lazy val scala213 = "2.13.16"
+lazy val scala3   = "3.3.5"
 
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
@@ -232,27 +240,6 @@ def fatalWarningsAsProperties(options: Seq[String]): Seq[String] =
   if (sys.props.getOrElse("fatal-warnings", "false") == "true") options
   else options.filterNot(Set("-Xfatal-warnings"))
 
-/**
- * Add padding to change: 0.1.0+48-bfcea99ap20220317-1157-SNAPSHOT into
- * 0.1.0+0048-bfcea99ap20220317-1157-SNAPSHOT. It helps to retrieve the
- * latest snapshots from
- * https://oss.sonatype.org/#nexus-search;gav~io.univalence~zio-spark_2.13~~~~kw,versionexpand.
- */
-def addVersionPadding(baseVersion: String): String = {
-  import scala.util.matching.Regex
-
-  val paddingSize    = 5
-  val counter: Regex = "\\+([0-9]+)-".r
-
-  counter.findFirstMatchIn(baseVersion) match {
-    case Some(regex) =>
-      val count          = regex.group(1)
-      val snapshotNumber = "0" * (paddingSize - count.length) + count
-      counter.replaceFirstIn(baseVersion, s"+$snapshotNumber-")
-    case None => baseVersion
-  }
-}
-
 def scalaVersionSpecificSources(environment: String, baseDirectory: File)(versions: String*) =
   for {
     version <- "scala" :: versions.toList.map("scala-" + _)
@@ -303,14 +290,8 @@ lazy val commonSettings =
     scalacOptions ~= fatalWarningsAsProperties
   )
 
-// run is forcing the exit of sbt. It could be useful to set fork to true
-/* however, the base directory of the fork is set to the subproject root (./examples/simple-app) instead of the project
- * root (./) */
-/* which lead to errors, eg. Path does not exist:
- * file:./zio-spark/examples/simple-app/examples/simple-app/src/main/resources/data.csv */
 lazy val noPublishingSettings =
   Seq(
-    fork                                   := false,
     publish / skip                         := true,
     Compile / doc / sources                := Seq.empty,
     Compile / packageDoc / publishArtifact := false

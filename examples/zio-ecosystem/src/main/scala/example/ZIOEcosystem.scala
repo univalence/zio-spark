@@ -65,7 +65,7 @@ object ZIOEcosystem extends ZIOSparkAppDefault {
   val zioSparkCommand: Command[RunSubcommand] =
     Command("zio-spark", Options.none, Args.none).subcommands(exampleSubcommand)
 
-  val app: CliApp[SparkSession, Throwable, RunSubcommand] =
+  val app: CliApp[SparkSession, Throwable, Unit] =
     CliApp.make(
       "ZIO Spark Application",
       "0.1.0",
@@ -73,7 +73,7 @@ object ZIOEcosystem extends ZIOSparkAppDefault {
       zioSparkCommand
     )(program)
 
-  def program(command: RunSubcommand): SIO[Any] = {
+  def program(command: RunSubcommand): SIO[Unit] = {
 
     def logInfo(example: Example): UIO[Unit] =
       example match {
@@ -102,7 +102,7 @@ object ZIOEcosystem extends ZIOSparkAppDefault {
       run <- job(command.example).timed
       seconds: Float = run._1.toMillis.toFloat / 1000
       _ <- ZIO.logInfo(s"Example (${command.example.name}) correctly finished, it took $seconds seconds!")
-    } yield {}
+    } yield ()
   }
 
   // zio-spark run simple-app => Run the simple-app example

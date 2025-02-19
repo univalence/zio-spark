@@ -118,8 +118,8 @@ case class Method(
 object Method {
   sealed trait Kind
   object Kind {
-    final case object Function extends Kind
-    final case object Setter   extends Kind
+    case object Function extends Kind
+    case object Setter   extends Kind
   }
 
   def fromScalaMeta(

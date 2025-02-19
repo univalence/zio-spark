@@ -62,7 +62,7 @@ object ZioSparkCodegenPlugin extends AutoPlugin {
             keyValueGroupedDatasetPlan
           )
 
-        Unsafe.unsafeCompat { implicit u =>
+        Unsafe.unsafe { implicit u =>
           val outputs: Seq[Output] =
             zio.Runtime.default.unsafe
               .run(

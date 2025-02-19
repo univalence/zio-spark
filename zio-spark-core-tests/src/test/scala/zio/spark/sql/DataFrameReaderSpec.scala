@@ -40,25 +40,25 @@ object DataFrameReaderSpec extends ZIOSparkSpecDefault {
       },
       test("DataFrameReader can read a JSON file") {
         for {
-          df     <- SparkSession.read.option("multiline", "true").json(s"$resourcesPath/data-json")
+          df     <- SparkSession.read.option("multiline", "true").json(resourcesPath("data-json"))
           output <- df.count
         } yield assertTrue(output == 4L)
       },
       test("DataFrameReader can read a Parquet file") {
         for {
-          df     <- SparkSession.read.parquet(s"$resourcesPath/data-parquet")
+          df     <- SparkSession.read.parquet(resourcesPath("data-parquet"))
           output <- df.count
         } yield assertTrue(output == 4L)
       },
       test("DataFrameReader can read a Orc file") {
         for {
-          df     <- SparkSession.read.orc(s"$resourcesPath/data-orc")
+          df     <- SparkSession.read.orc(resourcesPath("data-orc"))
           output <- df.count
         } yield assertTrue(output == 4L)
       },
       test("DataFrameReader can read a Text file") {
         for {
-          df     <- SparkSession.read.textFile(s"$resourcesPath/data-txt")
+          df     <- SparkSession.read.textFile(resourcesPath("data-txt"))
           output <- df.flatMap(_.split(" ")).count
         } yield assertTrue(output == 4L)
       },
@@ -72,14 +72,14 @@ object DataFrameReaderSpec extends ZIOSparkSpecDefault {
           )
 
         for {
-          df <- SparkSession.read.option("multiline", "true").schema(schema).json(s"$resourcesPath/data-json")
+          df <- SparkSession.read.option("multiline", "true").schema(schema).json(resourcesPath("data-json"))
         } yield assertTrue(df.columns == Seq("firstName", "age"))
       },
       test("DataFrameReader can have a schema from a case class") {
         final case class Schema(firstName: String, age: Int)
 
         for {
-          df <- SparkSession.read.option("multiline", "true").schema[Schema].json(s"$resourcesPath/data-json")
+          df <- SparkSession.read.option("multiline", "true").schema[Schema].json(resourcesPath("data-json"))
         } yield assertTrue(df.columns == Seq("firstName", "age"))
       },
       test("DataFrameReader can use a schemaString") {
