@@ -1,5 +1,5 @@
 name         := "simple-app"
-scalaVersion := "2.13.16"
+scalaVersion := "2.13.17"
 
 libraryDependencies ++= Seq(
   // "io.univalence"    %% "zio-spark"  % "X.X.X", //https://index.scala-lang.org/univalence/zio-spark/zio-spark
