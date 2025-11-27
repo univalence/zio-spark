@@ -1,5 +1,5 @@
 name         := "word-count"
-scalaVersion := "2.13.17"
+scalaVersion := "2.13.18"
 
 libraryDependencies ++= Seq(
   // "io.univalence"    %% "zio-spark"  % "X.X.X", //https://index.scala-lang.org/univalence/zio-spark/zio-spark
