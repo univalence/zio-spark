@@ -196,7 +196,7 @@ lazy val examples =
 /** Generates required libraries for magnolia. */
 def generateMagnoliaDependency(scalaMajor: Long, scalaMinor: Long): Seq[ModuleID] =
   scalaMinor match {
-    case _ if scalaMajor == 3 => Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.20")
+    case _ if scalaMajor == 3 => Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.21")
     case 12 | 13              => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.14")
     case _                    => throw new Exception("It should be unreachable.")
   }
